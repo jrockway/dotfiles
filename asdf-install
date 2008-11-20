@@ -1,0 +1,6 @@
+;;; -*- Mode: Lisp -*-
+
+(setq asdf-install:*locations*
+      '((#P"/home/jon/.sbcl/site/"
+         #P"/home/jon/.sbcl/systems/"
+         "Personal installation")))

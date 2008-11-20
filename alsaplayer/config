@@ -1,0 +1,47 @@
+#
+# alsaplayer config file
+#
+# Only edit this file if the application is not active.
+# Any modifications might (will!) be lost otherwise.
+#
+blurscope.active=false
+gtk2_interface.background_colour=#000000
+gtk2_interface.default_playlist_add_path=/home/jon/Music/misc
+gtk2_interface.default_playlist_load_path=.
+gtk2_interface.default_playlist_save_path=.
+gtk2_interface.font_colour=#ffffff
+gtk2_interface.fonts=
+gtk2_interface.height=1186
+gtk2_interface.loop=1
+gtk2_interface.play_on_add=false
+gtk2_interface.play_on_title=false
+gtk2_interface.playlist_active=true
+gtk2_interface.playlist_height=1
+gtk2_interface.scopeswindow_active=false
+gtk2_interface.smooth_transition=false
+gtk2_interface.width=1920
+gtk_interface.default_play_path=/home/jon/
+gtk_interface.default_playlist_add_path=/home/jon/Music/Mario/
+gtk_interface.default_playlist_load_path=/
+gtk_interface.default_playlist_save_path=/
+gtk_interface.playlist_active=true
+gtk_interface.scopeswindow_active=false
+gtk_interface.smooth_transition=false
+http.buffer_size=1048576
+jack.output1=alsa_pcm:playback_1
+jack.output2=alsa_pcm:playback_2
+levelmeter.active=false
+logbarfft.active=false
+mad.parse_id3=true
+main.default_interface=gtk
+main.default_output=alsa
+main.multiopen=true
+main.period_count=8
+main.period_size=4096
+main.play_on_start=false
+monoscope.active=false
+opengl_spectrum.active=false
+opengl_spectrum.height=480
+opengl_spectrum.width=640
+spacescope.active=false
+synaescope.active=false

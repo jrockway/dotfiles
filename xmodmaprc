@@ -1,0 +1,10 @@
+remove Lock = Caps_Lock
+keysym Caps_Lock = Super_L
+
+!! Reverse alt/super
+! clear mod1
+! clear mod4
+! keycode 64 = Super_L
+! keycode 115 = Alt_L Meta_L
+! add mod1 = Alt_L Meta_L
+! add mod4 = Super_L

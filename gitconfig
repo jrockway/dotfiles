@@ -1,0 +1,15 @@
+[user]
+	name = Jonathan Rockway
+	email = jon@jrock.us
+	signingkey = 5BF3666D
+[alias]
+	st = status
+	di = diff
+	co = checkout
+	ci = commit
+	br = branch
+	sta = stash
+[color]
+	status = auto
+	branch = auto
+	diff = auto
