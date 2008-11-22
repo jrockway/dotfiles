@@ -59,26 +59,26 @@ function mod {
 alias ec="emacsclient -t" # yay for multi-tty!
 
 function net {
-    sudo iwconfig wlan0 ap any;
-    sudo iwconfig wlan0 essid "$1";
+    sudo iwconfig ra0 ap any;
+    sudo iwconfig ra0 essid "$1";
     sleep 1;
-    sudo dhclient wlan0;
+    sudo dhclient ra0;
 }
 
 function phone {
-    sudo ifconfig wlan0 down
-    sudo iwconfig wlan0 mode ad-hoc
-    sudo ifconfig wlan0 up
-    sudo iwconfig wlan0 essid WMWifiRouter
+    sudo ifconfig ra0 down
+    sudo iwconfig ra0 mode ad-hoc
+    sudo ifconfig ra0 up
+    sudo iwconfig ra0 essid WMWifiRouter
     sleep 1;
-    sudo dhclient wlan0
+    sudo dhclient ra0
 }
 
-function phone-down {
-    sudo ifconfig wlan0 down
-    sudo iwconfig wlan0 mode managed
-    sudo ifconfig wlan0 up
-    sudo iwconfig wlan0 essid "none"
+function phone_down {
+    sudo ifconfig ra0 down
+    sudo iwconfig ra0 mode managed
+    sudo ifconfig ra0 up
+    sudo iwconfig ra0 essid "none"
 }
 
 # limits
