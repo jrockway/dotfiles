@@ -8,15 +8,11 @@
 (add-to-list 'load-path "~/elisp/_local")
 (add-to-list 'load-path "~/elisp/slime/")
 (add-to-list 'load-path "~/elisp/slime/contrib")
-;(add-to-list 'load-path "~/elisp/Sepia/")
 (add-to-list 'load-path "~/elisp/mmm-mode/")
-;(add-to-list 'load-path "~/elisp/nxml/nxml-mode-20041004")
-;(add-to-list 'load-path "~/elisp/nxml/nxhtml")
-;(add-to-list 'load-path "~/elisp/nxml/util")
 (add-to-list 'load-path "~/elisp/ocaml")
 (add-to-list 'load-path "~/projects/cpan_modules/Stylish/emacs")
+(add-to-list 'load-path "~/projects/eproject/eproject.el")
 
-;(load-file "/home/jon/elisp/nxml/autostart.el")
 (load-file "/home/jon/elisp/cperl-mode.el")
 (load-file "/home/jon/elisp/css-mode.el")
 (load-file "/home/jon/elisp/vc-svk.el")
@@ -28,10 +24,6 @@
 (load-file "/home/jon/elisp/haskell-mode/haskell-mode.el")
 (load-file "/home/jon/elisp/template/lisp/template.el")
 (load-file "/home/jon/elisp/ecb/ecb.el")
-
-;; environment
-(setenv "PATH"
-        (concat "/home/jon/perl/install/bin:" (getenv "PATH")))
 
 (require 'template)
 (template-initialize)
@@ -229,7 +221,6 @@
 (global-set-key "\C-w" 'backward-kill-word)
 (global-set-key "\C-x\C-k" 'kill-region)
 (global-set-key "\C-c\C-k" 'kill-region)
-(global-set-key "\C-h" 'backward-delete-char-untabify)
 (global-set-key (kbd "C-;") (lambda () (interactive) (insert "_")))
 ;(global-set-key (kbd "C-c a SPC") 'amarok-play-pause)
 ;(global-set-key (kbd "C-c a n") 'amarok-next)
@@ -249,8 +240,8 @@
 (global-set-key (kbd "<f2> v") 'customize-variable)
 (global-set-key (kbd "<f2> a") 'customize-apropos)
 (global-set-key (kbd "<f2> f") 'customize-face)
-(global-set-key (kbd "<f1> l") (lambda nil (interactive) (info "Elisp")))
-(global-set-key (kbd "<f1> o") 'find-library)
+(global-set-key (kbd "C-h l") (lambda nil (interactive) (info "Elisp")))
+(global-set-key (kbd "C-h o") 'find-library)
 (global-set-key (kbd "C-x t") (lambda nil (interactive) (ansi-term "/bin/bash")))
 (global-set-key (kbd "M-?") 'hippie-expand)
 
@@ -409,7 +400,7 @@
  '(inferior-lisp-program "/usr/bin/sbcl")
  '(inhibit-startup-screen t)
  '(initial-scratch-message nil)
- '(iswitchb-buffer-ignore (quote ("^ " "^[#]")))
+ '(iswitchb-buffer-ignore (quote ("^ ")))
  '(jde-compiler (quote ("javac" "")))
  '(jde-gen-conditional-padding-1 " ")
  '(jde-gen-conditional-padding-3 "")
