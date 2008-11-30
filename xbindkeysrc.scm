@@ -70,8 +70,7 @@
 (define (super key)
   (list 'mod4 key))
 
-(define Pause 'Pause) ; "c:204"
-(xbindkey Pause "xmms2 toggleplay")
+;(define Pause 'Pause) ; "c:204"
+(xbindkey (super 'grave) "xmms2 toggleplay")
 (xbindkey (super 'Left) "xmms2 prev")
 (xbindkey (super 'Right) "xmms2 next")
-(xbindkey (super Pause) "xmms2 next; xmms2 prev")
