@@ -8,3 +8,9 @@
 ! keycode 115 = Alt_L Meta_L
 ! add mod1 = Alt_L Meta_L
 ! add mod4 = Super_L
+
+!! swap () and []
+keycode  18 = 9 bracketleft
+keycode  19 = 0 bracketright
+keycode  34 = parenleft braceleft
+keycode  35 = parenright braceright

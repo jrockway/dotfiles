@@ -11,7 +11,7 @@
 (add-to-list 'load-path "~/elisp/mmm-mode/")
 (add-to-list 'load-path "~/elisp/ocaml")
 (add-to-list 'load-path "~/projects/cpan_modules/Stylish/emacs")
-(add-to-list 'load-path "~/projects/eproject/eproject.el")
+(add-to-list 'load-path "~/projects/eproject")
 
 (load-file "/home/jon/elisp/cperl-mode.el")
 (load-file "/home/jon/elisp/css-mode.el")
@@ -433,7 +433,7 @@
  '(rcirc-default-server "irc.perl.org")
  '(safe-local-variable-values (quote ((Syntax . ANSI-Common-Lisp) (Base . 10) (flymake-mode . 0))))
  '(same-window-buffer-names (quote ("*shell*" "*mail*" "*inferior-lisp*" "*ielm*" "*scheme*" "*info*")))
- '(same-window-regexps (quote ("^[^*]" "[*]Help" "[*]Custom" "[*]git" "[*]w3m" "[*]sldb" "[*].*reply.*" "[*]SLIME")))
+ '(same-window-regexps (quote ("^[^*]" "[*]Help" "[*]Custom" "[*]git" "[*]w3m" "[*]sldb" "[*].*reply.*" "[*]SLIME" "[*]VC")))
  '(save-place t nil (saveplace))
  '(scheme-program-name "guile")
  '(scroll-bar-mode nil)
