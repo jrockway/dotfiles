@@ -196,6 +196,11 @@
       (setq iswitchb-buflist iswitchb-matches)
       (iswitchb-rescan))
 
+(defun iconify-or-deiconify-frame ()
+  "Don't iconify, since that makes emacs freeze under xmonad"
+  (interactive)
+  (make-frame-visible))
+
 (defun iswitchb-rescan ()
   "*Regenerate the list of matching buffer names."
   (interactive)
