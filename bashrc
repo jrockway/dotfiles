@@ -92,6 +92,9 @@ alias h=history
 alias r='fc -s'
 export HISTFILESIZE=10000
 
+# term setup
+stty stop ''
+
 # exports
 #export CFLAGS="-O0 -g3"
 export EDITOR="mg"
