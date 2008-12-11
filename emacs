@@ -62,6 +62,7 @@
      (slime-setup '(slime-fancy
                     slime-fancy-inspector
                     slime-asdf
+                    slime-indentation
                     slime-fontifying-fu))
      (slime-autodoc-mode)
      (setq slime-complete-symbol*-fancy t)
@@ -80,7 +81,7 @@
 
 ;;; hooks
 (defun text-hooks ()
-  "This function turns modes that I need when editing English text."
+  "Turn on modes that I need when editing English text."
   (turn-on-auto-fill)
   (flyspell-mode 1)
   (local-set-key "\C-cu" 'insert-same-number-of-chars-as-line-above)
@@ -226,45 +227,15 @@
 (global-set-key "\C-w" 'backward-kill-word)
 (global-set-key "\C-x\C-k" 'kill-region)
 (global-set-key "\C-c\C-k" 'kill-region)
-(global-set-key (kbd "C-;") (lambda () (interactive) (insert "_")))
-;(global-set-key (kbd "C-c a SPC") 'amarok-play-pause)
-;(global-set-key (kbd "C-c a n") 'amarok-next)
-;(global-set-key (kbd "C-c a p") 'amarok-prev)
-(global-set-key (kbd "C-c a s") 'xmms-seek)
-(global-set-key (kbd "C-c a a") 'xmms-jump-to-song)
 (global-set-key "\C-c\C-r" 'revert-buffer)
-(global-set-key (kbd "C-x C-g") 'keyboard-quit)
+(global-set-key (kbd "C-x C-g") 'abort-recursive-edit)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
-(global-set-key (kbd "<f12>") 'erc-next-channel)
-(global-set-key (kbd "<f11>") (lambda () (interactive) (switch-to-buffer "*Messages*")))
-(global-set-key (kbd "<f10>") 'erc-iswitchb)
-(global-set-key (kbd "<f9>") (lambda () (interactive) (switch-to-buffer "*scratch*")))
-(global-set-key (kbd "<f8>") 'ifind-perl-projects)
-(global-set-key (kbd "<f5>") 'gnus)
-(global-set-key (kbd "<f2> g") 'customize-group)
-(global-set-key (kbd "<f2> v") 'customize-variable)
-(global-set-key (kbd "<f2> a") 'customize-apropos)
-(global-set-key (kbd "<f2> f") 'customize-face)
 (global-set-key (kbd "C-h l") (lambda nil (interactive) (info "Elisp")))
 (global-set-key (kbd "C-h o") 'find-library)
 (global-set-key (kbd "C-x t") (lambda nil (interactive) (ansi-term "/bin/bash")))
 (global-set-key (kbd "M-?") 'hippie-expand)
 
-;; These are pretty useless when not in the terminal.
-(when (eq window-system 'x)
-  (global-unset-key (kbd "C-z"))
-  (global-unset-key (kbd "C-x C-z"))
-  (global-unset-key (kbd "C-x C-c"))
-  (global-set-key (kbd "C-x C-c") 'bury-buffer))
-
-;; I use these too much
-(loop for key in (list (kbd "C-<left>")
-                       (kbd "C-<right>")
-                       (kbd "C-<backspace>"))
-      do (global-unset-key key))
 (define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
-(global-set-key (kbd "M-<up>") 'chop-move-up)
-(global-set-key (kbd "M-<down>") 'chop-move-down)
 
 ;;; setqs
 (setq cperl-electric-keywords nil)
@@ -324,7 +295,6 @@
  '(cperl-highlight-variables-indiscriminately nil)
  '(cperl-indent-level 4)
  '(cperl-indent-parens-as-block t)
- '(cperl-inent-level 4)
  '(cperl-invalid-face (quote default))
  '(cperl-tab-always-indent t)
  '(cperl-under-as-char nil)
@@ -336,6 +306,7 @@
  '(ecb-options-version "2.32")
  '(ecb-source-path (quote ("~/projects")))
  '(ecomplete-database-file-coding-system (quote utf-8-emacs))
+ '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode checkdoc-minor-mode (lambda nil (font-lock-add-keywords (quote emacs-lisp-mode) slime-additional-font-lock-keywords)) (lambda nil (local-set-key "" (quote macroexpand-last-sexp))) semantic-default-elisp-setup paredit-mode)))
  '(erc-auto-query (quote bury))
  '(erc-email-userid "jon@jrock.us")
  '(erc-fools nil)
@@ -347,7 +318,7 @@
  '(erc-mode-hook (quote (erc-munge-invisibility-spec erc-move-to-prompt-setup pcomplete-erc-setup erc-button-setup erc-imenu-setup ensure-erc-features)))
  '(erc-nick "jrockway")
  '(erc-nick-uniquifier "_")
- '(erc-pals (quote ("stevan" "nothingmuch" "tom$" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "gphat")))
+ '(erc-pals (quote ("stevan" "nothingmuch" "tom" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "brian")))
  '(erc-prompt-for-password t)
  '(erc-server "stonepath.jrock.us")
  '(erc-spelling-mode t)
@@ -417,6 +388,7 @@
  '(js2-mirror-mode nil)
  '(js2-use-font-lock-faces t)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
+ '(lisp-mode-hook (quote (slime-lisp-mode-hook paredit-mode)))
  '(mail-user-agent (quote gnus-user-agent))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
