@@ -1,4 +1,4 @@
-personal_ws-1.1 en 99 
+personal_ws-1.1 en 111 
 templating
 proven
 Rockway
@@ -9,6 +9,7 @@ whitespace
 introspectable
 startup
 repurposed
+supertypes
 else's
 perl
 WebLogic
@@ -23,6 +24,7 @@ cms
 everything's
 dir
 busses
+Kioku
 prepend
 jsp
 pastable
@@ -31,8 +33,8 @@ composable
 btw
 multilog
 dists
-formatters
 formatter's
+formatters
 md
 one's
 namespace
@@ -42,12 +44,14 @@ javascript
 XHTML
 MooseX
 REPL
-metadescription
 MetaDescription
+metadescription
 repo
 vivification
 MyApp
+Liskov's
 validator
+subclassing
 filename
 MyCPAN
 syntaxes
@@ -61,6 +65,7 @@ ro
 lexicals
 uchicago
 ERC
+Liskov
 metaclass
 jrock
 TT
@@ -77,24 +82,31 @@ TODO
 utf
 accessor
 hostname
+supertype
 plugins
+KiokuDB
+kiokudb
 CPAN
 MySQL
+OMG
 html
 eval
 Bcc
 CGIs
 unapplied
 pfizer
+filenames
 DBIx
 Args
 profiler
 conf
 brian
 builtins
+ORM
 timestamping
 refactored
 xml
 formatter
+substitutability
 Makefile
 ConfigLoader
