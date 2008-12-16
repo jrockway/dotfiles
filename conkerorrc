@@ -1,0 +1,13 @@
+// -*- Mode: js2; -*-
+// Conkereor config file
+function my_title_format_fn (window) {
+    var buf = window.buffers.current;
+    var prefix = "conkeror : ";
+    if (buf instanceof download_buffer) {
+        prefix = "*download* ";
+    } else if (buf instanceof special_buffer) {
+        prefix = "*special* ";
+    }
+    return prefix + buf.description;
+}
+title_format_fn = my_title_format_fn;
