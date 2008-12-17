@@ -13,6 +13,7 @@ import XMonad.Actions.NoBorders
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
 import XMonad.Layout.NoBorders
+import Data.List (isPrefixOf)
 
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
@@ -219,6 +220,8 @@ myLayout = smartBorders( avoidStruts (tiled ||| Mirror tiled ||| Full) )
 myManageHook = composeAll
     [ className =? "MPlayer"        --> doFloat
     , className =? "Gimp"           --> doFloat
+    , (className =? "Conkeror" <&&> ("*" `isPrefixOf`) `fmap` title)
+      --> doF (W.focusUp . W.swapDown)
     , resource  =? "desktop_window" --> doIgnore
     , resource  =? "kdesktop"       --> doIgnore ]
     <+> manageDocks

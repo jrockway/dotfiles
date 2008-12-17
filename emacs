@@ -98,8 +98,24 @@
                buffer-read-only))
       (flymake-mode)))
 
+(defun delete-trailing-whitespace-nothere ()
+  "Delete trailing whitespace, except on the current line if it is all whitespace."
+  (interactive)
+  (let (current-whitespace)
+    (when (save-excursion
+            (beginning-of-line)
+            (looking-at "\\([[:space:]]+\\)$"))
+      (setq current-whitespace (match-string 0)))
+    (delete-trailing-whitespace)
+    (save-excursion
+      (beginning-of-line)
+      (when current-whitespace
+        (insert current-whitespace)))
+    (when current-whitespace
+      (end-of-line))))
+
 ;;; hooks
-(add-hook 'before-save-hook #'delete-trailing-whitespace)
+(add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
 (add-hook 'text-mode-hook 'text-hooks)
 (add-hook 'tex-mode-hook (lambda () (setq ispell-parser 'tex)))
 (add-hook 'c-mode-common-hook (lambda () (local-set-key '"\C-c\C-f" 'compile)))
@@ -304,7 +320,7 @@
  '(ecb-options-version "2.32")
  '(ecb-source-path (quote ("~/projects")))
  '(ecomplete-database-file-coding-system (quote utf-8-emacs))
- '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode checkdoc-minor-mode (lambda nil (font-lock-add-keywords (quote emacs-lisp-mode) slime-additional-font-lock-keywords)) (lambda nil (local-set-key "" (quote macroexpand-last-sexp))) semantic-default-elisp-setup paredit-mode)))
+ '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode checkdoc-minor-mode (lambda nil (font-lock-add-keywords (quote emacs-lisp-mode) slime-additional-font-lock-keywords)) (lambda nil (local-set-key "" (quote macroexpand-last-sexp))) semantic-default-elisp-setup)))
  '(erc-auto-query (quote bury))
  '(erc-email-userid "jon@jrock.us")
  '(erc-fools nil)
@@ -386,7 +402,7 @@
  '(js2-mirror-mode nil)
  '(js2-use-font-lock-faces t)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
- '(lisp-mode-hook (quote (slime-lisp-mode-hook paredit-mode)))
+ '(lisp-mode-hook (quote (slime-lisp-mode-hook)))
  '(mail-user-agent (quote gnus-user-agent))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
@@ -397,7 +413,7 @@
  '(message-mail-alias-type (quote ecomplete))
  '(mm-verify-option (quote known))
  '(mmm-submode-decoration-level 1)
- '(mouse-avoidance-mode (quote jump) nil (avoid))
+ '(mouse-avoidance-mode nil nil (avoid))
  '(mumamo-set-major-mode-delay -1)
  '(nnimap-debug nil)
  '(nxhtml-skip-welcome t)
