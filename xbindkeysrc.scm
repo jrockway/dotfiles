@@ -74,3 +74,9 @@
 (xbindkey (super 'grave) "xmms2 toggleplay")
 (xbindkey (super 'Left) "xmms2 prev")
 (xbindkey (super 'Right) "xmms2 next")
+(xbindkey (super 'Up) "amixer -q set Front 2+")
+(xbindkey (super 'Down) "amixer -q set Front 2-")
+
+;; middle-mouse
+(xbindkey (super 'a) "sh -c 'xdotool click 2 2>&1 > ~/foo.out'")
+
