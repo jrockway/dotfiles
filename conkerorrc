@@ -1,6 +1,7 @@
 // -*- Mode: js2; -*-
 // Conkereor config file
-function my_title_format_fn (window) {
+
+title_format_fn = function (window) {
     var buf = window.buffers.current;
     var prefix = "conkeror : ";
     if (buf instanceof download_buffer) {
@@ -9,5 +10,7 @@ function my_title_format_fn (window) {
         prefix = "*special* ";
     }
     return prefix + buf.description;
-}
-title_format_fn = my_title_format_fn;
+};
+
+add_delicious_webjumps("jrockway");
+define_webjump("cpan", "http://search.cpan.org/search?query=%s&mode=all");
