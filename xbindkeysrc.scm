@@ -67,16 +67,12 @@
 ;; set directly keycode (here control + f with my keyboard)
 ;(xbindkey '("m:0x4" "c:41") "xterm")
 
-(define (super key)
-  (list 'mod4 key))
 
 ;(define Pause 'Pause) ; "c:204"
-(xbindkey (super 'grave) "xmms2 toggleplay")
-(xbindkey (super 'Left) "xmms2 prev")
-(xbindkey (super 'Right) "xmms2 next")
-(xbindkey (super 'Up) "amixer -q set Front 2+")
-(xbindkey (super 'Down) "amixer -q set Front 2-")
-
-;; middle-mouse
-(xbindkey (super 'a) "sh -c 'xdotool click 2 2>&1 > ~/foo.out'")
-
+(xbindkey '(mod4 grave) "xmms2 toggleplay")
+(xbindkey '(mod4 Left) "xmms2 prev")
+(xbindkey '(mod4 Right) "xmms2 next")
+(xbindkey '(mod4 shift Left) "xmms2 seek -5")
+(xbindkey '(mod4 shift Right) "xmms2 seek +5")
+(xbindkey '(mod4 Up) "amixer -q set Front 2+")
+(xbindkey '(mod4 Down) "amixer -q set Front 2-")
