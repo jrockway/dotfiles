@@ -81,6 +81,14 @@ function phone_down {
     sudo iwconfig ra0 essid "none"
 }
 
+function asdf_install {
+    sbcl --eval "(asdf:operate 'asdf:load-op :asdf-install)" --eval "(asdf-install:install :$1)" --eval "(quit)"
+}
+
+function asdf_oos {
+    rlwrap sbcl --eval "(asdf:operate 'asdf:$2 :$1)"
+}
+
 # limits
 ulimit -c 0
 
@@ -90,6 +98,7 @@ shopt -s checkwinsize
 shopt -s cdable_vars
 alias h=history
 alias r='fc -s'
+export HISTSIZE=10000
 export HISTFILESIZE=10000
 
 # term setup
