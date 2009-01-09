@@ -74,5 +74,5 @@
 (xbindkey '(mod4 Right) "xmms2 next")
 (xbindkey '(mod4 shift Left) "xmms2 seek -5")
 (xbindkey '(mod4 shift Right) "xmms2 seek +5")
-(xbindkey '(mod4 Up) "amixer -q set Front 2+")
-(xbindkey '(mod4 Down) "amixer -q set Front 2-")
+(xbindkey '(mod4 Up) "amixer -q set LineOut 2+")
+(xbindkey '(mod4 Down) "amixer -q set LineOut 2-")
