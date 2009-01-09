@@ -253,8 +253,16 @@
 (setq auto-fill-mode t)
 (setq frame-title-format "emacs")
 (setq twittering-username "jrockway")
+(set-language-environment "UTF-8")
+(setq slime-net-coding-system 'utf-8-unix)
 
 ;;; utils
+
+(defun fix-colors nil
+  "Fix colors when connecting via emacsclient."
+  (interactive)
+  (set-background-color "black")
+  (set-foreground-color "gray90"))
 
 (defun erc-start nil
   "Connect to all my networks"
@@ -282,7 +290,7 @@
  '(blink-matching-paren nil)
  '(blink-matching-paren-on-screen nil)
  '(browse-url-browser-function (quote my-w3m-browse-url))
- '(browse-url-generic-program "midori")
+ '(browse-url-generic-program "conkeror")
  '(browse-url-new-window-flag t)
  '(bubbles-game-theme (quote difficult))
  '(bubbles-grid-size (quote (20 . 15)))
@@ -327,7 +335,7 @@
  '(erc-mode-hook (quote (erc-munge-invisibility-spec erc-move-to-prompt-setup pcomplete-erc-setup erc-button-setup erc-imenu-setup ensure-erc-features)))
  '(erc-nick "jrockway")
  '(erc-nick-uniquifier "_")
- '(erc-pals (quote ("stevan" "nothingmuch" "tom" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "brian")))
+ '(erc-pals (quote ("stevan" "nothingmuch" "\\\\<tom" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "bwawok")))
  '(erc-prompt-for-password t)
  '(erc-server "stonepath.jrock.us")
  '(erc-spelling-mode t)
@@ -366,9 +374,9 @@
  '(gnus-message-replysign nil)
  '(gnus-novice-user nil)
  '(gnus-posting-styles (quote (((header "To" "iinteractive.com") (signature nil) (address "jonathan.rockway@iinteractive.com")))))
- '(gnus-secondary-select-methods (quote ((nnimap "localhost" (username jon)))))
+ '(gnus-secondary-select-methods nil)
  '(gnus-secondary-servers nil)
- '(gnus-select-method (quote (nnmbox "/var/spool/mail/jon")))
+ '(gnus-select-method (quote (nnmaildir "maildir" (directory "/home/jon/.nnmaildir"))))
  '(gnus-summary-mode-hook (quote (gnus-agent-mode (lambda nil (local-set-key (kbd "D") (quote gnus-summary-delete-article))))))
  '(gnus-update-message-archive-method t)
  '(gnus-use-full-window nil)
@@ -398,6 +406,8 @@
  '(js2-use-font-lock-faces t)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
  '(lisp-mode-hook (quote (slime-lisp-mode-hook)))
+ '(mail-source-delete-incoming t)
+ '(mail-sources (quote ((maildir :path "/home/jon/.nnmaildir") (file :path "/var/spool/mail/jon"))))
  '(mail-user-agent (quote gnus-user-agent))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
@@ -478,7 +488,7 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(default ((t (:stipple nil :background "black" :foreground "grey90" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 70 :width normal :foundry "bitstream" :family "Bitstream Vera Sans Mono"))))
+ '(default ((default (:stipple nil :background "black" :foreground "gray90" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 72 :width normal :foundry "bitstream" :family "Bitstream Vera Sans Mono")) (nil nil)))
  '(cperl-array ((((class color) (background dark)) (:background "navy" :foreground "yellow"))))
  '(cperl-hash ((((class color) (background dark)) (:background "navy" :foreground "Red"))))
  '(cperl-hash-face ((((class color) (background dark)) (:background "navy" :foreground "Red" :slant normal :weight bold))))
@@ -524,3 +534,4 @@
  '(window-number-face ((nil (:foreground "red")))))
 
 (put 'narrow-to-region 'disabled nil)
+(put 'save-buffers-kill-terminal 'disabled t)
