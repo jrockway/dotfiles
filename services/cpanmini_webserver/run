@@ -1,0 +1,3 @@
+#!/bin/bash
+
+minicpan_webserver 2>&1
