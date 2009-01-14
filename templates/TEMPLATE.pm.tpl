@@ -5,9 +5,9 @@ use Moose;
 
 1;
 >>>TEMPLATE-DEFINITION-SECTION<<<
-("PACKAGE_NAME" 
+("PACKAGE_NAME"
  (insert
-  (let ((filename (buffer-file-name))) 
+  (let ((filename (buffer-file-name)))
     (if (string-match "lib/\\(.+\\)[.]pm$" filename)
         (let ((mod (match-string 1 filename)))
           (while (string-match "/" mod)
