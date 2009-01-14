@@ -213,6 +213,16 @@
     (setq ad-return-value (list perl args))))
 (ad-activate 'flymake-perl-init)
 
+;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
+;; it kills my main X session (with 9 windows or whatever), it is really
+;; annoying.
+(defadvice save-buffers-kill-terminal (around dont-kill-my-x-session-kthx)
+  "Disable C-x C-c under X."
+  (if (eq window-system 'x)
+      (message "I'm afraid I can't do that, Dave.")
+    ad-do-it))
+(ad-activate 'save-buffers-kill-terminal)
+
 (defadvice iswitchb-kill-buffer (after rescan-after-kill activate)
   "*Regenerate the list of matching buffer names after a kill.
     Necessary if using `uniquify' with `uniquify-after-kill-buffer-p'
@@ -271,6 +281,12 @@
 (setq slime-net-coding-system 'utf-8-unix)
 
 ;;; utils
+
+(defun tt-tags nil
+  "Insert TT tags."
+  (interactive)
+  (insert "[%  %]")
+  (backward-char 3))
 
 (defun fix-colors nil
   "Fix colors when connecting via emacsclient."
@@ -349,7 +365,7 @@
  '(erc-mode-hook (quote (erc-munge-invisibility-spec erc-move-to-prompt-setup pcomplete-erc-setup erc-button-setup erc-imenu-setup ensure-erc-features)))
  '(erc-nick "jrockway")
  '(erc-nick-uniquifier "_")
- '(erc-pals (quote ("stevan" "nothingmuch" "\\\\<tom" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "bwawok")))
+ '(erc-pals (quote ("stevan" "nothingmuch" "tommy" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "bwawok")))
  '(erc-prompt-for-password t)
  '(erc-server "stonepath.jrock.us")
  '(erc-spelling-mode t)
@@ -388,7 +404,7 @@
  '(gnus-message-replysign nil)
  '(gnus-novice-user nil)
  '(gnus-posting-styles (quote (((header "To" "iinteractive.com") (signature nil) (address "jonathan.rockway@iinteractive.com")))))
- '(gnus-secondary-select-methods nil)
+ '(gnus-secondary-select-methods (quote ((nnimap "localhost" (username jon)))))
  '(gnus-secondary-servers nil)
  '(gnus-select-method (quote (nnmaildir "maildir" (directory "/home/jon/.nnmaildir"))))
  '(gnus-summary-mode-hook (quote (gnus-agent-mode (lambda nil (local-set-key (kbd "D") (quote gnus-summary-delete-article))))))
@@ -548,4 +564,5 @@
  '(window-number-face ((nil (:foreground "red")))))
 
 (put 'narrow-to-region 'disabled nil)
-(put 'save-buffers-kill-terminal 'disabled t)
+
+(put 'save-buffers-kill-terminal 'disabled nil)
