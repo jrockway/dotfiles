@@ -218,12 +218,11 @@ myLayout = smartBorders( avoidStruts (tiled ||| Mirror tiled ||| Full) )
 -- 'className' and 'resource' are used below.
 --
 myManageHook = composeAll
-    [ className =? "MPlayer"        --> doFloat
-    , className =? "Gimp"           --> doFloat
-    , (className =? "Conkeror" <&&> ("*" `isPrefixOf`) `fmap` title)
-      --> doF (W.focusUp . W.swapDown)
-    , resource  =? "desktop_window" --> doIgnore
-    , resource  =? "kdesktop"       --> doIgnore ]
+    [ className =? "MPlayer"           --> doFloat
+    , className =? "Gimp"              --> doFloat
+--    , ("*" `isPrefixOf`) `fmap` title) --> doF (W.focusUp . W.swapDown)
+    , resource  =? "desktop_window"    --> doIgnore
+    , resource  =? "kdesktop"          --> doIgnore ]
     <+> manageDocks
 
 -- Whether focus follows the mouse pointer.
