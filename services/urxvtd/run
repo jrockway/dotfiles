@@ -1,0 +1,3 @@
+#!/bin/bash
+
+urxvtd -q 2>&1

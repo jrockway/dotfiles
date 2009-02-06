@@ -44,8 +44,8 @@ esac
 
 # aliases
 alias xmms=xmms2
-alias xm_intel="xmms2 config alsa.device intel"
-alias xm_usb="xmms2 config alsa.device usb"
+alias xm_intel="xmms2 config alsa.device intel; xmms2 stop"
+alias xm_usb="xmms2 config alsa.device usb; xmms2 stop"
 
 
 alias perlfunc="perldoc -f"

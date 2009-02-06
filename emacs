@@ -14,11 +14,8 @@
 (add-to-list 'load-path "~/projects/cpan_modules/Stylish/emacs")
 (add-to-list 'load-path "~/projects/eproject")
 
-
-(require 'template)
-(template-initialize)
-
 (ignore-errors (require 'stylish-repl-iedit))
+(require 'auto-inserts)
 (require 'caml)
 (require 'chop)
 (require 'cperl-extras)
@@ -267,7 +264,8 @@
 (global-set-key (kbd "C-h o") 'find-library)
 (global-set-key (kbd "C-x t") (lambda nil (interactive) (ansi-term "/bin/bash")))
 (global-set-key (kbd "M-?") 'hippie-expand)
-
+(global-set-key (kbd "s-u") (lambda nil (interactive) (other-window -1)))
+(global-set-key (kbd "s-i") 'other-window)
 (define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
 
 ;;; setqs
@@ -317,6 +315,8 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
+ '(auto-insert-mode t)
+ '(auto-insert-query nil)
  '(blink-matching-paren nil)
  '(blink-matching-paren-on-screen nil)
  '(browse-url-browser-function (quote my-w3m-browse-url))
@@ -353,6 +353,7 @@
  '(ecb-options-version "2.32")
  '(ecb-source-path (quote ("~/projects")))
  '(ecomplete-database-file-coding-system (quote utf-8-emacs))
+ '(eldoc-minor-mode-string nil)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode checkdoc-minor-mode (lambda nil (font-lock-add-keywords (quote emacs-lisp-mode) slime-additional-font-lock-keywords)) (lambda nil (local-set-key "" (quote macroexpand-last-sexp))) semantic-default-elisp-setup)))
  '(erc-auto-query (quote bury))
  '(erc-email-userid "jon@jrock.us")
@@ -365,7 +366,7 @@
  '(erc-mode-hook (quote (erc-munge-invisibility-spec erc-move-to-prompt-setup pcomplete-erc-setup erc-button-setup erc-imenu-setup ensure-erc-features)))
  '(erc-nick "jrockway")
  '(erc-nick-uniquifier "_")
- '(erc-pals (quote ("stevan" "nothingmuch" "tommy" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "bwawok")))
+ '(erc-pals (quote ("stevan" "nothingmuch" "tommy" "jeremy" "iistevan" "iiyuval" "jeremyshao" "schmeidi" "bwawok" "[dD]ylan")))
  '(erc-prompt-for-password t)
  '(erc-server "stonepath.jrock.us")
  '(erc-spelling-mode t)
@@ -394,7 +395,7 @@
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
  '(global-font-lock-mode t nil (font-lock))
- '(gnus-always-force-window-configuration t)
+ '(gnus-always-force-window-configuration nil)
  '(gnus-asynchronous t)
  '(gnus-gcc-mark-as-read t)
  '(gnus-ignored-from-addresses "\\\\(?:jon@bar\\.jrock\\.us\\\\|jon@jrock\\.us\\\\)")
@@ -444,6 +445,7 @@
  '(menu-bar-mode nil nil (menu-bar))
  '(message-citation-line-format "* On %a, %b %d %Y, %N wrote:")
  '(message-citation-line-function (quote message-insert-formatted-citation-line))
+ '(message-dont-reply-to-names (quote ("jon@jrock.us" "jonathan.rockway@iinteractive.com")))
  '(message-kill-buffer-on-exit t)
  '(message-mail-alias-type (quote ecomplete))
  '(mm-verify-option (quote known))
@@ -566,3 +568,5 @@
 (put 'narrow-to-region 'disabled nil)
 
 (put 'save-buffers-kill-terminal 'disabled nil)
+
+(put 'dired-find-alternate-file 'disabled nil)
