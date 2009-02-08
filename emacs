@@ -445,6 +445,7 @@
  '(mmm-submode-decoration-level 1)
  '(mouse-avoidance-mode nil nil (avoid))
  '(mumamo-set-major-mode-delay -1)
+ '(next-screen-context-lines 10)
  '(nnimap-debug nil)
  '(nxhtml-skip-welcome t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
