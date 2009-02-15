@@ -129,11 +129,11 @@
 (add-hook 'diary-hook 'appt-make-list)
 (add-hook 'cperl-mode-hook 'cperl-hooks)
 ;(add-hook 'cperl-mode-hook 'maybe-flymake-mode)
-(add-hook 'cperl-mode-hook 'flyspell-prog-mode)
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
+(add-hook 'haskell-mode-hook 'turn-on-haskell-ghci)
 (add-hook 'org-mode-hook
           (lambda nil
             ;; the kbd is irritatingly made-of-fail
@@ -249,14 +249,17 @@
 (defun message-box (text) (message "%s" text))
 
 ;;; key-bindings
-(global-set-key [kp-decimal] 'goto-line)
+;; unset
+(require 'flyspell)
+(define-key flyspell-mode-map (kbd "C-;") nil) ; HATE.
+
+;; set
+(define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 (global-set-key "\C-xg" 'rgrep)
 (global-set-key "\C-x\C-m" 'execute-extended-command)
-(global-set-key "\C-c\C-m" 'execute-extended-command)
 (global-set-key "\C-w" 'backward-kill-word)
 (global-set-key "\C-x\C-k" 'kill-region)
-(global-set-key "\C-c\C-k" 'kill-region)
 (global-set-key "\C-c\C-r" 'revert-buffer)
 (global-set-key (kbd "C-x C-g") 'abort-recursive-edit)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
@@ -266,8 +269,14 @@
 (global-set-key (kbd "M-?") 'hippie-expand)
 (global-set-key (kbd "s-u") (lambda nil (interactive) (other-window -1)))
 (global-set-key (kbd "s-i") 'other-window)
-(define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
+(global-set-key (kbd "M-r") 'comment-region)
+(global-set-key (kbd "C-M-r") 'uncomment-region)
+(global-set-key (kbd "M-i") 'indent-region)
+(global-set-key (kbd "M-;") 'replace-string)
+(global-set-key (kbd "C-M-;") 'replace-regexp)
+(global-set-key (kbd "C-;") 'align-regexp)
 
+;; use C-h c for customize
 (global-unset-key (kbd "C-h c"))
 (global-set-key (kbd "C-h c a") #'customize-apropos)
 (global-set-key (kbd "C-h c v") #'customize-variable)
@@ -275,10 +284,6 @@
 (global-set-key (kbd "C-h c g") #'customize-group)
 
 ;;; setqs
-(setq cperl-electric-keywords nil)
-(setq cperl-hairy nil)
-(setq fill-column 78)
-(setq auto-fill-mode t)
 (setq frame-title-format "emacs")
 (setq twittering-username "jrockway")
 (set-language-environment "UTF-8")
@@ -345,6 +350,7 @@
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
  '(cperl-continuted-statement-offset 0)
+ '(cperl-electric-keywords nil)
  '(cperl-highlight-variables-indiscriminately nil)
  '(cperl-indent-level 4)
  '(cperl-indent-parens-as-block t)
@@ -368,6 +374,7 @@
  '(erc-format-query-as-channel-p nil)
  '(erc-frame-dedicated-flag t)
  '(erc-header-line-face-method t)
+ '(erc-header-line-format nil)
  '(erc-hide-list (quote ("JOIN" "PART" "QUIT")))
  '(erc-keywords (quote ("\\bjrock[^w]" "[^j]rockway")))
  '(erc-max-buffer-size 20000)
@@ -457,6 +464,9 @@
  '(message-dont-reply-to-names (quote ("jon@jrock.us" "jonathan.rockway@iinteractive.com")))
  '(message-kill-buffer-on-exit t)
  '(message-mail-alias-type (quote ecomplete))
+ '(mew-imap-delete nil)
+ '(mew-imap-ssl nil)
+ '(mew-mail-domain "jrock.us")
  '(mm-verify-option (quote known))
  '(mmm-submode-decoration-level 1)
  '(mouse-avoidance-mode nil nil (avoid))
@@ -546,9 +556,7 @@
  '(flymake-errline ((((class color)) (:underline "red"))))
  '(flymake-warnline ((((class color)) (:box (:line-width 2 :color "yellow" :style released-button)))))
  '(flyspell-duplicate ((t (:inverse-video nil :underline "Gold3" :weight normal))))
- '(flyspell-duplicate-face ((t (:inverse-video nil :underline "Gold3" :weight normal))) t)
  '(flyspell-incorrect ((t (:inverse-video nil :underline "OrangeRed"))))
- '(flyspell-incorrect-face ((t (:inverse-video nil :underline "OrangeRed" :weight normal))) t)
  '(font-lock-doc-face ((t (:inherit font-lock-string-face :foreground "#ffbbff"))))
  '(font-lock-regexp-grouping-backslash ((t (:inherit bold :background "grey10"))))
  '(font-lock-regexp-grouping-construct ((t (:inherit font-lock-regexp-grouping-backslash))))
