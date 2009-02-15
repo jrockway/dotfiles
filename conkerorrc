@@ -1,6 +1,7 @@
 // -*- Mode: js2; -*-
 // Conkereor config file
 
+editor_shell_command = "emacsclient -c"
 title_format_fn = function (window) {
     var buf = window.buffers.current;
     var prefix = "conkeror : ";
