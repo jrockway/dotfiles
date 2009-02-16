@@ -10,9 +10,11 @@
 import XMonad
 import System.Exit
 import XMonad.Actions.NoBorders
+import XMonad.Actions.SpawnOn
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
 import XMonad.Layout.NoBorders
+import XMonad.Prompt
 import Data.List (isPrefixOf)
 
 import qualified XMonad.StackSet as W
@@ -68,15 +70,18 @@ myFocusedBorderColor = "#ff0000"
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
 --
-myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
+myKeys sp conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- launch a terminal
-    [ ((modMask .|. shiftMask, xK_Return), spawn $ XMonad.terminal conf)
+    [ ((modMask .|. shiftMask, xK_Return), spawnHere sp $ XMonad.terminal conf)
 
-    -- launch dmenu
-    , ((modMask,               xK_p     ), spawn "exe=`dmenu_path | dmenu` && eval \"exec $exe\"")
-
-    -- launch gmrun
-    , ((modMask .|. shiftMask, xK_p     ), spawn "gmrun")
+    -- launch arbitrary programs
+    , ((modMask,               xK_p     ),
+       shellPromptHere sp defaultXPConfig {
+                             position = Top,
+                             font = "-misc-fixed-*-*-*-*-10-*-*-*-*-*-*-*",
+                             promptBorderWidth = 0,
+                             height = 12
+                           })
 
     -- close focused window
     , ((modMask              , xK_q     ), kill)
@@ -241,7 +246,7 @@ myFocusFollowsMouse = True
 --
 myLogHook = dynamicLogWithPP $ defaultPP {
               ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
-            , ppTitle   = xmobarColor "green"  "" . shorten 150
+            , ppTitle   = xmobarColor "#c0ffee" "" . shorten 150
             , ppVisible = wrap "(" ")"
             }
 
@@ -250,31 +255,21 @@ myLogHook = dynamicLogWithPP $ defaultPP {
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
-main = xmonad defaults
+main = do
+  sp <- mkSpawner
+  xmonad $ defaultConfig {
+               terminal           = myTerminal,
+               focusFollowsMouse  = myFocusFollowsMouse,
+               borderWidth        = myBorderWidth,
+               modMask            = myModMask,
+               numlockMask        = myNumlockMask,
+               workspaces         = myWorkspaces,
+               normalBorderColor  = myNormalBorderColor,
+               focusedBorderColor = myFocusedBorderColor,
+               keys               = myKeys sp,
+               mouseBindings      = myMouseBindings,
+               layoutHook         = myLayout,
+               manageHook         = manageSpawn sp <+> myManageHook,
+               logHook            = myLogHook
+             }
 
--- A structure containing your configuration settings, overriding
--- fields in the default config. Any you don't override, will
--- use the defaults defined in xmonad/XMonad/Config.hs
---
--- No need to modify this.
---
-defaults = defaultConfig {
-      -- simple stuff
-        terminal           = myTerminal,
-        focusFollowsMouse  = myFocusFollowsMouse,
-        borderWidth        = myBorderWidth,
-        modMask            = myModMask,
-        numlockMask        = myNumlockMask,
-        workspaces         = myWorkspaces,
-        normalBorderColor  = myNormalBorderColor,
-        focusedBorderColor = myFocusedBorderColor,
-
-      -- key bindings
-        keys               = myKeys,
-        mouseBindings      = myMouseBindings,
-
-      -- hooks, layouts
-        layoutHook         = myLayout,
-        manageHook         = myManageHook,
-        logHook            = myLogHook
-    }
