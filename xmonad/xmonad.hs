@@ -239,7 +239,11 @@ myFocusFollowsMouse = True
 --
 -- > logHook = dynamicLogDzen
 --
-myLogHook = dynamicLogXmobar
+myLogHook = dynamicLogWithPP $ defaultPP {
+              ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
+            , ppTitle   = xmobarColor "green"  "" . shorten 150
+            , ppVisible = wrap "(" ")"
+            }
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
