@@ -11,10 +11,13 @@ import XMonad
 import System.Exit
 import XMonad.Actions.NoBorders
 import XMonad.Actions.SpawnOn
+import XMonad.Actions.FindEmptyWorkspace
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
+import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
 import XMonad.Prompt
+import XMonad.Prompt.XMonad
 import Data.List (isPrefixOf)
 
 import qualified XMonad.StackSet as W
@@ -64,8 +67,19 @@ myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
 
 -- Border colors for unfocused and focused windows, respectively.
 --
-myNormalBorderColor  = "#dddddd"
+myNormalBorderColor  = "#202020"
 myFocusedBorderColor = "#ff0000"
+
+promptConfig = defaultXPConfig {
+                 bgHLight = "DodgerBlue",
+                 fgHLight = "white",
+                 bgColor = "grey70",
+                 fgColor = "black",
+                 position = Top,
+                 font = "-misc-fixed-*-*-*-*-12-*-*-*-*-*-*-*",
+                 promptBorderWidth = 0,
+                 height = 12
+               }
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
@@ -75,13 +89,10 @@ myKeys sp conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     [ ((modMask .|. shiftMask, xK_Return), spawnHere sp $ XMonad.terminal conf)
 
     -- launch arbitrary programs
-    , ((modMask,               xK_p     ),
-       shellPromptHere sp defaultXPConfig {
-                             position = Top,
-                             font = "-misc-fixed-*-*-*-*-10-*-*-*-*-*-*-*",
-                             promptBorderWidth = 0,
-                             height = 12
-                           })
+    , ((modMask,               xK_p     ), shellPromptHere sp promptConfig)
+
+    -- xmonad prompt
+    , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
 
     -- close focused window
     , ((modMask              , xK_q     ), kill)
@@ -92,8 +103,9 @@ myKeys sp conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     --  Reset the layouts on the current workspace to default
     , ((modMask .|. shiftMask, xK_space ), setLayout $ XMonad.layoutHook conf)
 
-    -- Resize viewed windows to the correct size
-    , ((modMask,               xK_n     ), refresh)
+    -- Move/view empty workspace
+    , ((modMask,               xK_n     ), viewEmptyWorkspace)
+    , ((modMask .|. shiftMask, xK_n     ), tagToEmptyWorkspace)
 
     -- Move focus to the next window
     , ((modMask,               xK_Tab   ), windows W.focusDown)
@@ -193,7 +205,8 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 -- The available layouts.  Note that each layout is separated by |||,
 -- which denotes layout choice.
 --
-myLayout = smartBorders( avoidStruts (tiled ||| Mirror tiled ||| Full) )
+myLayout = layoutHints (smartBorders (avoidStruts (tiled ||| Mirror tiled)))
+           ||| (smartBorders (avoidStruts Full))
   where
      -- default tiling algorithm partitions the screen into two panes
      tiled   = Tall nmaster delta ratio
@@ -225,10 +238,9 @@ myLayout = smartBorders( avoidStruts (tiled ||| Mirror tiled ||| Full) )
 myManageHook = composeAll
     [ className =? "MPlayer"           --> doFloat
     , className =? "Gimp"              --> doFloat
---    , ("*" `isPrefixOf`) `fmap` title) --> doF (W.focusUp . W.swapDown)
+    , (("*" `isPrefixOf`) `fmap` title)--> doF (W.focusUp . W.swapDown)
     , resource  =? "desktop_window"    --> doIgnore
     , resource  =? "kdesktop"          --> doIgnore ]
-    <+> manageDocks
 
 -- Whether focus follows the mouse pointer.
 myFocusFollowsMouse :: Bool
@@ -269,7 +281,7 @@ main = do
                keys               = myKeys sp,
                mouseBindings      = myMouseBindings,
                layoutHook         = myLayout,
-               manageHook         = manageSpawn sp <+> myManageHook,
+               manageHook         = manageSpawn sp <+> myManageHook <+> manageDocks,
                logHook            = myLogHook
              }
 
