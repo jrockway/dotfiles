@@ -33,6 +33,7 @@
 (require 'rcirc)
 (require 'rcirc-extras)
 (require 'sql-extras)
+(require 'term-extras)
 (require 'twittering-mode)
 (require 'uniquify)
 (require 'w3m-extras)
