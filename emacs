@@ -77,7 +77,6 @@
 (winner-mode 1)
 (window-number-mode 1)
 (windmove-default-keybindings)
-(slime-setup)
 (defalias 'perl-mode 'cperl-mode)
 
 ;;; hooks
