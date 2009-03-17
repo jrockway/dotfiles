@@ -76,9 +76,9 @@ promptConfig = defaultXPConfig {
                  bgColor = "grey70",
                  fgColor = "black",
                  position = Top,
-                 font = "-misc-fixed-*-*-*-*-12-*-*-*-*-*-*-*",
+                 font = "-misc-fixed-*-*-*-*-20-*-*-*-*-*-*-*",
                  promptBorderWidth = 0,
-                 height = 12
+                 height = 20
                }
 
 ------------------------------------------------------------------------
