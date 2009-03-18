@@ -1,0 +1,7 @@
+#!/bin/bash
+
+STYLISH=/home/jon/projects/cpan_modules/Stylish
+if [ ! -e "$STYLISH/bin/stylish.pl" ]
+then exec cat; # do nothing
+else exec perl -I"$STYLISH/lib" "$STYLISH/bin/stylish.pl";
+fi
