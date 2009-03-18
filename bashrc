@@ -63,27 +63,29 @@ function mod {
 
 alias ec="emacsclient -t" # yay for multi-tty!
 
+wlan="wlan0"
+
 function net {
-    sudo iwconfig ra0 ap any;
-    sudo iwconfig ra0 essid "$1";
+    sudo iwconfig $wlan ap any;
+    sudo iwconfig $wlan essid "$1";
     sleep 1;
-    sudo dhclient ra0;
+    sudo dhclient $wlan;
 }
 
 function phone {
-    sudo ifconfig ra0 down
-    sudo iwconfig ra0 mode ad-hoc
-    sudo ifconfig ra0 up
-    sudo iwconfig ra0 essid WMWifiRouter
+    sudo ifconfig $wlan down
+    sudo iwconfig $wlan mode ad-hoc
+    sudo ifconfig $wlan up
+    sudo iwconfig $wlan essid WMWifiRouter
     sleep 1;
-    sudo dhclient ra0
+    sudo dhclient $wlan
 }
 
 function phone_down {
-    sudo ifconfig ra0 down
-    sudo iwconfig ra0 mode managed
-    sudo ifconfig ra0 up
-    sudo iwconfig ra0 essid "none"
+    sudo ifconfig $wlan down
+    sudo iwconfig $wlan mode managed
+    sudo ifconfig $wlan up
+    sudo iwconfig $wlan essid "none"
 }
 
 function asdf_install {
