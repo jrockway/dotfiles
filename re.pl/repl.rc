@@ -1,0 +1,12 @@
+# -*- mode: cperl; -*-
+# $_REPL->load_plugin('YAML');
+#
+
+use lib 'lib';
+
+no warnings 'redefine';
+
+$_REPL->load_plugin(
+    qw/LoadClass Turtles Packages OutputCache Peek Completion Interrupt/,
+    map { "CompletionDriver::$_" } qw/Globals INC Keywords LexEnv Methods Turtles/
+);
