@@ -2,7 +2,6 @@
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/haskell-mode/")
 (add-to-list 'load-path "~/elisp/ecb")
-(add-to-list 'load-path "~/elisp/template/lisp")
 (add-to-list 'load-path "~/elisp/eieio-0.17")
 (add-to-list 'load-path "~/elisp/semantic-1.4.4")
 (add-to-list 'load-path "~/elisp/_local")
@@ -47,6 +46,7 @@
   '(progn
      (setq slime-lisp-implementations
            '((sbcl ("/usr/bin/sbcl"))
+             (ecl ("/usr/bin/ecl"))
              (clisp ("/usr/bin/clisp"))))
      (slime-setup '(
                     slime-asdf
@@ -309,7 +309,7 @@
   (interactive)
   (let ((password (password-read "IRC password: "))
         (host "localhost"))
-    (loop for port from 6667 to 6670 do
+    (loop for port from 6667 to 6671 do
           (rcirc-connect host port "jrockway" "jrockway"
                          "Jonathan Rockway" nil password))))
 
@@ -472,9 +472,6 @@
  '(split-width-threshold 10000)
  '(sql-electric-stuff (quote semicolon))
  '(sql-sqlite-program "sqlite3")
- '(template-auto-insert t)
- '(template-confirm-insecure nil)
- '(template-subdirectories (quote ("./" "Templates/")))
  '(term-scroll-to-bottom-on-output t)
  '(tex-default-mode (quote latex-mode))
  '(tex-dvi-view-command "xdvi")
