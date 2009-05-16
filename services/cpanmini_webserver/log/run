@@ -1,4 +1,0 @@
-#!/bin/bash
-
-multilog t * /home/jon/tmp/logs/cpanmini_webserver
-

@@ -1,3 +1,0 @@
-#!/bin/bash
-
-/home/jon/perl/install/bin/minicpan_webserver 2>&1

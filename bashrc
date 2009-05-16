@@ -48,7 +48,21 @@ esac
 alias xmms=xmms2
 alias xm_intel="xmms2 config alsa.device intel; xmms2 stop"
 alias xm_usb="xmms2 config alsa.device usb; xmms2 stop"
+alias fixsound="amixer set IEC958 mute;amixer set IEC958 unmute"
 
+function svup {
+    svc -u "$HOME/.dotfiles/services/$1"
+    svstat "$HOME/.dotfiles/services/$1"
+}
+
+function svdn {
+    svc -d "$HOME/.dotfiles/services/$1"
+    svstat "$HOME/.dotfiles/services/$1"
+}
+
+function svst {
+    svstat "$HOME/.dotfiles/services/$1"
+}
 
 alias perlfunc="perldoc -f"
 alias lperl="perl -Ilib"
@@ -94,6 +108,15 @@ function asdf_install {
 
 function asdf_oos {
     rlwrap sbcl --eval "(asdf:operate 'asdf:$2 :$1)"
+}
+
+function eeeExtra {
+    if [ -e /media/eeeExtra ]
+    then
+        pumount /media/eeeExtra
+    else
+        pmount /dev/disk/by-uuid/f632a69e-0e7b-4456-af98-531d0b0d2ba8 eeeExtra
+    fi
 }
 
 # limits
