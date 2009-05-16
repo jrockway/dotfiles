@@ -3,7 +3,7 @@
 cd $HOME;
 source .bashrc;
 
-export TZ="America/Chicago"
+export TZ="Europe/Oslo"
 
 scim -d
 xmodmap ~/.xmodmaprc

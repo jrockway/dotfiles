@@ -77,7 +77,7 @@ function mod {
 
 alias ec="emacsclient -t" # yay for multi-tty!
 
-wlan="wlan0"
+wlan="ra0"
 
 function net {
     sudo iwconfig $wlan ap any;
@@ -87,9 +87,8 @@ function net {
 }
 
 function phone {
-    sudo ifconfig $wlan down
-    sudo iwconfig $wlan mode ad-hoc
     sudo ifconfig $wlan up
+    sudo iwconfig $wlan mode ad-hoc
     sudo iwconfig $wlan essid WMWifiRouter
     sleep 1;
     sudo dhclient $wlan
