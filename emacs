@@ -23,6 +23,8 @@
 (require 'elisp-extras)
 (require 'eslide)
 (require 'etags-extras)
+(require 'eproject)
+(require 'eproject-extras)
 (require 'git)
 (require 'gnus)
 (require 'haskell-mode)
@@ -164,7 +166,7 @@
 (setq auto-mode-alist
       (append
        '(("\\.css$" . css-mode)
-         ("\\.js$" . js2-mode)
+         ("\\.js$" . espresso-mode)
          ("\\.ya?ml$" . yaml-mode)
          ("^mutt-" . mail-mode)
          ("\\.html$" . html-mode)
@@ -283,6 +285,24 @@
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "M-g s") 'magit-status)
 
+;; eproject global bindings
+(defmacro .emacs-curry (function &rest args)
+  `(lambda () (interactive)
+     (,function ,@args)))
+
+(defmacro .emacs-eproject-key (key command)
+  (cons 'progn
+        (loop for (k . p) in (list (cons key 4) (cons (upcase key) 1))
+              collect
+              `(global-set-key
+                (kbd ,(format "C-x p %s" k))
+                (.emacs-curry ,command ,p)))))
+
+(.emacs-eproject-key "k" eproject-kill-project-buffers)
+(.emacs-eproject-key "v" eproject-revisit-project)
+(.emacs-eproject-key "b" eproject-ibuffer)
+(.emacs-eproject-key "o" eproject-open-all-project-files)
+
 ;; use C-h c for customize
 (global-unset-key (kbd "C-h c"))
 (global-set-key (kbd "C-h c a") #'customize-apropos)
@@ -370,7 +390,8 @@
  '(eproject-completing-read-function (quote eproject--icompleting-read))
  '(eshell-after-prompt-hook nil)
  '(eshell-modules-list (quote (eshell-alias eshell-banner eshell-basic eshell-cmpl eshell-dirs eshell-glob eshell-hist eshell-ls eshell-pred eshell-prompt eshell-rebind eshell-script eshell-term eshell-unix)))
- '(eshell-prompt-function (lambda nil (format "%s
+ '(eshell-prompt-function (lambda nil (format "
+%s
 %s" (eshell/pwd) (if (= (user-uid) 0) " # " " $ "))))
  '(eudc-protocol (quote ldap))
  '(eudc-server "ldap.uchicago.edu")
@@ -405,6 +426,7 @@
  '(haskell-program-name "/home/jon/utils/sane-ghci")
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
+ '(ibuffer-formats (quote ((mark modified read-only " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
  '(ielm-mode-hook (quote (turn-on-eldoc-mode)))
  '(indent-tabs-mode nil)
  '(indicate-buffer-boundaries (quote left))
@@ -426,6 +448,7 @@
  '(js2-mirror-mode nil)
  '(js2-rebind-eol-bol-keys nil)
  '(js2-use-font-lock-faces t)
+ '(kill-read-only-ok t)
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
  '(lisp-mode-hook (quote (slime-lisp-mode-hook)))
