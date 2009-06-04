@@ -1,4 +1,4 @@
-// -*- Mode: js2; -*-
+// -*- Mode: espresso; -*-
 // Conkereor config file
 
 editor_shell_command = "emacsclient -c";
@@ -16,3 +16,4 @@ title_format_fn = function (window) {
 
 add_delicious_webjumps("jrockway");
 define_webjump("cpan", "http://search.cpan.org/search?query=%s&mode=all");
+define_webjump("easynews", "http://members.easynews.com/global4/search.html?gps=%s&sbj=&from=&ns=&fil=&fex=&vc=&ac=&fty%5B%5D=MOVIE&s1=dtime&s1d=-&s2=nrfile&s2d=%2B&s3=dsize&s3d=%2B&pby=1000&pno=1&sS=0&svL=&d1=&d1t=&d2=&d2t=&b1=&b1t=14&b2=&b2t=&px1=&px1t=&px2=&px2t=&fps1=&fps1t=&fps2=&fps2t=&bps1=&bps1t=&bps2=&bps2t=&hz1=&hz1t=&hz2=&hz2t=&rn1=&rn1t=&rn2=&rn2t=&fly=2");
