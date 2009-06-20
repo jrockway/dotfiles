@@ -13,3 +13,6 @@
 	status = auto
 	branch = auto
 	diff = auto
+
+[push]
+        default = current

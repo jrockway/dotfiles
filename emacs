@@ -488,7 +488,7 @@
  '(rcirc-server-alist nil)
  '(rcirc-track-minor-mode t)
  '(safe-local-variable-values (quote ((Syntax . ANSI-Common-Lisp) (Base . 10) (flymake-mode . 0))))
- '(same-window-buffer-names (quote ("*shell*" "*mail*" "*inferior-lisp*" "*ielm*" "*scheme*" "*info*")))
+ '(same-window-buffer-names (quote ("*shell*" "*mail*" "*inferior-lisp*" "*ielm*" "*scheme*" "*info*" "*eshell*")))
  '(same-window-regexps (quote ("^[^*]" "[*]Help" "[*]Custom" "[*]git" "[*]w3m" "[*]sldb" "[*]SLIME" "[*]VC")))
  '(save-place t nil (saveplace))
  '(scheme-program-name "guile")
