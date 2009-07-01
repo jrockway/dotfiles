@@ -156,7 +156,8 @@
 (add-hook 'rcirc-mode-hook (lambda () (rcirc-omit-mode)))
 (add-hook 'rcirc-mode-hook
              (lambda ()
-               (when (= (aref (buffer-name) 0) ?#)
+               (when (or (= (aref (buffer-name) 0) ?#)
+                         (= (aref (buffer-name) 0) ?&))
                  (setq rcirc-ignore-buffer-activity-flag t))))
 (add-hook 'help-mode-hook (lambda () (local-set-key "l" #'help-go-back)))
 
@@ -427,7 +428,7 @@
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
  '(ibuffer-formats (quote ((mark modified read-only " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
- '(ielm-mode-hook (quote (turn-on-eldoc-mode)))
+ '(ielm-mode-hook (quote (turn-on-eldoc-mode)) t)
  '(indent-tabs-mode nil)
  '(indicate-buffer-boundaries (quote left))
  '(indicate-empty-lines nil)
@@ -557,6 +558,7 @@
  '(font-lock-doc-face ((t (:inherit font-lock-string-face :foreground "#ffbbff"))))
  '(font-lock-regexp-grouping-backslash ((t (:inherit bold :background "grey10"))))
  '(font-lock-regexp-grouping-construct ((t (:inherit font-lock-regexp-grouping-backslash))))
+ '(font-lock-warning-face ((((class color) (min-colors 88) (background dark)) (:foreground "Pink"))))
  '(gnus-group-mail-3 ((t (:foreground "aquamarine1" :weight bold))))
  '(js2-error-face ((((class color) (background dark)) (:underline "red"))))
  '(js2-function-param-face ((t (:inherit font-lock-type-face))))
