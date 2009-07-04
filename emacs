@@ -286,6 +286,9 @@
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "M-g s") 'magit-status)
 
+(global-set-key (kbd "<mouse-7>") 'other-window)
+(global-set-key (kbd "<mouse-6>") (lambda nil (interactive) (other-window -1)))
+
 ;; eproject global bindings
 (defmacro .emacs-curry (function &rest args)
   `(lambda () (interactive)
@@ -346,6 +349,7 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
+ '(Man-notify-method (quote pushy))
  '(auto-insert-mode t)
  '(auto-insert-query nil)
  '(blink-matching-paren nil)
@@ -371,11 +375,14 @@
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
  '(cperl-continuted-statement-offset 0)
+ '(cperl-electric-backspace-untabify nil)
  '(cperl-electric-keywords nil)
  '(cperl-highlight-variables-indiscriminately nil)
  '(cperl-indent-level 4)
  '(cperl-indent-parens-as-block t)
+ '(cperl-indent-subs-specially nil)
  '(cperl-invalid-face (quote default))
+ '(cperl-merge-trailing-else nil)
  '(cperl-tab-always-indent t)
  '(cperl-under-as-char nil)
  '(current-language-environment "UTF-8")
