@@ -16,6 +16,7 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
 import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
+import XMonad.Layout.Tabbed
 import XMonad.Prompt
 import XMonad.Prompt.XMonad
 import Data.List (isPrefixOf)
@@ -207,6 +208,7 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 --
 myLayout = layoutHints (smartBorders (avoidStruts (tiled ||| Mirror tiled)))
            ||| (smartBorders (avoidStruts Full))
+
   where
      -- default tiling algorithm partitions the screen into two panes
      tiled   = Tall nmaster delta ratio
@@ -258,7 +260,7 @@ myFocusFollowsMouse = True
 --
 myLogHook = dynamicLogWithPP $ defaultPP {
               ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
-            , ppTitle   = xmobarColor "#c0ffee" "" . shorten 150
+            , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t) ++ " [_1]")
             , ppVisible = wrap "(" ")"
             }
 

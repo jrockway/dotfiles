@@ -2,9 +2,9 @@
 
 # path
 PATH=\
+$HOME/utils/android/tools:\
 $HOME/perl/install/bin:\
 $HOME/.cabal/bin:\
-$HOME/haskell/bin:\
 $HOME/projects/jrockway-utils/bin:\
 $HOME/utils:\
 /var/qmail/bin:\
