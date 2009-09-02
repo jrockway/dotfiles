@@ -9,6 +9,9 @@
 ! add mod1 = Alt_L Meta_L
 ! add mod4 = Super_L
 
+clear mod5
+add mod1 = Alt_L Meta_L ISO_Level3_Shift
+
 !! swap () and []
 keycode  18 = 9 bracketleft
 keycode  19 = 0 bracketright
