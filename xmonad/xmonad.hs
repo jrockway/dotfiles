@@ -18,7 +18,11 @@ import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
 import XMonad.Layout.Tabbed
 import XMonad.Prompt
+import XMonad.Prompt.Input
 import XMonad.Prompt.XMonad
+import XMonad.Util.Run
+
+import Data.Monoid
 import Data.List (isPrefixOf)
 
 import qualified XMonad.StackSet as W
@@ -77,28 +81,36 @@ promptConfig = defaultXPConfig {
                  bgColor = "grey70",
                  fgColor = "black",
                  position = Top,
-                 font = "-misc-fixed-*-*-*-*-20-*-*-*-*-*-*-*",
+                 font = "xft:DejaVu Sans Mono-20",
                  promptBorderWidth = 0,
-                 height = 20
+                 height = 28
                }
+
+xmmsCompletion :: String -> IO [String]
+xmmsCompletion input = do
+  result <- runProcessWithInput "bash" [] ("perl `which xmmsjump` --list-all \"" ++ input ++ "\"")
+  return (lines result)
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
 --
-myKeys sp conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
+myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- launch a terminal
-    [ ((modMask .|. shiftMask, xK_Return), spawnHere sp $ XMonad.terminal conf)
+    [ ((modMask .|. shiftMask, xK_Return), spawnHere $ XMonad.terminal conf)
 
     -- launch arbitrary programs
-    , ((modMask,               xK_p     ), shellPromptHere sp promptConfig)
+    , ((modMask,               xK_p     ), shellPromptHere promptConfig)
 
     -- xmonad prompt
     , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
 
+    -- xmmsjump
+    , ((modMask, xK_x),  inputPromptWithCompl promptConfig "Jump" xmmsCompletion ?+ (\x -> spawn $ "perl `which xmmsjump` \"" ++ x ++ "\""))
+
     -- close focused window
     , ((modMask              , xK_q     ), kill)
 
-     -- Rotate through the available layout algorithms
+    -- Rotate through the available layout algorithms
     , ((modMask,               xK_space ), sendMessage NextLayout)
 
     --  Reset the layouts on the current workspace to default
@@ -206,8 +218,12 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 -- The available layouts.  Note that each layout is separated by |||,
 -- which denotes layout choice.
 --
-myLayout = layoutHints (smartBorders (avoidStruts (tiled ||| Mirror tiled)))
-           ||| (smartBorders (avoidStruts Full))
+--- myLayout = --- layoutHints (smartBorders (avoidStruts (tiled ||| Mirror tiled)))
+           --- ||| (smartBorders (avoidStruts Full))
+
+myCommonManagers = layoutHints . smartBorders . avoidStruts
+
+myLayout = myCommonManagers (tiled ||| Mirror tiled)
 
   where
      -- default tiling algorithm partitions the screen into two panes
@@ -258,6 +274,7 @@ myFocusFollowsMouse = True
 --
 -- > logHook = dynamicLogDzen
 --
+
 myLogHook = dynamicLogWithPP $ defaultPP {
               ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
             , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t) ++ " [_1]")
@@ -270,20 +287,22 @@ myLogHook = dynamicLogWithPP $ defaultPP {
 -- Run xmonad with the settings you specify. No need to modify this.
 --
 main = do
-  sp <- mkSpawner
-  xmonad $ defaultConfig {
+  xmonad $ XConfig {
                terminal           = myTerminal,
                focusFollowsMouse  = myFocusFollowsMouse,
                borderWidth        = myBorderWidth,
                modMask            = myModMask,
-               numlockMask        = myNumlockMask,
+--               numlockMask        = myNumlockMask,
                workspaces         = myWorkspaces,
                normalBorderColor  = myNormalBorderColor,
                focusedBorderColor = myFocusedBorderColor,
-               keys               = myKeys sp,
+               keys               = myKeys,
                mouseBindings      = myMouseBindings,
                layoutHook         = myLayout,
-               manageHook         = manageSpawn sp <+> myManageHook <+> manageDocks,
-               logHook            = myLogHook
+               manageHook         = manageSpawn <+> myManageHook <+> manageDocks,
+               logHook            = myLogHook,
+               startupHook = return (),
+               handleEventHook = (\x -> return $ Data.Monoid.All { getAll = True })
+
              }
 
