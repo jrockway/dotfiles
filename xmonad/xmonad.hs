@@ -23,7 +23,12 @@ import XMonad.Prompt.XMonad
 import XMonad.Util.Run
 
 import Data.Monoid
-import Data.List (isPrefixOf)
+import Data.List (isPrefixOf, filter)
+import Data.Char (toLower)
+import Text.Regex.Posix
+import Control.Monad (join)
+
+import qualified Codec.Binary.UTF8.String as UTF8
 
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
@@ -86,10 +91,34 @@ promptConfig = defaultXPConfig {
                  height = 28
                }
 
-xmmsCompletion :: String -> IO [String]
-xmmsCompletion input = do
-  result <- runProcessWithInput "bash" [] ("perl `which xmmsjump` --list-all \"" ++ input ++ "\"")
-  return (lines result)
+-- case-insensitive string comparison
+mkCompletionFunction :: [String] -> String -> IO [String]
+mkCompletionFunction options [] = return []
+mkCompletionFunction options query =
+    let toLower' = fmap toLower
+        quotemeta c = case c of
+                        ')' -> "\\)"
+                        '(' -> "\\("
+                        '[' -> "\\["
+                        ']' -> "\\]"
+                        '\\' -> "\\\\"
+                        _   -> c:[]
+        quotemeta' x = join (fmap quotemeta x)
+        query' = toLower' . quotemeta' $ query
+    in
+    return $ filter (\opt -> (toLower' opt) =~ query') options
+
+xmmsCompletionPrompt :: X ()
+xmmsCompletionPrompt = do
+    completions <- allXmmsCompletions
+    let completionFn = mkCompletionFunction completions
+    (?+) (inputPromptWithCompl promptConfig "Jump" completionFn)
+         (\song -> spawn $ "perl `which xmmsjump` \"" ++ (UTF8.encodeString song) ++ "\"")
+
+allXmmsCompletions :: X [String]
+allXmmsCompletions = do
+  result <- runProcessWithInput "bash" [] "perl `which xmmsjump` --list-all"
+  return $ fmap UTF8.decodeString (lines result)
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
@@ -105,7 +134,7 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
 
     -- xmmsjump
-    , ((modMask, xK_x),  inputPromptWithCompl promptConfig "Jump" xmmsCompletion ?+ (\x -> spawn $ "perl `which xmmsjump` \"" ++ x ++ "\""))
+    , ((modMask, xK_x),  xmmsCompletionPrompt)
 
     -- close focused window
     , ((modMask              , xK_q     ), kill)
