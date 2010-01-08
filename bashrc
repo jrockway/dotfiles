@@ -8,8 +8,6 @@ $HOME/projects/jrockway-utils/bin:\
 $HOME/utils:\
 /usr/local/bin:\
 /usr/local/sbin:\
-/opt/bin:\
-/opt/sbin:\
 /usr/games:\
 /usr/bin:\
 /usr/X11R6/bin:\
@@ -63,10 +61,6 @@ function lbperl {
     perl -Ilib "bin/$1";
 }
 
-function mod {
-    cd ~/projects/cpan_modules/$1*
-}
-
 alias ec="emacsclient -t" # yay for multi-tty!
 
 # limits
@@ -88,7 +82,6 @@ stty stop ''
 # exports
 export EDITOR="mg"
 alias edit="$EDITOR"
-export SVKMERGE="svk-merge-emacs"
 
 alias cs="perl script/*_server.pl -d"
 alias carpcs="perl -MCarp::Always script/*_server.pl -d"
