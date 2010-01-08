@@ -33,8 +33,8 @@
 (require 'espresso)
 (require 'git)
 (require 'gnus)
-(require 'haskell-mode)
 (require 'haskell-extras)
+(require 'haskell-mode)
 (require 'inf-haskell)
 (require 'iswitchb-extras)
 (require 'lisp-extras)
@@ -44,43 +44,15 @@
 (require 'rcirc-extras)
 (require 'rcirc-xmonad-notify)
 (require 'scala-mode-auto)
+(require 'slime-load)
 (require 'sql-extras)
 (require 'term-extras)
 (require 'uniquify)
 (require 'w3m-extras)
-(require 'w3m-load)
 (require 'window-number)
 (require 'windowing-extras)
 (require 'xmms)
 (require 'yaml-mode)
-
-;;; slime
-(eval-after-load "slime"
-  '(progn
-     (setq slime-lisp-implementations
-           '((sbcl ("/usr/bin/sbcl"))
-             (ecl ("/usr/bin/ecl"))
-             (clisp ("/usr/bin/clisp"))))
-     (slime-setup '(
-                    slime-asdf
-                    slime-autodoc
-                    slime-editing-commands
-                    slime-fancy-inspector
-                    slime-fontifying-fu
-                    slime-fuzzy
-                    slime-indentation
-                    slime-mdot-fu
-                    slime-package-fu
-                    slime-references
-                    slime-repl
-                    slime-sbcl-exts
-                    slime-scratch
-                    slime-xref-browser
-                    ))
-     (slime-autodoc-mode)
-     (setq slime-complete-symbol*-fancy t)
-     (setq slime-complete-symbol-function 'slime-fuzzy-complete-symbol)))
-(require 'slime)
 
 ;;; modes i want on by default
 (iswitchb-mode 1)
