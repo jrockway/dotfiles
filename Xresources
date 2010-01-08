@@ -1,0 +1,15 @@
+Emacs.font: DejaVu Sans Mono-9.5
+Emacs.FontBackend: xft
+Emacs.ToolBar: 0
+Emacs.verticalScrollBars: off
+Emacs.background: black
+Emacs.foreground: grey90
+URxvt.background: black
+URxvt.foreground: grey90
+URxvt.font: xft:DejaVu Sans Mono:size=9:medium:roman:antialias=true:autohint=true
+URxvt.scrollBar: False
+URxvt.perl-ext-common: default
+URxvt.fading: 10
+Xft*antialias: true
+Xft*autohint: true
+
