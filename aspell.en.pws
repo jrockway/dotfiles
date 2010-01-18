@@ -1,4 +1,4 @@
-personal_ws-1.1 en 114 
+personal_ws-1.1 en 115 
 dereference
 templating
 proven
@@ -34,8 +34,8 @@ composable
 btw
 multilog
 dists
-formatters
 formatter's
+formatters
 md
 one's
 namespace
@@ -45,13 +45,14 @@ javascript
 XHTML
 MooseX
 REPL
-MetaDescription
 metadescription
+MetaDescription
 repo
 Liskov's
-MyApp
 vivification
+MyApp
 validator
+canonicalize
 subclassing
 filename
 MyCPAN
