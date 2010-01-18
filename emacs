@@ -518,7 +518,7 @@
  '(uce-mail-reader (quote gnus))
  '(uniquify-buffer-name-style (quote forward) nil (uniquify))
  '(user-mail-address "jon@jrock.us")
- '(vc-handled-backends (quote (SVK RCS CVS SVN SCCS Arch MCVS GIT)))
+ '(vc-handled-backends (quote (RCS CVS SVN SCCS Arch MCVS GIT)))
  '(w3-use-unicode-table-characters t)
  '(w3-user-colors-take-precedence t)
  '(w3-user-fonts-take-precedence t)
@@ -546,6 +546,8 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(default ((t (:background "black" :foreground "gray90" :height 95 :family "DejaVu Sans Mono"))))
+ '(completions-common-part ((t (:inherit default :foreground "grey40"))))
+ '(completions-first-difference ((t (:inherit bold :underline "green"))))
  '(cperl-array ((((class color) (background dark)) (:background "navy" :foreground "yellow"))))
  '(cperl-hash ((((class color) (background dark)) (:background "navy" :foreground "Red"))))
  '(cperl-hash-face ((((class color) (background dark)) (:background "navy" :foreground "Red" :slant normal :weight bold))))

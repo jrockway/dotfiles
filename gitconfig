@@ -20,3 +20,6 @@
 [pull]
         default = current
 
+[github]
+	user = jrockway
+	token = 5b0ce0f2965e744fc607c3b1ed58f819
