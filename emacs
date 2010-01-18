@@ -392,6 +392,7 @@
  '(global-font-lock-mode t nil (font-lock))
  '(gnus-always-force-window-configuration nil)
  '(gnus-asynchronous t)
+ '(gnus-dribble-directory "~/.gnus.dribble")
  '(gnus-fetch-old-headers nil)
  '(gnus-gcc-mark-as-read t)
  '(gnus-ignored-from-addresses "\\\\(?:jon@bar\\.jrock\\.us\\\\|jon@jrock\\.us\\\\)")
