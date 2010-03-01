@@ -39,7 +39,7 @@ case $TERM in
 esac
 
 # aliases
-alias xmms=xmms2
+alias xmms=nyxmms2
 
 function svup {
     svc -u "$HOME/.dotfiles/services/$1"
