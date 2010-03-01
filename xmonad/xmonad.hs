@@ -1,12 +1,3 @@
---
--- xmonad example config file.
---
--- A template showing all available configuration hooks,
--- and how to override the defaults in your own xmonad.hs conf file.
---
--- Normally, you'd only override those defaults you care about.
---
-
 import XMonad
 import System.Exit
 import XMonad.Actions.NoBorders
@@ -27,6 +18,7 @@ import Data.List (isPrefixOf, filter)
 import Data.Char (toLower)
 import Text.Regex.Posix
 import Control.Monad (join)
+import Control.Applicative
 
 import qualified Codec.Binary.UTF8.String as UTF8
 
@@ -73,7 +65,7 @@ myNumlockMask   = mod2Mask
 --
 -- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
 --
-myWorkspaces    = ["1","2","3","4","5","6","7","8","9"]
+myWorkspaces = show <$> [1..10]
 
 -- Border colors for unfocused and focused windows, respectively.
 --

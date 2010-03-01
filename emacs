@@ -110,7 +110,7 @@
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
-(add-hook 'haskell-mode-hook 'turn-on-haskell-indent)
+(add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
 (add-hook 'org-mode-hook
           (lambda nil
             ;; the kbd is irritatingly made-of-fail
@@ -137,6 +137,7 @@
                          (= (aref (buffer-name) 0) ?&))
                  (setq rcirc-ignore-buffer-activity-flag t))))
 (add-hook 'help-mode-hook (lambda () (local-set-key "l" #'help-go-back)))
+(add-hook 'eshell-mode-hook (lambda () (local-set-key (kbd "C-u") #'universal-argument)))
 
 ;(add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
 
@@ -150,6 +151,7 @@
          ("\\.html$" . html-mode)
          ("configure.in" . m4-mode)
          ("\\.t$" . cperl-mode)
+         ("\\.psgi$" . cperl-mode)
          ("\\.tt2?$" . html-mode)
          ("\\.tmpl$" . html-mode)
          ("\\.pir$" . pir-mode)
@@ -271,18 +273,19 @@
   `(lambda () (interactive)
      (,function ,@args)))
 
-(defmacro .emacs-eproject-key (key command)
+(defmacro .emacs-eproject-key (key command ep-only)
   (cons 'progn
         (loop for (k . p) in (list (cons key 4) (cons (upcase key) 1))
               collect
-              `(global-set-key
+              `(,@(if ep-only '(define-key eproject-mode-map) '(global-set-key))
                 (kbd ,(format "C-x p %s" k))
                 (.emacs-curry ,command ,p)))))
 
-(.emacs-eproject-key "k" eproject-kill-project-buffers)
-(.emacs-eproject-key "v" eproject-revisit-project)
-(.emacs-eproject-key "b" eproject-ibuffer)
-(.emacs-eproject-key "o" eproject-open-all-project-files)
+(.emacs-eproject-key "k" eproject-kill-project-buffers t)
+(.emacs-eproject-key "v" eproject-revisit-project nil)
+(.emacs-eproject-key "b" eproject-ibuffer t)
+(.emacs-eproject-key "o" eproject-open-all-project-files t)
+(define-key eproject-mode-map (kbd "C-x c") #'eproject-eshell-cd-here)
 
 ;; use C-h c for customize
 (global-unset-key (kbd "C-h c"))
@@ -343,11 +346,11 @@
  '(c-macro-cppflags "-I/usr/include -I/usr/local/include -I/usr/include/g++-3")
  '(case-fold-search t)
  '(compilation-ask-about-save nil)
+ '(compilation-disable-input t)
+ '(compilation-message-face (quote bold))
  '(compilation-read-command nil)
  '(compilation-scroll-output t)
- '(compilation-window-height 10)
  '(compile-auto-highlight 10)
- '(compile-command "make")
  '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".vr" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/")))
  '(confirm-nonexistent-file-or-buffer nil)
  '(cperl-auto-newline nil)
@@ -383,6 +386,7 @@
 %s" (eshell/pwd) (if (= (user-uid) 0) " # " " $ "))))
  '(eudc-protocol (quote ldap))
  '(eudc-server "ldap.uchicago.edu")
+ '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
  '(flymake-allowed-file-name-masks (quote (("\\.c\\'" flymake-simple-make-init) ("\\.cpp\\'" flymake-simple-make-init) ("\\.xml\\'" flymake-xml-init) ("\\.html?\\'" flymake-xml-init) ("\\.cs\\'" flymake-simple-make-init) ("\\.p[lm]\\'" flymake-perl-init) ("\\.t\\'" flymake-perl-init) ("\\.h\\'" flymake-master-make-header-init flymake-master-cleanup) ("\\.java\\'" flymake-simple-make-java-init flymake-simple-java-cleanup) ("[0-9]+\\.tex\\'" flymake-master-tex-init flymake-master-cleanup) ("\\.tex\\'" flymake-simple-tex-init) ("\\.idl\\'" flymake-simple-make-init))))
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
@@ -415,16 +419,14 @@
  '(gnus-sum-thread-tree-vertical "│")
  '(gnus-summary-line-format "%U %R %4L: %(%[ %-20,20f %]%) %B %s
 ")
- '(gnus-summary-mode-hook (quote (gnus-agent-mode (lambda nil (local-set-key (kbd "D") (quote gnus-summary-delete-article))))))
+ '(gnus-summary-mode-hook (quote (gnus-agent-mode (lambda nil (local-set-key (kbd "M-d") (quote gnus-summary-mark-as-spam)) (local-set-key (kbd "D") (quote gnus-summary-delete-article))))))
  '(gnus-thread-indent-level 2)
  '(gnus-update-message-archive-method t)
  '(gnus-use-full-window nil)
  '(grep-tree-command "find <D> -path '*/.svn' -prune -o <X> -type f <F> -print0 | xargs -0 -e egrep <C> -nH -e  '<R>'")
  '(gud-tooltip-echo-area t)
- '(haskell-font-lock-symbols nil)
- '(haskell-ghci-program-name "/home/jon/utils/sane-ghci")
+ '(haskell-font-lock-symbols t)
  '(haskell-literate-default (quote latex))
- '(haskell-program-name "/home/jon/utils/sane-ghci")
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
  '(ibuffer-formats (quote ((mark modified read-only " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
@@ -518,6 +520,7 @@
  '(uce-mail-reader (quote gnus))
  '(uniquify-buffer-name-style (quote forward) nil (uniquify))
  '(user-mail-address "jon@jrock.us")
+ '(vc-follow-symlinks t)
  '(vc-handled-backends (quote (RCS CVS SVN SCCS Arch MCVS GIT)))
  '(w3-use-unicode-table-characters t)
  '(w3-user-colors-take-precedence t)
@@ -546,6 +549,9 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(default ((t (:background "black" :foreground "gray90" :height 95 :family "DejaVu Sans Mono"))))
+ '(compilation-error ((t (:inherit font-lock-warning-face))))
+ '(compilation-info ((((class color) (min-colors 88) (background dark)) (:foreground "Green1"))))
+ '(compilation-warning ((((class color) (min-colors 16)) (:foreground "Orange"))))
  '(completions-common-part ((t (:inherit default :foreground "grey40"))))
  '(completions-first-difference ((t (:inherit bold :underline "green"))))
  '(cperl-array ((((class color) (background dark)) (:background "navy" :foreground "yellow"))))
@@ -578,6 +584,7 @@
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
  '(mode-line-inactive ((default (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20"))) (nil nil)))
+ '(next-error ((t (:inherit region :underline "blue"))))
  '(pod-mode-code-face ((t (:box (:line-width 1 :color "turquoise")))) t)
  '(rcirc-keyword ((t (:inherit nil :foreground "green" :weight bold))))
  '(rcirc-my-nick ((((class color) (min-colors 88) (background dark)) (:foreground "red"))))
