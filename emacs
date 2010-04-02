@@ -325,6 +325,18 @@
           (rcirc-connect host port "jrockway" "jrockway"
                          "Jonathan Rockway" nil password))))
 
+
+(defun xml-unescape ()
+  (interactive)
+  (ignore-errors (replace-string "\\x0a" "\n" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "\\\"" "\"" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "&#xa;" "\n" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "&lt;" "<" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "&gt;" ">" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "&quot;" "\"" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "&apos;" "'" nil (point-min) (point-max)))
+  (ignore-errors (replace-string "&amp;" "&" nil (point-min) (point-max))))
+
 ;;; custom-set
 (custom-set-variables
   ;; custom-set-variables was added by Custom.
