@@ -23,6 +23,7 @@
 (ignore-errors (require 'stylish-repl-iedit))
 (require 'auto-inserts)
 (require 'cperl-extras)
+(require 'cperl-hippie)
 (require 'cperl-mode)
 (require 'css-mode)
 (require 'editing-extras)
@@ -49,6 +50,7 @@
 (require 'slime-load)
 (require 'sql-extras)
 (require 'term-extras)
+(require 'text-hippie)
 (require 'uniquify)
 (require 'w3m-extras)
 (require 'window-number)
@@ -255,7 +257,6 @@
 (global-set-key (kbd "C-h l") (lambda nil (interactive) (info "Elisp")))
 (global-set-key (kbd "C-h o") 'find-library)
 (global-set-key (kbd "C-x t") (lambda nil (interactive) (ansi-term "/bin/bash")))
-(global-set-key (kbd "M-?") 'hippie-expand)
 (global-set-key (kbd "s-u") (lambda nil (interactive) (other-window -1)))
 (global-set-key (kbd "s-U") (lambda nil (interactive) (other-window -1) (delete-window)))
 (global-set-key (kbd "s-i") 'other-window)
@@ -269,6 +270,10 @@
 
 (global-set-key (kbd "<mouse-7>") 'other-window)
 (global-set-key (kbd "<mouse-6>") (lambda nil (interactive) (other-window -1)))
+
+;; use hippie instead of dabbrev
+(global-set-key (kbd "M-/") 'hippie-expand)
+(global-set-key (kbd "M-?") 'dabbrev-expand)
 
 ;; eproject global bindings
 (defmacro .emacs-curry (function &rest args)
@@ -441,6 +446,7 @@
  '(gud-tooltip-echo-area t)
  '(haskell-font-lock-symbols t)
  '(haskell-literate-default (quote latex))
+ '(hippie-expand-try-functions-list (quote (try-complete-moose-method try-complete-file-name-partially try-complete-file-name try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-regular-word)))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
  '(ibuffer-formats (quote ((mark modified read-only git-status-mini " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " (git-status 8 8 :left) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
@@ -610,7 +616,7 @@
  '(rcirc-server ((((class color) (min-colors 88) (background dark)) (:foreground "slateblue"))))
  '(rcirc-track-keyword ((t (:foreground "green"))))
  '(rcirc-track-nick ((t (:inherit rcirc-nick-in-message))))
- '(rcirc-url ((t (:background "grey80" :foreground "black"))))
+ '(rcirc-url ((t (:inherit default :underline "blue"))))
  '(region ((((class color) (min-colors 88) (background dark)) (:background "#033"))))
  '(shadow ((((class color grayscale) (min-colors 88) (background dark)) (:foreground "grey40"))))
  '(sldb-restartable-frame-line-face ((t (:foreground "turquoise"))))
