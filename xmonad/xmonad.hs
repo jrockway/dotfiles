@@ -97,20 +97,19 @@ mkCompletionFunction options query =
                         _   -> c:[]
         quotemeta' x = join (fmap quotemeta x)
         query' = toLower' . quotemeta' $ query
-    in
-    return $ filter (\opt -> (toLower' opt) =~ query') options
-
-xmmsCompletionPrompt :: X ()
-xmmsCompletionPrompt = do
-    completions <- allXmmsCompletions
-    let completionFn = mkCompletionFunction completions
-    (?+) (inputPromptWithCompl promptConfig "Jump" completionFn)
-         (\song -> spawn $ "perl `which xmmsjump` \"" ++ (UTF8.encodeString song) ++ "\"")
+    in return $ filter (\opt -> (toLower' opt) =~ query') options
 
 allXmmsCompletions :: X [String]
 allXmmsCompletions = do
   result <- runProcessWithInput "bash" [] "perl `which xmmsjump` --list-all"
   return $ fmap UTF8.decodeString (lines result)
+
+xmmsCompletionPrompt :: X ()
+xmmsCompletionPrompt = do
+    completions <- allXmmsCompletions
+    let completionFn = mkCompletionFunction completions
+    (?+) (inputPrompt promptConfig "Jump")
+         (\song -> spawn $ "perl `which xmmsjump` \"" ++ (UTF8.encodeString song) ++ "\"")
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.

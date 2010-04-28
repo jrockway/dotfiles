@@ -27,3 +27,5 @@
 [github-import]
         lowercase = 1
         remote = origin
+[branch]
+	autosetuprebase = remote
