@@ -1,4 +1,4 @@
-personal_ws-1.1 en 117 
+personal_ws-1.1 en 119 
 dereference
 templating
 proven
@@ -13,6 +13,7 @@ repurposed
 supertypes
 else's
 perl
+parallelization
 WebLogic
 cp
 config
@@ -57,6 +58,7 @@ subclassing
 filename
 MyCPAN
 syntaxes
+refactor
 PAUSE's
 programatically
 readproctitle
@@ -86,8 +88,8 @@ TODO
 utf
 accessor
 hostname
-supertype
 filesystem
+supertype
 KiokuDB
 kiokudb
 plugins
