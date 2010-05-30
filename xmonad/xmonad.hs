@@ -297,7 +297,7 @@ myFocusFollowsMouse = True
 
 myLogHook = dynamicLogWithPP $ defaultPP {
               ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
-            , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t) ++ " [_1]")
+            , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t))
             , ppVisible = wrap "(" ")"
             }
 
