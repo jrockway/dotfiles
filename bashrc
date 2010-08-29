@@ -88,8 +88,12 @@ alias carpcs="perl -MCarp::Always script/*_server.pl -d"
 
 alias prepl="pclient +PC --name=repl -PC"
 
-eval $(perl -Mlocal::lib)
+# eval $(perl -Mlocal::lib)
 
 if [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
+fi
+
+if [ -f $HOME/perl5/perlbrew/etc/bashrc ]; then
+    . $HOME/perl5/perlbrew/etc/bashrc
 fi
