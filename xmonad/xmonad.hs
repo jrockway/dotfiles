@@ -7,10 +7,11 @@ import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
 import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
-import XMonad.Layout.Tabbed
+import XMonad.Layout.OneBig
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.XMonad
+import XMonad.Prompt.Ssh
 import XMonad.Util.Run
 
 import Data.Monoid
@@ -72,44 +73,42 @@ myWorkspaces = show <$> [1..10]
 myNormalBorderColor  = "#202020"
 myFocusedBorderColor = "#ff0000"
 
-promptConfig = defaultXPConfig {
-                 bgHLight = "DodgerBlue",
-                 fgHLight = "white",
-                 bgColor = "grey70",
-                 fgColor = "black",
-                 position = Top,
-                 font = "xft:DejaVu Sans Mono-20",
-                 promptBorderWidth = 0,
-                 height = 28
-               }
+promptConfig = defaultXPConfig { bgHLight = "DodgerBlue"
+                               , fgHLight = "white"
+                               , bgColor = "grey70"
+                               , fgColor = "black"
+                               , font = "xft:DejaVu Sans Mono-30"
+                               , promptBorderWidth = 0
+                               , height = 42
+                               }
 
--- case-insensitive string comparison
-mkCompletionFunction :: [String] -> String -> IO [String]
-mkCompletionFunction options [] = return []
-mkCompletionFunction options query =
-    let toLower' = fmap toLower
-        quotemeta c = case c of
-                        ')' -> "\\)"
-                        '(' -> "\\("
-                        '[' -> "\\["
-                        ']' -> "\\]"
-                        '\\' -> "\\\\"
-                        _   -> c:[]
-        quotemeta' x = join (fmap quotemeta x)
-        query' = toLower' . quotemeta' $ query
-    in return $ filter (\opt -> (toLower' opt) =~ query') options
+-- -- case-insensitive string comparison
+-- mkCompletionFunction :: [String] -> String -> IO [String]
+-- mkCompletionFunction options [] = return []
+-- mkCompletionFunction options query =
+--     let toLower' = fmap toLower
+--         quotemeta c = case c of
+--                         ')' -> "\\)"
+--                         '(' -> "\\("
+--                         '[' -> "\\["
+--                         ']' -> "\\]"
+--                         '\\' -> "\\\\"
+--                         _   -> c:[]
+--         quotemeta' x = join (fmap quotemeta x)
+--         query' = toLower' . quotemeta' $ query
+--     in return $ filter (\opt -> (toLower' opt) =~ query') options
 
-allXmmsCompletions :: X [String]
-allXmmsCompletions = do
-  result <- runProcessWithInput "bash" [] "perl `which xmmsjump` --list-all"
-  return $ fmap UTF8.decodeString (lines result)
+-- allXmmsCompletions :: X [String]
+-- allXmmsCompletions = do
+--   result <- runProcessWithInput "sh" ["-c", "/usr/bin/perl `which xmmsjump` --list-all"] ""
+--   return . take 20 . lines . UTF8.decodeString $ result
 
 xmmsCompletionPrompt :: X ()
 xmmsCompletionPrompt = do
-    completions <- allXmmsCompletions
-    let completionFn = mkCompletionFunction completions
-    (?+) (inputPrompt promptConfig "Jump")
-         (\song -> spawn $ "perl `which xmmsjump` \"" ++ (UTF8.encodeString song) ++ "\"")
+    -- completions <- allXmmsCompletions
+    -- let completionFn = mkCompletionFunction completions
+    inputPrompt promptConfig "Jump" ?+ \song ->
+      spawn $ "/usr/bin/perl `which xmmsjump` " ++ (UTF8.encodeString song)
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
@@ -126,6 +125,9 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
 
     -- xmmsjump
     , ((modMask, xK_x),  xmmsCompletionPrompt)
+
+    -- ssh
+    , ((modMask, xK_s), sshPrompt promptConfig)
 
     -- close focused window
     , ((modMask              , xK_q     ), kill)
@@ -243,7 +245,7 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 
 myCommonManagers = layoutHints . smartBorders . avoidStruts
 
-myLayout = myCommonManagers (tiled ||| Mirror tiled)
+myLayout = myCommonManagers (tiled ||| Mirror tiled ||| OneBig (3/4) (3/4) ||| Full)
 
   where
      -- default tiling algorithm partitions the screen into two panes
@@ -276,9 +278,9 @@ myLayout = myCommonManagers (tiled ||| Mirror tiled)
 myManageHook = composeAll
     [ className =? "MPlayer"           --> doFloat
     , className =? "Gimp"              --> doFloat
-    , (("*" `isPrefixOf`) `fmap` title)--> doF (W.focusUp . W.swapDown)
+--    , (("*" `isPrefixOf`) `fmap` title)--> doF (W.focusUp . W.swapDown)
     , resource  =? "desktop_window"    --> doIgnore
-    , resource  =? "kdesktop"          --> doIgnore ]
+    ]
 
 -- Whether focus follows the mouse pointer.
 myFocusFollowsMouse :: Bool
@@ -295,11 +297,11 @@ myFocusFollowsMouse = True
 -- > logHook = dynamicLogDzen
 --
 
-myLogHook = dynamicLogWithPP $ defaultPP {
-              ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
-            , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t))
-            , ppVisible = wrap "(" ")"
-            }
+myLogHook = dynamicLogWithPP $
+            defaultPP { ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
+                      , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t))
+                      , ppVisible = wrap "(" ")"
+                      }
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
