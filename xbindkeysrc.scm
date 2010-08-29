@@ -69,8 +69,8 @@
 
 
 ;(define Pause 'Pause) ; "c:204"
-(xbindkey '(mod4 grave) "xmms2 toggleplay")
+(xbindkey '(mod4 grave) "xmms2 toggle")
 (xbindkey '(mod4 Left) "xmms2 prev")
 (xbindkey '(mod4 Right) "xmms2 next")
-(xbindkey '(mod4 shift Left) "sh -c 'xmms2 seek -5; echo seek -5 > /tmp/mplayer'")
-(xbindkey '(mod4 shift Right) "sh -c 'xmms2 seek +5; echo seek +5 > /tmp/mplayer'")
+(xbindkey '(mod4 shift Left) "sh -c 'xmms2 seek -5; echo seek -5 > /home/jon/.mplayer-sock'")
+(xbindkey '(mod4 shift Right) "sh -c 'xmms2 seek +5; echo seek +5 > /home/jon/.mplayer-sock'")
