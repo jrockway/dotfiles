@@ -3,6 +3,7 @@ import System.Exit
 import XMonad.Actions.NoBorders
 import XMonad.Actions.SpawnOn
 import XMonad.Actions.FindEmptyWorkspace
+import XMonad.Actions.WindowGo
 import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
 import XMonad.Layout.LayoutHints
@@ -18,7 +19,7 @@ import Data.Monoid
 import Data.List (isPrefixOf, filter)
 import Data.Char (toLower)
 import Text.Regex.Posix
-import Control.Monad (join)
+import Control.Monad
 import Control.Applicative
 
 import qualified Codec.Binary.UTF8.String as UTF8
@@ -66,7 +67,7 @@ myNumlockMask   = mod2Mask
 --
 -- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
 --
-myWorkspaces = show <$> [1..10]
+myWorkspaces = ["emacs", "work" ] ++ (show <$> [3..8]) ++ ["downloads"]
 
 -- Border colors for unfocused and focused windows, respectively.
 --
@@ -117,8 +118,9 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- launch a terminal
     [ ((modMask .|. shiftMask, xK_Return), spawnHere $ XMonad.terminal conf)
 
-    , ((modMask, xK_z), spawnHere "conkeror")
-    , ((modMask, xK_c), spawnHere "emacsclient -c")
+    , ((modMask, xK_a), runOrRaise "emacsclient -c" (className =? "Emacs"))
+    , ((modMask, xK_s), runOrRaise "conkeror" (className =? "Conkeror"))
+    , ((modMask, xK_d), raiseNext (className =? "URxvt"))
 
     -- launch arbitrary programs
     , ((modMask,               xK_p     ), shellPromptHere promptConfig)
@@ -127,10 +129,10 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
 
     -- xmmsjump
-    , ((modMask, xK_x),  xmmsCompletionPrompt)
+    , ((modMask, xK_o),  xmmsCompletionPrompt)
 
     -- ssh
-    , ((modMask, xK_s), sshPrompt promptConfig)
+    , ((modMask, xK_i), sshPrompt promptConfig)
 
     -- close focused window
     , ((modMask              , xK_q     ), kill)
@@ -281,7 +283,6 @@ myLayout = myCommonManagers (tiled ||| Mirror tiled ||| OneBig (3/4) (3/4) ||| F
 myManageHook = composeAll
     [ className =? "MPlayer"           --> doFloat
     , className =? "Gimp"              --> doFloat
---    , (("*" `isPrefixOf`) `fmap` title)--> doF (W.focusUp . W.swapDown)
     , resource  =? "desktop_window"    --> doIgnore
     ]
 
@@ -306,6 +307,13 @@ myLogHook = dynamicLogWithPP $
                       , ppVisible = wrap "(" ")"
                       }
 
+-- | setup a normal session -- somewhat
+sessionSetupAction :: XConfig Layout -> X ()
+sessionSetupAction conf = do
+  spawnOn "emacs" "emacsclient -c"
+  forM_ [1..3] $ \_ -> spawnOn "work" "urxvt"
+  spawnOn "work" "conkeror"
+
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
 
@@ -322,7 +330,7 @@ myXConfig = XConfig { terminal           = myTerminal
                     , keys               = myKeys
                     , mouseBindings      = myMouseBindings
                     , layoutHook         = myLayout
-                    , manageHook         = manageSpawn <+> myManageHook <+> manageDocks
+                    , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
                     , logHook            = myLogHook
                     , startupHook        = return ()
                     , handleEventHook    = (\x -> return $ Data.Monoid.All { getAll = True })
