@@ -311,23 +311,21 @@ myLogHook = dynamicLogWithPP $
 
 -- Run xmonad with the settings you specify. No need to modify this.
 --
-main = do
-  xmonad $ XConfig {
-               terminal           = myTerminal,
-               focusFollowsMouse  = myFocusFollowsMouse,
-               borderWidth        = myBorderWidth,
-               modMask            = myModMask,
---               numlockMask        = myNumlockMask,
-               workspaces         = myWorkspaces,
-               normalBorderColor  = myNormalBorderColor,
-               focusedBorderColor = myFocusedBorderColor,
-               keys               = myKeys,
-               mouseBindings      = myMouseBindings,
-               layoutHook         = myLayout,
-               manageHook         = manageSpawn <+> myManageHook <+> manageDocks,
-               logHook            = myLogHook,
-               startupHook = return (),
-               handleEventHook = (\x -> return $ Data.Monoid.All { getAll = True })
+myXConfig = XConfig { terminal           = myTerminal
+                    , focusFollowsMouse  = myFocusFollowsMouse
+                    , borderWidth        = myBorderWidth
+                    , modMask            = myModMask
+                    -- , numlockMask        = myNumlockMask
+                    , workspaces         = myWorkspaces
+                    , normalBorderColor  = myNormalBorderColor
+                    , focusedBorderColor = myFocusedBorderColor
+                    , keys               = myKeys
+                    , mouseBindings      = myMouseBindings
+                    , layoutHook         = myLayout
+                    , manageHook         = manageSpawn <+> myManageHook <+> manageDocks
+                    , logHook            = myLogHook
+                    , startupHook        = return ()
+                    , handleEventHook    = (\x -> return $ Data.Monoid.All { getAll = True })
+                    }
 
-             }
-
+main = xmonad myXConfig
