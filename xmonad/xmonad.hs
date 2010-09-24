@@ -117,6 +117,9 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- launch a terminal
     [ ((modMask .|. shiftMask, xK_Return), spawnHere $ XMonad.terminal conf)
 
+    , ((modMask, xK_z), spawnHere "conkeror")
+    , ((modMask, xK_c), spawnHere "emacsclient -c")
+
     -- launch arbitrary programs
     , ((modMask,               xK_p     ), shellPromptHere promptConfig)
 
