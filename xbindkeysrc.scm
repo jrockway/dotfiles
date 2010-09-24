@@ -74,3 +74,6 @@
 (xbindkey '(mod4 Right) "xmms2 next")
 (xbindkey '(mod4 shift Left) "sh -c 'xmms2 seek -5; echo seek -5 > /home/jon/.mplayer-sock'")
 (xbindkey '(mod4 shift Right) "sh -c 'xmms2 seek +5; echo seek +5 > /home/jon/.mplayer-sock'")
+(xbindkey '(mod4 F9)  "sh -c 'echo pause > /home/jon/.mplayer-sock'")
+(xbindkey '(mod4 F10) "sh -c 'echo speed_mult 0.9091 > /home/jon/.mplayer-sock'")
+(xbindkey '(mod4 F11) "sh -c 'echo speed_mult 1.1    > /home/jon/.mplayer-sock'")
