@@ -97,3 +97,5 @@ fi
 if [ -f $HOME/perl5/perlbrew/etc/bashrc ]; then
     . $HOME/perl5/perlbrew/etc/bashrc
 fi
+
+export http_proxy="http://localhost:8123/"
