@@ -104,8 +104,6 @@
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
 (add-hook 'text-mode-hook 'text-hooks)
 (add-hook 'tex-mode-hook (lambda () (setq ispell-parser 'tex)))
-(add-hook 'c-mode-common-hook (lambda () (local-set-key '"\C-c\C-f" 'compile)))
-(add-hook 'c-mode-common-hook (lambda () (local-set-key '"\C-c\C-l" 'goto-line)))
 ;(add-hook 'cperl-mode-hook 'maybe-flymake-mode)
 (add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
 (add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
