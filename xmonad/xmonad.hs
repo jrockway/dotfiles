@@ -71,7 +71,7 @@ myNumlockMask   = mod2Mask
 --
 -- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
 --
-myWorkspaces = ["emacs", "work" ] ++ (show <$> [3..8]) ++ ["downloads"]
+myWorkspaces = show <$> [1..9]
 
 -- Border colors for unfocused and focused windows, respectively.
 --
@@ -314,9 +314,9 @@ myLogHook = dynamicLogWithPP $
 -- | setup a normal session -- somewhat
 sessionSetupAction :: XConfig Layout -> X ()
 sessionSetupAction conf = do
-  spawnOn "emacs" "emacsclient -c"
-  forM_ [1..3] $ \_ -> spawnOn "work" "urxvt"
-  spawnOn "work" "conkeror"
+  spawnOn "1" "emacsclient -c"
+  forM_ [1..3] $ \_ -> spawnOn "2" "urxvt"
+  spawnOn "2" "conkeror"
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
