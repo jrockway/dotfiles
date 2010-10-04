@@ -1,26 +1,30 @@
+{-# LANGUAGE FlexibleInstances, MultiParamTypeClasses #-}
+
 import XMonad
 import System.Exit
+import XMonad.Actions.FindEmptyWorkspace
 import XMonad.Actions.NoBorders
 import XMonad.Actions.SpawnOn
-import XMonad.Actions.FindEmptyWorkspace
 import XMonad.Actions.WindowGo
-import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.DynamicLog
+import XMonad.Hooks.ManageDocks
 import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
 import XMonad.Layout.OneBig
 import XMonad.Prompt
 import XMonad.Prompt.Input
-import XMonad.Prompt.XMonad
 import XMonad.Prompt.Ssh
+import XMonad.Prompt.XMonad
 import XMonad.Util.Run
 
-import Data.Monoid
-import Data.List (isPrefixOf, filter)
-import Data.Char (toLower)
-import Text.Regex.Posix
-import Control.Monad
 import Control.Applicative
+import Control.Monad
+import Data.Char (toLower)
+import Data.List (isPrefixOf, filter)
+import Data.Maybe
+import Data.Monoid
+import Data.Ratio
+import Text.Regex.Posix
 
 import qualified Codec.Binary.UTF8.String as UTF8
 
