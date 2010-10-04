@@ -133,10 +133,10 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
 
     -- xmmsjump
-    , ((modMask, xK_o),  xmmsCompletionPrompt)
+    , ((modMask, xK_i),  xmmsCompletionPrompt)
 
     -- ssh
-    , ((modMask, xK_i), sshPrompt promptConfig)
+    , ((modMask, xK_o), sshPrompt promptConfig)
 
     -- close focused window
     , ((modMask              , xK_q     ), kill)
