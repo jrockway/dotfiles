@@ -125,7 +125,8 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     , ((modMask, xK_a), runOrRaise "emacsclient -c" (className =? "Emacs"))
     , ((modMask, xK_s), runOrRaise "conkeror" (className =? "Conkeror"))
     , ((modMask, xK_d), raiseNext (className =? "URxvt"))
-
+    , ((modMask, xK_f), raiseNext (className =? "MPlayer"))
+      
     -- launch arbitrary programs
     , ((modMask,               xK_p     ), shellPromptHere promptConfig)
 
