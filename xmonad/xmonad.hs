@@ -122,11 +122,11 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- launch a terminal
     [ ((modMask .|. shiftMask, xK_Return), spawnHere $ XMonad.terminal conf)
 
-    , ((modMask, xK_a), runOrRaise "emacsclient -c" (className =? "Emacs"))
-    , ((modMask, xK_s), runOrRaise "conkeror" (className =? "Conkeror"))
-    , ((modMask, xK_d), raiseNext (className =? "URxvt"))
-    , ((modMask, xK_f), raiseNext (className =? "MPlayer"))
-      
+    , ((modMask, xK_Delete), runOrRaise "emacsclient -c" (className =? "Emacs"))
+    , ((modMask, xK_End)   , runOrRaise "conkeror" (className =? "Conkeror"))
+    , ((modMask, xK_Next)  , raiseNext (className =? "URxvt"))
+    , ((modMask, xK_Prior) , raiseNext (className =? "MPlayer"))
+
     -- launch arbitrary programs
     , ((modMask,               xK_p     ), shellPromptHere promptConfig)
 
