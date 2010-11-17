@@ -16,6 +16,7 @@ import XMonad.Prompt.Input
 import XMonad.Prompt.Ssh
 import XMonad.Prompt.XMonad
 import XMonad.Util.Run
+import AlmostFull
 
 import Control.Applicative
 import Control.Monad
@@ -252,39 +253,6 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 --
 --- myLayout = --- layoutHints (smartBorders (avoidStruts (tiled ||| Mirror tiled)))
            --- ||| (smartBorders (avoidStruts Full))
-
-data AlmostFull a = AlmostFull Rational Rational (Tall a) deriving (Read, Show)
-
-instance LayoutClass AlmostFull a where
-  pureLayout (AlmostFull ratio delta t) r@(Rectangle rx ry rw rh) s =
-    let ss = W.integrate s in
-    case length ss of
-      1 -> zip ws rs where
-        ws = take 1 ss
-        rs = [Rectangle rx' ry rw' rh]
-        rw' = ceiling . (ratio *) . fromIntegral $ rw
-        rx' = ceiling $ (fromIntegral $ rw - rw') / 2
-      _ -> pureLayout t r s
-
-  handleMessage l m = withWindowSet $ \w ->
-    return . pureAfMessage' l m . fromMaybe 1 $
-    (W.stack . W.workspace . W.current $ w) >>= return . length . W.integrate
-
-  description (AlmostFull ratio delta t) = "AlmostFull " ++ description t
-
-pureAfMessage' :: AlmostFull a -> SomeMessage -> Int -> Maybe (AlmostFull a)
-pureAfMessage' l@(AlmostFull ratio delta t) m winCount =
-  case winCount of
-    0 -> finalize (f $ fromMessage m) (Just t)
-    1 -> finalize (f $ fromMessage m) (Just t)
-    _ -> finalize (Just ratio) (pureMessage t m)
-  where
-    finalize :: Maybe Rational -> Maybe (Tall a) -> Maybe (AlmostFull a)
-    finalize ratio t = ratio >>= \ratio -> t >>= \t ->
-      return $ AlmostFull ratio delta t
-    f (Just Shrink) = Just (max 0 $ ratio-delta)
-    f (Just Expand) = Just (min 1 $ ratio+delta)
-    f _             = Nothing
 
 myCommonManagers = layoutHints . smartBorders . avoidStruts
 
