@@ -261,6 +261,7 @@
 (global-set-key (kbd "C-M-;") 'replace-regexp)
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "M-g s") 'magit-status)
+(global-set-key (kbd "C-c C-k") 'compile)
 
 (global-set-key (kbd "<mouse-7>") 'other-window)
 (global-set-key (kbd "<mouse-6>") (lambda nil (interactive) (other-window -1)))
