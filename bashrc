@@ -64,7 +64,7 @@ function lbperl {
 alias ec="emacsclient -t" # yay for multi-tty!
 
 # limits
-ulimit -c 0
+ulimit -S -c 0
 
 # history-related
 shopt -s cmdhist
