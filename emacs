@@ -512,6 +512,8 @@
  '(rcirc-prompt "[%t] ")
  '(rcirc-server-alist nil)
  '(rcirc-track-minor-mode t)
+ '(read-buffer-completion-ignore-case t)
+ '(read-file-name-completion-ignore-case t)
  '(safe-local-variable-values (quote ((Syntax . ANSI-Common-Lisp) (Base . 10) (flymake-mode . 0))))
  '(same-window-regexps (quote ("[*]eshell" "[*]ielm" "[*]Customize" "[*]Stylish")))
  '(save-place t nil (saveplace))
