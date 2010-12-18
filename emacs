@@ -399,6 +399,8 @@
  '(eshell-prompt-function (lambda nil (format "
 %s
 %s" (eshell/pwd) (if (= (user-uid) 0) " # " " $ "))))
+ '(espresso-auto-indent-flag nil)
+ '(espresso-enabled-frameworks (quote (javascript)))
  '(eudc-protocol (quote ldap))
  '(eudc-server "ldap.uchicago.edu")
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
