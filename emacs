@@ -319,7 +319,7 @@
   "Connect to all my networks."
   (interactive)
   (let ((password (password-read "IRC password: "))
-        (host "localhost"))
+        (host "stonepath.internal"))
     (loop for port from 6667 to 6671 do
           (rcirc-connect host port "jrockway" "jrockway"
                          "Jonathan Rockway" nil password))))
