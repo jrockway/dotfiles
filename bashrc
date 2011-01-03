@@ -88,6 +88,8 @@ alias carpcs="perl -MCarp::Always script/*_server.pl -d"
 
 alias prepl="pclient +PC --name=repl -PC"
 
+alias http="plackup -MPlack::App::Directory -e 'Plack::App::Directory->new({ root => \$ENV{PWD} })->to_app;'"
+
 # eval $(perl -Mlocal::lib)
 
 if [ -f /etc/bash_completion ]; then
@@ -98,4 +100,4 @@ if [ -f $HOME/perl5/perlbrew/etc/bashrc ]; then
     . $HOME/perl5/perlbrew/etc/bashrc
 fi
 
-export http_proxy="http://localhost:8123/"
+# export http_proxy="http://localhost:8123/"
