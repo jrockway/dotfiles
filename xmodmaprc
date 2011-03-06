@@ -12,7 +12,7 @@ keycode  19 = 0 bracketright
 keycode  34 = parenleft braceleft
 keycode  35 = parenright braceright
 
-!! !! swap backspace and \ on the RealForce
+!! swap backspace and \ on the RealForce
 keycode 51 = BackSpace
 keycode 22 = backslash bar
 
