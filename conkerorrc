@@ -22,3 +22,12 @@ xkcd_add_title = true;
 hint_digits="asdfjkl;";
 hints_auto_exit_delay=500;
 hints_ambiguous_auto_exit_delay=1000;
+
+// Mozrepl
+//
+if ('@hyperstruct.net/mozlab/mozrepl;1' in Cc) {
+  let mozrepl = Cc['@hyperstruct.net/mozlab/mozrepl;1']
+    .getService(Ci.nsIMozRepl);
+  if (! mozrepl.isActive())
+    mozrepl.start(4242);
+}
