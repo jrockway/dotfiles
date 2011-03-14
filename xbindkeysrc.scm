@@ -77,3 +77,4 @@
 (xbindkey '(mod4 F9)  "sh -c 'echo pause > /home/jon/.mplayer-sock'")
 (xbindkey '(mod4 F10) "sh -c 'echo speed_mult 0.9091 > /home/jon/.mplayer-sock'")
 (xbindkey '(mod4 F11) "sh -c 'echo speed_mult 1.1    > /home/jon/.mplayer-sock'")
+(xbindkey '(control alt Insert) "xlock -delay 10000 -erasedelay 0 -mode galaxy")
