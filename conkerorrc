@@ -20,8 +20,8 @@ define_webjump("easynews", "http://members.easynews.com/global4/search.html?gps=
 
 xkcd_add_title = true;
 hint_digits="asdfjkl;";
-hints_auto_exit_delay=500;
-hints_ambiguous_auto_exit_delay=1000;
+hints_auto_exit_delay=200;
+hints_ambiguous_auto_exit_delay=500;
 
 // Mozrepl
 //
