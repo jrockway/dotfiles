@@ -2,10 +2,10 @@
 
 # path
 PATH=\
-$HOME/utils/android/tools:\
+$HOME/local/bin/android/tools:\
 $HOME/.cabal/bin:\
 $HOME/projects/jrockway-utils/bin:\
-$HOME/utils:\
+$HOME/local/bin:\
 /usr/local/bin:\
 /usr/local/sbin:\
 /usr/games:\
