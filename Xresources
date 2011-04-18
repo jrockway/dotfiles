@@ -10,6 +10,9 @@ URxvt.font: xft:DejaVu Sans Mono:size=9:medium:roman:antialias=true:autohint=tru
 URxvt.scrollBar: False
 URxvt.perl-ext-common: default
 URxvt.fading: 10
-Xft*antialias: true
 Xft*autohint: true
-
+Xft*dpi: 96
+Xft*hinting: true
+Xft*hintstyle: hintfull
+Xft*antialias: rgba
+Xft*rgba: rgb
