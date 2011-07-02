@@ -17,8 +17,6 @@
 (add-to-list 'load-path "~/elisp/slime/")
 (add-to-list 'load-path "~/elisp/slime/contrib")
 (add-to-list 'load-path "~/elisp/gist.el/")
-(add-to-list 'load-path "~/projects/cpan_modules/Stylish/el")
-
 
 (ignore-errors (require 'stylish-repl-iedit))
 (require 'auto-inserts)
@@ -136,6 +134,12 @@
                  (setq rcirc-ignore-buffer-activity-flag t))))
 (add-hook 'help-mode-hook (lambda () (local-set-key "l" #'help-go-back)))
 (add-hook 'eshell-mode-hook (lambda () (local-set-key (kbd "C-u") #'universal-argument)))
+
+(add-hook 'ibuffer-hook (lambda ()
+                          (ibuffer-filter-by-predicate
+                           '(< 0 (length (buffer-file-name))))
+                          (ibuffer-filter-by-predicate
+                           '(not buffer-read-only))))
 
 ;(add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
 
@@ -298,7 +302,6 @@
 (global-set-key (kbd "C-h c g") #'customize-group)
 
 ;;; setqs
-(setq frame-title-format "emacs")
 (setq twittering-username "jrockway")
 (set-language-environment "UTF-8")
 (setq slime-net-coding-system 'utf-8-unix)
@@ -321,8 +324,8 @@
   "Connect to all my networks."
   (interactive)
   (let ((password (password-read "IRC password: "))
-        (host "stonepath.internal"))
-    (loop for port from 6667 to 6671 do
+        (host "itchy.internal"))
+    (loop for port from 6667 to 6678 do
           (rcirc-connect host port "jrockway" "jrockway"
                          "Jonathan Rockway" nil password))))
 
