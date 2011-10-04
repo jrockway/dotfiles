@@ -257,6 +257,8 @@
 (global-set-key (kbd "C-x t") (lambda nil (interactive) (ansi-term "/bin/bash")))
 (global-set-key (kbd "s-(") (lambda nil (interactive) (other-window -1)))
 (global-set-key (kbd "s-)") (lambda nil (interactive) (other-window 1)))
+(global-set-key (kbd "C-(") (lambda nil (interactive) (other-window -1)))
+(global-set-key (kbd "C-)") (lambda nil (interactive) (other-window 1)))
 (global-set-key (kbd "s-U") (lambda nil (interactive) (other-window -1) (delete-window)))
 (global-set-key (kbd "s-i") 'other-window)
 (global-set-key (kbd "M-r") 'comment-region)
@@ -267,6 +269,8 @@
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "M-g s") 'magit-status)
 (global-set-key (kbd "C-c C-k") 'compile)
+
+(define-key c-mode-map (kbd "C-c C-l") 'compile)
 
 (global-set-key (kbd "<mouse-7>") 'other-window)
 (global-set-key (kbd "<mouse-6>") (lambda nil (interactive) (other-window -1)))
@@ -369,7 +373,7 @@
  '(compilation-read-command nil)
  '(compilation-scroll-output t)
  '(compile-auto-highlight 10)
- '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".vr" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/")))
+ '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".vr" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi")))
  '(confirm-nonexistent-file-or-buffer nil)
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
