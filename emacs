@@ -4,21 +4,17 @@
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/_local")
 (add-to-list 'load-path "~/elisp/cperl-mode")
-(add-to-list 'load-path "~/elisp/ecb")
-(add-to-list 'load-path "~/elisp/eieio-0.17")
 (add-to-list 'load-path "~/elisp/eproject")
 (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
 (add-to-list 'load-path "~/elisp/haskell-mode/")
 (add-to-list 'load-path "~/elisp/magit")
-(add-to-list 'load-path "~/elisp/mmm-mode/")
 (add-to-list 'load-path "~/elisp/ocaml")
 (add-to-list 'load-path "~/elisp/scala-mode")
 (add-to-list 'load-path "~/elisp/slime/")
 (add-to-list 'load-path "~/elisp/slime/contrib")
 (add-to-list 'load-path "~/elisp/gist.el/")
 
-(ignore-errors (require 'stylish-repl-iedit))
 (require 'auto-inserts)
 (require 'cperl-extras)
 (require 'cperl-hippie)
@@ -28,12 +24,14 @@
 (require 'elisp-extras)
 (require 'eproject)
 (require 'eproject-extras)
+(require 'eshell)
 (require 'eshell-extras)
 (require 'eslide)
 (require 'espresso)
 (require 'gist)
 (require 'git)
 (require 'gnus)
+(require 'help-mode)
 (require 'haskell-extras)
 (require 'haskell-mode)
 (require 'ibuffer-git)
@@ -50,6 +48,7 @@
 (require 'sql-extras)
 (require 'term-extras)
 (require 'text-hippie)
+(require 'text-extras)
 (require 'uniquify)
 (require 'w3m-extras)
 (require 'window-number)
@@ -59,81 +58,13 @@
 
 ;;; modes i want on by default
 (iswitchb-mode 1)
-;(desktop-save-mode 1)
 (winner-mode 1)
 (window-number-mode 1)
-(windmove-default-keybindings)
 (defalias 'perl-mode 'cperl-mode)
 
-;;; hooks
-(defun text-hooks ()
-  "Turn on modes that I need when editing English text."
-  (turn-on-auto-fill)
-  (flyspell-mode 1)
-  (local-set-key "\C-cu" 'insert-same-number-of-chars-as-line-above)
-  (local-set-key "\C-ccw" 'ispell-complete-word))
-
-(defun maybe-flymake-mode ()
-  (interactive)
-  (if (not (or
-            ;; if we've disabled flymake, don't turn it on (XXX: perl-specific)
-            (and (boundp 'cperl-no-flymake) cperl-no-flymake)
-            ;; if the buffer is read-only, don't turn it on
-               buffer-read-only))
-      (flymake-mode)))
-
-(defun delete-trailing-whitespace-nothere ()
-  "Delete trailing whitespace, except on the current line if it is all whitespace."
-  (interactive)
-  (let (current-whitespace)
-    (when (save-excursion
-            (beginning-of-line)
-            (looking-at "\\([[:space:]]+\\)$"))
-      (setq current-whitespace (match-string 0)))
-    (delete-trailing-whitespace)
-    (save-excursion
-      (beginning-of-line)
-      (when current-whitespace
-        (insert current-whitespace)))
-    (when current-whitespace
-      (end-of-line))))
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
-(add-hook 'text-mode-hook 'text-hooks)
-(add-hook 'tex-mode-hook (lambda () (setq ispell-parser 'tex)))
-;(add-hook 'cperl-mode-hook 'maybe-flymake-mode)
-(add-hook 'emacs-lisp-mode-hook 'turn-on-eldoc-mode)
-(add-hook 'haskell-mode-hook 'turn-on-haskell-decl-scan)
-(add-hook 'haskell-mode-hook 'turn-on-haskell-doc-mode)
-(add-hook 'haskell-mode-hook 'turn-on-haskell-indentation)
-(add-hook 'org-mode-hook
-          (lambda nil
-            ;; the kbd is irritatingly made-of-fail
-            (loop for i in (list (kbd "S-<left>")
-                                 (kbd "S-<right>")
-                                 (kbd "S-<up>")
-                                 (kbd "S-<down>"))
-                  do (local-unset-key i))))
-(add-hook 'w3m-mode-hook
-          (lambda nil
-            (loop for old in '("S-<left>" "S-<right>")
-                  do (local-unset-key (macroexpand `(kbd ,old))))
-            ;; yes, the reverse order is intentional
-            (local-set-key (kbd "C-<right>") #'w3m-shift-left)
-            (local-set-key (kbd "C-<left>") #'w3m-shift-right)))
-
-(add-hook 'message-setup-hook
-          (lambda () (local-set-key "\C-cw" 'message-widen-reply)))
-(add-hook 'rcirc-mode-hook (lambda () (flyspell-mode 1)))
-(add-hook 'rcirc-mode-hook (lambda () (rcirc-omit-mode)))
-(add-hook 'rcirc-mode-hook
-             (lambda ()
-               (when (or (= (aref (buffer-name) 0) ?#)
-                         (= (aref (buffer-name) 0) ?&))
-                 (setq rcirc-ignore-buffer-activity-flag t))))
-(add-hook 'help-mode-hook (lambda () (local-set-key "l" #'help-go-back)))
-(add-hook 'eshell-mode-hook (lambda () (local-set-key (kbd "C-u") #'universal-argument)))
 
 (add-hook 'ibuffer-hook (lambda ()
                           (ibuffer-filter-by-predicate
@@ -141,92 +72,29 @@
                           (ibuffer-filter-by-predicate
                            '(not buffer-read-only))))
 
-;(add-hook 'haskell-mode-hook 'turn-on-haskell-simple-indent)
-
-;;; auto-modes
-(setq auto-mode-alist
-      (append
-       '(("\\.css$" . css-mode)
-         ("\\.js$" . espresso-mode)
-         ("\\.ya?ml$" . yaml-mode)
-         ("^mutt-" . mail-mode)
-         ("\\.html$" . html-mode)
-         ("configure.in" . m4-mode)
-         ("\\.t$" . cperl-mode)
-         ("\\.psgi$" . cperl-mode)
-         ("\\.tt2?$" . html-mode)
-         ("\\.tmpl$" . html-mode)
-         ("\\.pir$" . pir-mode)
-         ("\\.[hg]s$"  . haskell-mode)
-         ("\\.hi$"     . haskell-mode)
-         ("\\.elt$"    . emacs-lisp-mode)
-         ("\\.ml[iyl]?$" . caml-mode)
-         ("\\.l[hg]s$" . literate-haskell-mode))
-       auto-mode-alist))
-
-(add-to-list 'auto-mode-alist
-             (cons (concat "\\." (regexp-opt '("xml" "xsd" "sch" "rng"
-                                               "xslt" "svg" "rss") t) "\\'")
-                   'nxml-mode))
-
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
 (put 'narrow-to-page 'disabled nil)
 (put 'set-goal-column 'disabled nil)
 (put 'upcase-region 'disabled nil)
-
-;;; functions for keybindings
-(defun kill-current-buffer (prefix)
-  (interactive "P")
-  (if prefix (call-interactively 'kill-buffer)
-    (kill-buffer nil)))
-
-;;; advice
-(require 'flymake)
-(defadvice flymake-perl-init (after fix-flymake-perl-path)
-  (let* ((include
-          (condition-case nil
-              (list (concat
-                     "-I" (car (perl-project-includes)))
-                    (concat
-                     "-I" (expand-file-name
-                           (concat (look-for-Makefile.PL) "/.."))))
-                    (error nil)))
-         (perl "/home/jon/perl/install/bin/perl")
-         (file (cadadr ad-return-value))
-         (args (if include (append include (list "-c" file))
-                 (list "-c" file))))
-    (setq ad-return-value (list perl args))))
-(ad-activate 'flymake-perl-init)
+(put 'narrow-to-region 'disabled nil)
+(put 'save-buffers-kill-terminal 'disabled nil)
+(put 'dired-find-alternate-file 'disabled nil)
 
 ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; it kills my main X session (with 9 windows or whatever), it is really
 ;; annoying.
 (defadvice save-buffers-kill-terminal (around dont-kill-my-x-session-kthx)
   "Disable C-x C-c under X."
-  (if (eq window-system 'x)
+  (if (or (eq window-system 'x) (eq window-system 'w32))
       (message "I'm afraid I can't do that, Dave.")
     ad-do-it))
 (ad-activate 'save-buffers-kill-terminal)
 
-(defadvice iswitchb-kill-buffer (after rescan-after-kill activate)
-  "*Regenerate the list of matching buffer names after a kill.
-    Necessary if using `uniquify' with `uniquify-after-kill-buffer-p'
-    set to non-nil."
-      (setq iswitchb-buflist iswitchb-matches)
-      (iswitchb-rescan))
-
-(defun iconify-or-deiconify-frame ()
-  "Don't iconify, since that makes emacs freeze under xmonad"
-  (interactive)
-  (make-frame-visible))
-
-(defun iswitchb-rescan ()
-  "*Regenerate the list of matching buffer names."
-  (interactive)
-  (iswitchb-make-buflist iswitchb-default)
-  (setq iswitchb-rescan t))
-(ad-activate 'iswitchb-kill-buffer)
+;; (defun iconify-or-deiconify-frame ()
+;;   "Don't iconify, since that makes emacs freeze under xmonad"
+;;   (interactive)
+;;   (make-frame-visible))
 
 (defun log-edit-hide-buf (&optional buf where)
   (when (setq buf (get-buffer (or buf log-edit-files-buf)))
@@ -234,15 +102,25 @@
       (bury-buffer buf))))
 
 ;;; override stupid defaults
-(defalias 'yes-or-no-p 'y-or-n-p) ; typing yes or no is annoying? (y or n)
-(defun message-box (text) (message "%s" text))
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;;; key-bindings
+;; functions
+(defun kill-current-buffer (prefix)
+  (interactive "P")
+  (if prefix (call-interactively 'kill-buffer)
+    (kill-buffer nil)))
+
 ;; unset
 (require 'flyspell)
 (define-key flyspell-mode-map (kbd "C-;") nil) ; HATE.
 
 ;; set
+
+(define-key text-mode-map "\C-cu" 'insert-same-number-of-chars-as-line-above)
+(define-key text-mode-map "\C-ccw" 'ispell-complete-word)
+(define-key message-mode-map "\C-cw" 'message-widen-reply)
+(define-key help-mode-map "l" 'help-go-back)
 (define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 (global-set-key "\C-xg" 'rgrep)
@@ -252,14 +130,14 @@
 (global-set-key "\C-c\C-r" 'revert-buffer)
 (global-set-key (kbd "C-x C-g") 'abort-recursive-edit)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
-(global-set-key (kbd "C-h l") (lambda nil (interactive) (info "Elisp")))
+(global-set-key (kbd "C-h l") (lambda () (interactive) (info "Elisp")))
 (global-set-key (kbd "C-h o") 'find-library)
-(global-set-key (kbd "C-x t") (lambda nil (interactive) (ansi-term "/bin/bash")))
-(global-set-key (kbd "s-(") (lambda nil (interactive) (other-window -1)))
-(global-set-key (kbd "s-)") (lambda nil (interactive) (other-window 1)))
-(global-set-key (kbd "C-(") (lambda nil (interactive) (other-window -1)))
-(global-set-key (kbd "C-)") (lambda nil (interactive) (other-window 1)))
-(global-set-key (kbd "s-U") (lambda nil (interactive) (other-window -1) (delete-window)))
+(global-set-key (kbd "C-x t") (lambda () (interactive) (ansi-term "/bin/bash")))
+(global-set-key (kbd "s-(") (lambda () (interactive) (other-window -1)))
+(global-set-key (kbd "s-)") (lambda () (interactive) (other-window 1)))
+(global-set-key (kbd "C-(") (lambda () (interactive) (other-window -1)))
+(global-set-key (kbd "C-)") (lambda () (interactive) (other-window 1)))
+(global-set-key (kbd "s-U") (lambda () (interactive) (other-window -1) (delete-window)))
 (global-set-key (kbd "s-i") 'other-window)
 (global-set-key (kbd "M-r") 'comment-region)
 (global-set-key (kbd "C-M-r") 'uncomment-region)
@@ -269,34 +147,11 @@
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "M-g s") 'magit-status)
 (global-set-key (kbd "C-c C-k") 'compile)
-
 (define-key c-mode-map (kbd "C-c C-l") 'compile)
-
-(global-set-key (kbd "<mouse-7>") 'other-window)
-(global-set-key (kbd "<mouse-6>") (lambda nil (interactive) (other-window -1)))
 
 ;; use hippie instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
 (global-set-key (kbd "M-?") 'dabbrev-expand)
-
-;; eproject global bindings
-(defmacro .emacs-curry (function &rest args)
-  `(lambda () (interactive)
-     (,function ,@args)))
-
-(defmacro .emacs-eproject-key (key command ep-only)
-  (cons 'progn
-        (loop for (k . p) in (list (cons key 4) (cons (upcase key) 1))
-              collect
-              `(,@(if ep-only '(define-key eproject-mode-map) '(global-set-key))
-                (kbd ,(format "C-x p %s" k))
-                (.emacs-curry ,command ,p)))))
-
-(.emacs-eproject-key "k" eproject-kill-project-buffers t)
-(.emacs-eproject-key "v" eproject-revisit-project nil)
-(.emacs-eproject-key "b" eproject-ibuffer t)
-(.emacs-eproject-key "o" eproject-open-all-project-files t)
-(define-key eproject-mode-map (kbd "C-x c") #'eproject-eshell-cd-here)
 
 ;; use C-h c for customize
 (global-unset-key (kbd "C-h c"))
@@ -305,34 +160,7 @@
 (global-set-key (kbd "C-h c f") #'customize-face)
 (global-set-key (kbd "C-h c g") #'customize-group)
 
-;;; setqs
-(setq twittering-username "jrockway")
-(set-language-environment "UTF-8")
-(setq slime-net-coding-system 'utf-8-unix)
-
-;;; utils
-
-(defun tt-tags nil
-  "Insert TT tags."
-  (interactive)
-  (insert "[%  %]")
-  (backward-char 3))
-
-(defun fix-colors nil
-  "Fix colors when connecting via emacsclient."
-  (interactive)
-  (set-background-color "black")
-  (set-foreground-color "gray90"))
-
-(defun irc-start nil
-  "Connect to all my networks."
-  (interactive)
-  (let ((password (password-read "IRC password: "))
-        (host "itchy.internal"))
-    (loop for port from 6667 to 6678 do
-          (rcirc-connect host port "jrockway" "jrockway"
-                         "Jonathan Rockway" nil password))))
-
+;;; random functions
 
 (defun xml-unescape ()
   (interactive)
@@ -352,20 +180,8 @@
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
  '(Man-notify-method (quote pushy))
- '(appt-message-warning-time 80)
  '(auto-insert-mode t)
  '(auto-insert-query nil)
- '(blink-matching-paren nil)
- '(blink-matching-paren-on-screen nil)
- '(browse-url-browser-function (quote my-w3m-browse-url))
- '(browse-url-generic-program "conkeror")
- '(browse-url-new-window-flag t)
- '(bubbles-game-theme (quote difficult))
- '(bubbles-grid-size (quote (20 . 15)))
- '(c-cleanup-list (quote (empty-defun-braces defun-close-semi list-close-comma scope-operator compact-empty-funcall)))
- '(c-default-style (quote ((java-mode . "java") (other . "gnu"))))
- '(c-electric-pound-behavior (quote (alignleft)))
- '(c-macro-cppflags "-I/usr/include -I/usr/local/include -I/usr/include/g++-3")
  '(case-fold-search t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
@@ -396,64 +212,39 @@
  '(custom-magic-show-button t)
  '(default-input-method "japanese")
  '(display-hourglass nil)
- '(display-time-mode nil)
- '(ecb-options-version "2.32")
- '(ecb-source-path (quote ("~/projects")))
- '(ecomplete-database-file-coding-system (quote utf-8-emacs))
  '(eldoc-minor-mode-string nil)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
  '(eproject-completing-read-function (quote eproject--icompleting-read))
  '(eshell-after-prompt-hook nil)
- '(eshell-modules-list (quote (eshell-alias eshell-banner eshell-basic eshell-cmpl eshell-dirs eshell-glob eshell-hist eshell-ls eshell-pred eshell-prompt eshell-rebind eshell-script eshell-term eshell-unix)))
  '(eshell-prompt-function (lambda nil (format "
 %s
 %s" (eshell/pwd) (if (= (user-uid) 0) " # " " $ "))))
  '(espresso-auto-indent-flag nil)
- '(espresso-enabled-frameworks (quote (javascript)))
- '(eudc-protocol (quote ldap))
- '(eudc-server "ldap.uchicago.edu")
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
- '(flymake-allowed-file-name-masks (quote (("\\.c\\'" flymake-simple-make-init) ("\\.cpp\\'" flymake-simple-make-init) ("\\.xml\\'" flymake-xml-init) ("\\.html?\\'" flymake-xml-init) ("\\.cs\\'" flymake-simple-make-init) ("\\.p[lm]\\'" flymake-perl-init) ("\\.t\\'" flymake-perl-init) ("\\.h\\'" flymake-master-make-header-init flymake-master-cleanup) ("\\.java\\'" flymake-simple-make-java-init flymake-simple-java-cleanup) ("[0-9]+\\.tex\\'" flymake-master-tex-init flymake-master-cleanup) ("\\.tex\\'" flymake-simple-tex-init) ("\\.idl\\'" flymake-simple-make-init))))
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
  '(flyspell-mark-duplications-flag nil)
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
- '(global-font-lock-mode t nil (font-lock))
  '(gnus-always-force-window-configuration nil)
  '(gnus-asynchronous t)
  '(gnus-dribble-directory "~/.gnus.dribble")
  '(gnus-fetch-old-headers nil)
  '(gnus-gcc-mark-as-read t)
- '(gnus-ignored-from-addresses "\\\\(?:jon@bar\\.jrock\\.us\\\\|jon@jrock\\.us\\\\)")
+ '(gnus-ignored-from-addresses "\\\\(?:jon@snowball2\\.jrock\\.us\\\\|jon@jrock\\.us\\\\)")
  '(gnus-local-domain "jrock.us")
  '(gnus-message-archive-group "Sent")
  '(gnus-message-replyencrypt t)
  '(gnus-message-replysign nil)
- '(gnus-move-split-methods (quote ((t "nnimap+localhost:Junk"))))
  '(gnus-novice-user nil)
- '(gnus-posting-styles (quote (((header "To" "iinteractive.com") (signature nil) (address "jonathan.rockway@iinteractive.com")))))
  '(gnus-secondary-select-methods (quote ((nnimap "localhost" (username jon)))))
  '(gnus-secondary-servers nil)
  '(gnus-select-method (quote (nnnil "")))
  '(gnus-simplify-subject-functions (quote (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
- '(gnus-spam-process-destinations (quote ((".*" "nnimap+localhost:Junk"))))
- '(gnus-sum-thread-tree-false-root " * ")
- '(gnus-sum-thread-tree-indent " ")
- '(gnus-sum-thread-tree-leaf-with-other "├>")
- '(gnus-sum-thread-tree-single-leaf "└> ")
- '(gnus-sum-thread-tree-vertical "│")
- '(gnus-summary-line-format "%U %R %4L: %(%[ %-20,20f %]%) %B %s
-")
- '(gnus-summary-mode-hook (quote (gnus-agent-mode (lambda nil (local-set-key (kbd "M-d") (quote gnus-summary-mark-as-spam)) (local-set-key (kbd "D") (quote gnus-summary-delete-article))))))
- '(gnus-thread-indent-level 2)
- '(gnus-update-message-archive-method t)
  '(gnus-use-full-window nil)
- '(grep-tree-command "find <D> -path '*/.svn' -prune -o <X> -type f <F> -print0 | xargs -0 -e egrep <C> -nH -e  '<R>'")
- '(gud-tooltip-echo-area t)
  '(haskell-font-lock-symbols t)
  '(haskell-literate-default (quote latex))
- '(hippie-expand-try-functions-list (quote (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name try-complete-regular-word)))
+ '(hippie-expand-try-functions-list (quote (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name)))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
  '(ibuffer-formats (quote ((mark modified read-only git-status-mini " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " (git-status 8 8 :left) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
@@ -462,56 +253,26 @@
  '(indent-tabs-mode nil)
  '(indicate-buffer-boundaries (quote left))
  '(indicate-empty-lines nil)
- '(inferior-lisp-program "/usr/bin/sbcl")
  '(inhibit-startup-screen t)
  '(initial-scratch-message nil)
- '(iswitchb-buffer-ignore (quote ("^ ")))
- '(jde-compiler (quote ("javac" "")))
- '(jde-gen-conditional-padding-1 " ")
- '(jde-gen-conditional-padding-3 "")
- '(jde-gen-method-signature-padding-3 "")
- '(jde-help-docsets (quote (("JDK API" "/usr/local/java/docs/api" nil))))
- '(js2-auto-indent-flag nil)
- '(js2-basic-offset 4)
- '(js2-electric-keys nil)
- '(js2-enter-indents-newline nil)
- '(js2-highlight-level 3)
- '(js2-mirror-mode nil)
- '(js2-rebind-eol-bol-keys nil)
- '(js2-use-font-lock-faces t)
  '(kill-read-only-ok t)
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
- '(lisp-mode-hook (quote (slime-lisp-mode-hook)))
- '(mail-source-delete-incoming t)
- '(mail-sources (quote ((maildir :path "/home/jon/.nnmaildir") (file :path "/var/spool/mail/jon"))))
  '(mail-user-agent (quote gnus-user-agent))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
  '(menu-bar-mode nil nil (menu-bar))
  '(message-citation-line-format "* On %a, %b %d %Y, %N wrote:")
  '(message-citation-line-function (quote message-insert-formatted-citation-line))
- '(message-dont-reply-to-names (quote ("jon@jrock.us" "jonathan.rockway@iinteractive.com")))
+ '(message-dont-reply-to-names (quote ("jon@jrock.us")))
  '(message-kill-buffer-on-exit t)
  '(message-mail-alias-type (quote ecomplete))
- '(mew-imap-delete nil)
- '(mew-imap-ssl nil)
- '(mew-mail-domain "jrock.us")
- '(mm-verify-option (quote known))
- '(mmm-submode-decoration-level 1)
  '(mouse-avoidance-mode nil nil (avoid))
- '(mumamo-set-major-mode-delay -1)
- '(nnimap-debug nil)
- '(nnir-namazu-index-directory "/home/jon/.Maildir-namazu")
- '(nnir-namazu-remove-prefix "/home/jon/Maildir/")
- '(nnir-search-engine (quote namazu))
- '(nxhtml-skip-welcome t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
- '(pop-up-windows t)
- '(rcirc-bright-nicks (quote ("schmeidi" "nothingmuch")))
- '(rcirc-buffer-maximum-lines 10000)
+ '(rcirc-bright-nicks (quote ("schmeidi" "nothingmuch" "rafl")))
+ '(rcirc-buffer-maximum-lines 3000)
  '(rcirc-default-nick "jrockway")
  '(rcirc-default-server "irc.perl.org")
  '(rcirc-default-user-name "jrockway")
@@ -522,57 +283,23 @@
  '(rcirc-track-minor-mode t)
  '(read-buffer-completion-ignore-case t)
  '(read-file-name-completion-ignore-case t)
- '(safe-local-variable-values (quote ((Syntax . ANSI-Common-Lisp) (Base . 10) (flymake-mode . 0))))
- '(same-window-regexps (quote ("[*]eshell" "[*]ielm" "[*]Customize" "[*]Stylish")))
  '(save-place t nil (saveplace))
- '(scheme-program-name "guile")
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
- '(show-trailing-whitespace nil)
- '(slime-enable-evaluate-in-emacs t)
- '(slime-kill-without-query-p t)
- '(slime-startup-animation nil)
- '(special-display-function (lambda (buffer &rest list) (let ((win (split-window))) (set-window-buffer win buffer) win)))
- '(special-display-regexps (quote ("[*]Info" "[*]\\(wide \\)reply")))
- '(sql-electric-stuff (quote semicolon))
  '(sql-sqlite-program "sqlite3")
  '(term-scroll-to-bottom-on-output t)
  '(tex-default-mode (quote latex-mode))
- '(tex-dvi-view-command "xdvi")
- '(tex-shell-window-height 10)
- '(tex-show-queue-command " lpq")
+ '(text-mode-hook (quote (turn-on-flyspell turn-on-auto-fill text-mode-hook-identify)))
  '(tool-bar-mode nil nil (tool-bar))
- '(tooltip-delay 0.1)
- '(tooltip-mode t)
  '(tooltip-use-echo-area t)
  '(transient-mark-mode nil)
  '(truncate-partial-width-windows nil)
- '(uce-mail-reader (quote gnus))
  '(uniquify-buffer-name-style (quote forward) nil (uniquify))
  '(user-mail-address "jon@jrock.us")
  '(vc-follow-symlinks t)
  '(vc-handled-backends nil)
- '(w3-use-unicode-table-characters t)
- '(w3-user-colors-take-precedence t)
- '(w3-user-fonts-take-precedence t)
- '(w3m-accept-languages (quote ("en")))
- '(w3m-coding-system (quote utf-8))
- '(w3m-default-coding-system (quote utf-8))
- '(w3m-default-display-inline-images t)
- '(w3m-file-coding-system (quote utf-8))
- '(w3m-file-name-coding-system (quote utf-8))
- '(w3m-key-binding (quote info))
- '(w3m-make-new-session t)
- '(w3m-new-session-in-background t)
- '(w3m-new-session-url "about:")
- '(w3m-pop-up-windows nil)
- '(w3m-terminal-coding-system (quote utf-8))
- '(w3m-track-mouse nil)
- '(w3m-use-cookies t)
- '(w3m-view-this-url-new-session-in-background t)
- '(wget-download-directory "~/tmp")
- '(woman-cache-filename "/home/jon/.wmncach.el")
  '(woman-use-own-frame nil))
+
 (custom-set-faces
   ;; custom-set-faces was added by Custom.
   ;; If you edit it by hand, you could mess it up, so be careful.
@@ -602,20 +329,16 @@
  '(font-lock-regexp-grouping-construct ((t (:inherit font-lock-regexp-grouping-backslash))))
  '(font-lock-warning-face ((((class color) (min-colors 88) (background dark)) (:foreground "Pink"))))
  '(gnus-group-mail-3 ((t (:foreground "aquamarine1" :weight bold))))
- '(js2-error-face ((((class color) (background dark)) (:underline "red"))))
- '(js2-function-param-face ((t (:inherit font-lock-type-face))))
  '(magit-diff-add ((((class color) (background dark)) (:foreground "Green"))))
  '(magit-item-highlight ((((class color) (background dark)) (:background "gray15"))))
  '(message-header-subject ((t (:foreground "#5555ff" :weight bold))))
  '(message-header-to ((t (:foreground "#3333ff" :weight bold))))
  '(message-separator ((t (:background "black" :foreground "LightSkyBlue1" :inverse-video t :weight bold))))
- '(mmm-default-submode-face ((t (:background "black"))))
  '(mode-line ((t (:background "grey20" :foreground "white" :box (:line-width 1 :color "grey30")))))
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
  '(mode-line-inactive ((default (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20"))) (nil nil)))
  '(next-error ((t (:inherit region :underline "blue"))))
- '(pod-mode-code-face ((t (:box (:line-width 1 :color "turquoise")))) t)
  '(rcirc-server ((((class color) (min-colors 88) (background dark)) (:foreground "purple"))))
  '(region ((((class color) (min-colors 88) (background dark)) (:background "#033"))))
  '(shadow ((((class color grayscale) (min-colors 88) (background dark)) (:foreground "grey40"))))
@@ -629,9 +352,3 @@
  '(stylish-repl-error-face ((t (:inherit font-lock-warning-face :weight normal))))
  '(tooltip ((((class color)) (:inherit default :background "lightyellow" :foreground "black"))))
  '(window-number-face ((nil (:foreground "red")))))
-
-(put 'narrow-to-region 'disabled nil)
-
-(put 'save-buffers-kill-terminal 'disabled nil)
-
-(put 'dired-find-alternate-file 'disabled nil)
