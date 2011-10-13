@@ -55,6 +55,18 @@ function svst {
     svstat "$HOME/.dotfiles/services/$1"
 }
 
+function svlog {
+    tai64nlocal < "$HOME/tmp/logs/$1/current"
+}
+
+function svtail {
+    tail -f "$HOME/tmp/logs/$1/current" | tai64nlocal
+}
+
+function svbounce {
+    svc -t "$HOME/.dotfiles/services/$1"
+}
+
 alias perlfunc="perldoc -f"
 alias lperl="perl -Ilib"
 function lbperl {
