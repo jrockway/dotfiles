@@ -72,4 +72,6 @@
 (xbindkey '(mod4 grave) "xmms2 toggle")
 (xbindkey '(mod4 Left) "xmms2 prev")
 (xbindkey '(mod4 Right) "xmms2 next")
+(xbindkey '(mod4 Shift Left) "xmms2 seek -10")
+(xbindkey '(mod4 Shift Right) "xmms2 seek +10")
 (xbindkey '(control alt Insert) "xlock -delay 10000 -erasedelay 0 -mode galaxy")
