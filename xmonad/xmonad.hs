@@ -293,6 +293,7 @@ myLayout = myCommonManagers $ tiled
 myManageHook = composeAll
     [ className =? "MPlayer"           --> doFloat
     , className =? "Gimp"              --> doFloat
+    , className =? "Exe"               --> doFloat
     , resource  =? "desktop_window"    --> doIgnore
     ]
 
