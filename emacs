@@ -50,7 +50,6 @@
 (require 'text-hippie)
 (require 'text-extras)
 (require 'uniquify)
-(require 'w3m-extras)
 (require 'window-number)
 (require 'windowing-extras)
 (require 'xmms)
