@@ -16,9 +16,9 @@
 (add-to-list 'load-path "~/elisp/gist.el/")
 
 (require 'auto-inserts)
+(require 'cperl-mode)
 (require 'cperl-extras)
 (require 'cperl-hippie)
-(require 'cperl-mode)
 (require 'css-mode)
 (require 'editing-extras)
 (require 'elisp-extras)
@@ -43,17 +43,12 @@
 (require 'rcirc)
 (require 'rcirc-extras)
 (require 'rcirc-xmonad-notify)
-(require 'scala-mode-auto)
 (require 'slime-load)
-(require 'sql-extras)
 (require 'term-extras)
-(require 'text-hippie)
 (require 'text-extras)
 (require 'uniquify)
 (require 'window-number)
 (require 'windowing-extras)
-(require 'xmms)
-(require 'yaml-mode)
 
 ;;; modes i want on by default
 (iswitchb-mode 1)
@@ -61,6 +56,8 @@
 (window-number-mode 1)
 (defalias 'perl-mode 'cperl-mode)
 
+;;; auto-mode-alist
+(add-to-list 'auto-mode-alist '("\\.t$" . cperl-mode))
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
@@ -147,6 +144,10 @@
 (global-set-key (kbd "M-g s") 'magit-status)
 (global-set-key (kbd "C-c C-k") 'compile)
 (define-key c-mode-map (kbd "C-c C-l") 'compile)
+
+(define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
+(define-key gnus-summary-mode-map (kbd "D") 'gnus-summary-delete-article)
+(define-key gnus-summary-mode-map (kbd "S") 'gnus-summary-mark-as-spam)
 
 ;; use hippie instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
