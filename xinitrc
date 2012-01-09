@@ -3,7 +3,12 @@
 cd $HOME
 source "$HOME/.bashrc"
 
-export TZ="America/Chicago"
+if [ -e "$HOME/.tz" ]; then
+    read TZ < $HOME/.tz
+else
+    TZ="America/Chicago"
+fi
+export TZ
 
 scim -d
 xmodmap ~/.xmodmaprc
