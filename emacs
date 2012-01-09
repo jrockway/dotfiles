@@ -5,6 +5,8 @@
 (add-to-list 'load-path "~/elisp/_local")
 (add-to-list 'load-path "~/elisp/cperl-mode")
 (add-to-list 'load-path "~/elisp/eproject")
+(add-to-list 'load-path "~/elisp/eproject/contrib")
+(add-to-list 'load-path "~/elisp/eproject/lang")
 (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
 (add-to-list 'load-path "~/elisp/haskell-mode/")
@@ -67,6 +69,11 @@
                            '(< 0 (length (buffer-file-name))))
                           (ibuffer-filter-by-predicate
                            '(not buffer-read-only))))
+
+;;; this was lurking in auto-inserts.  what?
+(defadvice after-find-file (before ad-mkdir-after-find-file activate)
+  "Make the directory containing the visited file."
+  (make-directory (file-name-directory (buffer-file-name)) t))
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
