@@ -22,8 +22,7 @@
 
 [github]
 	user = jrockway
-                # this is not actually my github token
-	token = 19c2e4f2d2ae4cd3a92fe7715904b217
+	token = fake-token
 
 [github-import]
         lowercase = 1
