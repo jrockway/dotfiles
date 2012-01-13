@@ -52,6 +52,12 @@
 (require 'window-number)
 (require 'windowing-extras)
 
+;;; google
+(load-file "/home/build/public/eng/elisp/google.el")
+(require 'google3)
+(require 'google3-build)
+(require 'csearch)
+
 ;;; modes i want on by default
 (iswitchb-mode 1)
 (winner-mode 1)
@@ -278,6 +284,7 @@
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
+ '(p4-use-p4config-exclusively t)
  '(rcirc-bright-nicks (quote ("schmeidi" "nothingmuch" "rafl")))
  '(rcirc-buffer-maximum-lines 3000)
  '(rcirc-default-nick "jrockway")

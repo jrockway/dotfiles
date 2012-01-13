@@ -112,4 +112,5 @@ if [ -f $HOME/perl5/perlbrew/etc/bashrc ]; then
     . $HOME/perl5/perlbrew/etc/bashrc
 fi
 
-# export http_proxy="http://localhost:8123/"
+# google
+export P4CONFIG=.p4config
