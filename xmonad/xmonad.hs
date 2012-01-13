@@ -8,13 +8,16 @@ import XMonad.Actions.SpawnOn
 import XMonad.Actions.WindowGo
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.EwmhDesktops
 import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
 import XMonad.Layout.OneBig
+import XMonad.Layout.ThreeColumns
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.Ssh
 import XMonad.Prompt.XMonad
+import XMonad.Util.Cursor
 import XMonad.Util.Run
 import AlmostFull
 
@@ -35,7 +38,7 @@ import qualified Data.Map        as M
 -- The preferred terminal program, which is used in a binding below and by
 -- certain contrib modules.
 --
-myTerminal      = "urxvtc"
+myTerminal      = "urxvt"
 
 -- Width of the window border in pixels.
 --
@@ -256,11 +259,14 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 
 myCommonManagers = layoutHints . smartBorders . avoidStruts
 
-myLayout = myCommonManagers $ tiled
-                          ||| Mirror tiled
-                          ||| AlmostFull (5/9) delta tiled
-                          ||| OneBig (3/4) (3/4)
-                          ||| Full
+myLayout = myCommonManagers
+           -- $ tiled
+           -- ||| Mirror tiled
+                  -- ||| OneBig (3/4) (3/4)
+           -- $ ThreeColMid 1 (3/100) (1/2)
+           $ tiled
+           ||| AlmostFull (5/9) delta tiled
+           ||| Full
 
   where
      -- default tiling algorithm partitions the screen into two panes
@@ -312,11 +318,12 @@ myFocusFollowsMouse = True
 -- > logHook = dynamicLogDzen
 --
 
-myLogHook = dynamicLogWithPP $
-            defaultPP { ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
-                      , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t))
-                      , ppVisible = wrap "(" ")"
-                      }
+-- myLogHook = dynamicLogWithPP $
+--             defaultPP { ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
+--                       , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t))
+--                       , ppVisible = wrap "(" ")"
+--                       }
+myLogHook = ewmhDesktopsLogHook
 
 -- | setup a normal session -- somewhat
 sessionSetupAction :: XConfig Layout -> X ()
@@ -324,6 +331,10 @@ sessionSetupAction conf = do
   spawnOn "1" "emacsclient -c"
   forM_ [1..3] $ \_ -> spawnOn "2" "urxvt"
   spawnOn "2" "conkeror"
+
+myStartupHook = setDefaultCursor xC_left_ptr >> ewmhDesktopsStartup
+
+myHandleEventHook = ewmhDesktopsEventHook
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
@@ -343,8 +354,8 @@ myXConfig = XConfig { terminal           = myTerminal
                     , layoutHook         = myLayout
                     , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
                     , logHook            = myLogHook
-                    , startupHook        = return ()
-                    , handleEventHook    = (\x -> return $ Data.Monoid.All { getAll = True })
+                    , startupHook        = myStartupHook
+                    , handleEventHook    = myHandleEventHook
                     }
 
 main = xmonad myXConfig
