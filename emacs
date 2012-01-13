@@ -257,6 +257,7 @@
  '(gnus-use-full-window nil)
  '(haskell-font-lock-symbols t)
  '(haskell-literate-default (quote latex))
+ '(haskell-mode-hook (quote (turn-on-haskell-indentation imenu-add-menubar-index)))
  '(hippie-expand-try-functions-list (quote (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name)))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
@@ -280,11 +281,12 @@
  '(message-dont-reply-to-names (quote ("jon@jrock.us")))
  '(message-kill-buffer-on-exit t)
  '(message-mail-alias-type (quote ecomplete))
+ '(minibuffer-prompt-properties (quote (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(mouse-avoidance-mode nil nil (avoid))
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
+ '(p4-use-p4config-exclusively t)
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
- '(p4-use-p4config-exclusively t)
  '(rcirc-bright-nicks (quote ("schmeidi" "nothingmuch" "rafl")))
  '(rcirc-buffer-maximum-lines 3000)
  '(rcirc-default-nick "jrockway")
@@ -319,7 +321,7 @@
   ;; If you edit it by hand, you could mess it up, so be careful.
   ;; Your init file should contain only one such instance.
   ;; If there is more than one, they won't work right.
- '(default ((t (:background "black" :foreground "gray90" :height 90 :family "DejaVu Sans Mono"))))
+ '(default ((t (:background "black" :foreground "gray90" :height 110 :family "DejaVu Sans Mono"))))
  '(compilation-error ((t (:inherit font-lock-warning-face))))
  '(compilation-info ((((class color) (min-colors 88) (background dark)) (:foreground "Green1"))))
  '(compilation-warning ((((class color) (min-colors 16)) (:foreground "Orange"))))
