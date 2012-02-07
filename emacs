@@ -64,7 +64,9 @@
 (defalias 'perl-mode 'cperl-mode)
 
 ;;; auto-mode-alist
-(add-to-list 'auto-mode-alist '("\\.t$" . cperl-mode))
+(setq auto-mode-alist (append auto-mode-alist
+                              '(("\\.t$" . cperl-mode)
+                                ("\\.hs$" . haskell-mode))))
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
