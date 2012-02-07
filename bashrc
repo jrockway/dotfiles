@@ -1,9 +1,12 @@
 #!/bin/bash
 
+ANDROID_HOME="/usr/local/jrockway/android-sdk-linux"
+export ANDROID_HOME
+
 # path
 PATH=\
-$HOME/android-sdk-linux/tools:\
-$HOME/android-sdk-linux/platform-tools:\
+$ANDROID_HOME/tools:\
+$ANDROID_HOME/platform-tools:\
 $HOME/.cabal/bin:\
 $HOME/local/bin:\
 /usr/local/symlinks:/usr/local/scripts:/usr/local/buildtools/java/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
