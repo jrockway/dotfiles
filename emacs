@@ -325,7 +325,7 @@ have this now."
  '(uniquify-buffer-name-style (quote forward) nil (uniquify))
  '(user-mail-address "jon@jrock.us")
  '(vc-follow-symlinks t)
- '(vc-handled-backends nil)
+ '(vc-handled-backends (quote (git)))
  '(woman-use-own-frame nil))
 
 (custom-set-faces
