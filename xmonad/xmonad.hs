@@ -17,6 +17,7 @@ import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.Ssh
 import XMonad.Prompt.XMonad
+import XMonad.Prompt.Window
 import XMonad.Util.Cursor
 import XMonad.Util.Run
 import AlmostFull
@@ -136,6 +137,10 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
 
     -- xmonad prompt
     , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
+      
+    -- window prompt
+    , ((modMask, xK_semicolon                   ), windowPromptGoto  promptConfig)
+    , ((modMask .|. shiftMask, xK_semicolon     ), windowPromptBring promptConfig)
 
     -- xmmsjump
     , ((modMask, xK_i),  xmmsCompletionPrompt)
