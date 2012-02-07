@@ -334,7 +334,24 @@ sessionSetupAction conf = do
 
 myStartupHook = setDefaultCursor xC_left_ptr >> ewmhDesktopsStartup
 
-myHandleEventHook = ewmhDesktopsEventHook
+notQ :: Query Bool -> Query Bool
+notQ x = x =? False
+
+isActiveEvent :: Atom -> Query Bool
+isActiveEvent mt = do
+  a_aw <- liftX . getAtom $ "_NET_ACTIVE_WINDOW"
+  return $ mt == a_aw
+  
+doEwmhDesktopEventHook = liftX . ewmhDesktopsEventHook
+
+myHandleEventHook e@ClientMessageEvent { ev_window = w
+                                       , ev_message_type = mt
+                                       , ev_data = d
+                                       } = do
+  flip runQuery w 
+    -- run ewmhDesktopsEventHook unless chrome is trying to activate itself
+    (notQ (isActiveEvent mt <&&> className =? "Google-chrome")
+    --> doEwmhDesktopEventHook e)
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.
