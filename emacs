@@ -380,3 +380,6 @@ have this now."
  '(stylish-repl-error-face ((t (:inherit font-lock-warning-face :weight normal))))
  '(tooltip ((((class color)) (:inherit default :background "lightyellow" :foreground "black"))))
  '(window-number-face ((nil (:foreground "red")))))
+
+(set-face-foreground 'default "grey90")
+(set-face-background 'default "black")
