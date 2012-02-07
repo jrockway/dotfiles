@@ -260,12 +260,9 @@ myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
 myCommonManagers = layoutHints . smartBorders . avoidStruts
 
 myLayout = myCommonManagers
-           -- $ tiled
-           -- ||| Mirror tiled
-                  -- ||| OneBig (3/4) (3/4)
-           -- $ ThreeColMid 1 (3/100) (1/2)
            $ tiled
            ||| AlmostFull (5/9) delta tiled
+           ||| ThreeColMid 1 (3/100) (1/2)
            ||| Full
 
   where
