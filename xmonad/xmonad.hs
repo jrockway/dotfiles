@@ -298,11 +298,17 @@ myLayout = myCommonManagers
 -- To match on the WM_NAME, you can use 'title' in the same way that
 -- 'className' and 'resource' are used below.
 --
+     
+-- Emacs syntax higlights lines with --> on it like comments, which annoys me.
+(=->) = (-->)
+     
 myManageHook = composeAll
     [ className =? "mplayer2"          --> doFloat
-    , className =? "Gimp"              --> doFloat
-    , className =? "Exe"               --> doFloat
-    , resource  =? "desktop_window"    --> doIgnore
+    , className =? "Gimp"              =-> doFloat
+    , className =? "Exe"               =-> doFloat
+    , resource  =? "desktop_window"    =-> doIgnore
+      -- chrome chat
+    , stringProperty "WM_WINDOW_ROLE" =? "crx_eggnbpckecmjlblplehfpjjdhhidfdoj" =-> doFloat
     ]
 
 -- Whether focus follows the mouse pointer.
