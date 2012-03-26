@@ -297,7 +297,7 @@ myLayout = myCommonManagers
 -- 'className' and 'resource' are used below.
 --
 myManageHook = composeAll
-    [ className =? "MPlayer"           --> doFloat
+    [ className =? "mplayer2"          --> doFloat
     , className =? "Gimp"              --> doFloat
     , className =? "Exe"               --> doFloat
     , resource  =? "desktop_window"    --> doIgnore
