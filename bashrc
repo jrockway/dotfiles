@@ -10,10 +10,12 @@ $HOME/local/bin:\
 
 export PATH
 
+export PROMPT_COMMAND="history -a"
+
 # xterm titlebar
 case $TERM in
     xterm* | rxvt* | cygwin*)
-        PROMPT_COMMAND='echo -ne "\033]0;$(hostname -s):$(basename $PWD)\007"'
+        PROMPT_COMMAND='history -a; echo -ne "\033]0;$(hostname -s):$(basename $PWD)\007"'
       ;;
     *)
 	;;
@@ -42,6 +44,8 @@ ulimit -S -c 0
 shopt -s cmdhist
 shopt -s checkwinsize
 shopt -s cdable_vars
+shopt -s histappend
+
 alias h=history
 alias r='fc -s'
 #export HISTSIZE=10000
