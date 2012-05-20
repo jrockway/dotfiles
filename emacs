@@ -101,10 +101,10 @@
     ad-do-it))
 (ad-activate 'save-buffers-kill-terminal)
 
-;; (defun iconify-or-deiconify-frame ()
-;;   "Don't iconify, since that makes emacs freeze under xmonad"
-;;   (interactive)
-;;   (make-frame-visible))
+(defun iconify-or-deiconify-frame ()
+  "Don't iconify, since that makes emacs freeze under xmonad."
+  (interactive)
+  (make-frame-visible))
 
 (defun log-edit-hide-buf (&optional buf where)
   (when (setq buf (get-buffer (or buf log-edit-files-buf)))
