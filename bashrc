@@ -6,7 +6,8 @@ $HOME/android-sdk-linux/tools:\
 $HOME/android-sdk-linux/platform-tools:\
 $HOME/.cabal/bin:\
 $HOME/local/bin:\
-/usr/local/symlinks:/usr/local/scripts:/usr/local/buildtools/java/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+/usr/local/symlinks:/usr/local/scripts:/usr/local/buildtools/java/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
+$HOME/projects/depot_tools
 
 export PATH
 
