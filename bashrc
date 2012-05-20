@@ -16,7 +16,7 @@ export PROMPT_COMMAND="history -a"
 # xterm titlebar
 case $TERM in
     xterm* | rxvt* | cygwin*)
-        PROMPT_COMMAND='history -a; echo -ne "\033]0;$(hostname -s):$(basename $PWD)\007"'
+        PROMPT_COMMAND='history -a; echo -ne "\033]0;$(hostname -s):$(basename "$PWD")\007"'
       ;;
     *)
 	;;
