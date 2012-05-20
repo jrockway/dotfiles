@@ -6,7 +6,7 @@ source "$HOME/.bashrc"
 if [ -e "$HOME/.tz" ]; then
     read TZ < $HOME/.tz
 else
-    TZ="America/Chicago"
+    TZ="America/New_York"
 fi
 export TZ
 
