@@ -106,6 +106,17 @@
   (interactive)
   (make-frame-visible))
 
+(defun fix-font (size)
+  "Interactively set the default font to DejaVu Sans Mono- SIZE.
+
+My default seems to be ignored a good percentage of the time,
+which means I type set-default-font DejaVu C-q SPC Sans C-q SPC
+Mono- every time I create a new frame.  This annoys me, so we
+have this now."
+  (interactive
+   (list (read-number "Size: " 10)))
+  (set-default-font (format "DejaVu Sans Mono-%d" size)))
+
 (defun log-edit-hide-buf (&optional buf where)
   (when (setq buf (get-buffer (or buf log-edit-files-buf)))
     (let ((win (get-buffer-window buf where)))
