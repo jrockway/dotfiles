@@ -15,7 +15,6 @@
 (add-to-list 'load-path "~/elisp/scala-mode")
 (add-to-list 'load-path "~/elisp/slime/")
 (add-to-list 'load-path "~/elisp/slime/contrib")
-(add-to-list 'load-path "~/elisp/gist.el/")
 
 (require 'auto-inserts)
 (require 'cperl-mode)
@@ -30,7 +29,6 @@
 (require 'eshell-extras)
 (require 'eslide)
 (require 'espresso)
-(require 'gist)
 (require 'git)
 (require 'gnus)
 (require 'help-mode)
