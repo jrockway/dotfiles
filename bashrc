@@ -9,7 +9,9 @@ $ANDROID_HOME/tools:\
 $ANDROID_HOME/platform-tools:\
 $HOME/.cabal/bin:\
 $HOME/local/bin:\
-/usr/local/symlinks:/usr/local/scripts:/usr/local/buildtools/java/jdk/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
+/usr/local/scripts:\
+/usr/local/buildtools/java/jdk/bin:\
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
 $HOME/projects/depot_tools
 
 export PATH
@@ -52,6 +54,8 @@ shopt -s histappend
 
 alias h=history
 alias r='fc -s'
+alias g="cd /usr/local/google/code"
+
 #export HISTSIZE=10000
 export HISTFILESIZE=100000
 unset HISTSIZE
@@ -64,3 +68,11 @@ export EDITOR="emacsclient -a '' -t"
 
 # google
 export P4CONFIG=.p4config
+export P4DIFF="diff -u"
+export PAGER="cat"
+case $TERM in
+  xterm* | rxvt* )
+    export PAGER="less"
+esac
+source $HOME/.google-bashrc
+
