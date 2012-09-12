@@ -1,8 +1,8 @@
-!! swap () and []
-keycode  18 = 9 bracketleft
-keycode  19 = 0 bracketright
-keycode  34 = parenleft braceleft
-keycode  35 = parenright braceright
+!! !! swap () and []
+!! keycode  18 = 9 bracketleft
+!! keycode  19 = 0 bracketright
+!! keycode  34 = parenleft braceleft
+!! keycode  35 = parenright braceright
 
 !! swap backspace and \ on the RealForce
 keycode 51 = BackSpace

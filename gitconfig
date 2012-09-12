@@ -1,7 +1,6 @@
 [user]
 	name = Jonathan Rockway
-	email = jon@jrock.us
-	signingkey = 5BF3666D
+	email = jrockway@google.com
 [alias]
 	st = status
 	di = diff

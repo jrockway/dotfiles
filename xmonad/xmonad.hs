@@ -137,7 +137,7 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
 
     -- xmonad prompt
     , ((modMask .|. shiftMask, xK_p     ), xmonadPrompt promptConfig)
-      
+
     -- window prompt
     , ((modMask, xK_semicolon                   ), windowPromptGoto  promptConfig)
     , ((modMask .|. shiftMask, xK_semicolon     ), windowPromptBring promptConfig)
@@ -298,17 +298,19 @@ myLayout = myCommonManagers
 -- To match on the WM_NAME, you can use 'title' in the same way that
 -- 'className' and 'resource' are used below.
 --
-     
+
 -- Emacs syntax higlights lines with --> on it like comments, which annoys me.
 (=->) = (-->)
-     
+
 myManageHook = composeAll
-    [ className =? "mplayer2"          --> doFloat
+    [ className =? "mplayer2"          =-> doFloat
     , className =? "Gimp"              =-> doFloat
     , className =? "Exe"               =-> doFloat
+    , className =? "empathy"           =-> doFloat
+    , className =? "Empathy"           =-> doFloat
     , resource  =? "desktop_window"    =-> doIgnore
       -- chrome chat
-    , stringProperty "WM_WINDOW_ROLE" =? "crx_eggnbpckecmjlblplehfpjjdhhidfdoj" =-> doFloat
+    , stringProperty "WM_WINDOW_ROLE" =? "pop-up" =-> doFloat
     ]
 
 -- Whether focus follows the mouse pointer.
@@ -349,17 +351,26 @@ isActiveEvent :: Atom -> Query Bool
 isActiveEvent mt = do
   a_aw <- liftX . getAtom $ "_NET_ACTIVE_WINDOW"
   return $ mt == a_aw
-  
+
 doEwmhDesktopEventHook = liftX . ewmhDesktopsEventHook
 
 myHandleEventHook e@ClientMessageEvent { ev_window = w
                                        , ev_message_type = mt
                                        , ev_data = d
+                                       , ev_event_type = event_type
+                                       , ev_serial = serial
+                                       , ev_send_event = send_event
+                                       , ev_event_display = event_display
                                        } = do
-  flip runQuery w 
+  flip runQuery w
     -- run ewmhDesktopsEventHook unless chrome is trying to activate itself
     (notQ (isActiveEvent mt <&&> className =? "Google-chrome")
     --> doEwmhDesktopEventHook e)
+
+myHandleEventHook _ = tryTheNextHook
+
+tryTheNextHook = return $ All True
+
 
 ------------------------------------------------------------------------
 -- Now run xmonad with all the defaults we set up.

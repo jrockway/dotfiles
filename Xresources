@@ -1,17 +1,7 @@
-Emacs.font: DejaVu Sans Mono-9.5
-Emacs.FontBackend: xft
-Emacs.ToolBar: 0
-Emacs.verticalScrollBars: off
 URxvt.background: black
 URxvt.foreground: grey90
-URxvt.font: xft:DejaVu Sans Mono:size=9:medium:roman:antialias=true:autohint=true
+URxvt.font: xft:DejaVu Sans Mono:size=9:antialias=true:autohint=true
 URxvt.scrollBar: False
-URxvt.perl-ext-common: default
 URxvt.fading: 10
-Xft.autohint: false
-Xft.dpi: 96
-Xft.hinting: true
-Xft.hintstyle: hintfull
-Xft.lcdfilter: lcddefault
-Xft.antialias: rgba
-Xft.rgba: rgb
+URxvt.perl-ext-common: default,sponge
+URxvt.perl-lib: /home/jrockway/.dotfiles/rxvt_unicode_perl/
