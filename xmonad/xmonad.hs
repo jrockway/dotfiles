@@ -7,8 +7,9 @@ import XMonad.Actions.NoBorders
 import XMonad.Actions.SpawnOn
 import XMonad.Actions.WindowGo
 import XMonad.Hooks.DynamicLog
-import XMonad.Hooks.ManageDocks
 import XMonad.Hooks.EwmhDesktops
+import XMonad.Hooks.ManageDocks
+import XMonad.Hooks.ManageHelpers (isFullscreen)
 import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
 import XMonad.Layout.OneBig
@@ -16,8 +17,8 @@ import XMonad.Layout.ThreeColumns
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.Ssh
-import XMonad.Prompt.XMonad
 import XMonad.Prompt.Window
+import XMonad.Prompt.XMonad
 import XMonad.Util.Cursor
 import XMonad.Util.Run
 import AlmostFull
@@ -309,6 +310,7 @@ myManageHook = composeAll
     , className =? "empathy"           =-> doFloat
     , className =? "Empathy"           =-> doFloat
     , resource  =? "desktop_window"    =-> doIgnore
+    , isFullscreen                     =-> doFloat
       -- chrome chat
     , stringProperty "WM_WINDOW_ROLE" =? "pop-up" =-> doFloat
     ]
