@@ -65,6 +65,7 @@ stty stop ''
 
 # exports
 export EDITOR="emacsclient -a '' -t"
+export _JAVA_AWT_WM_NONREPARENTING=1
 
 # google
 export P4CONFIG=.p4config

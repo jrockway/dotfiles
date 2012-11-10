@@ -25,6 +25,8 @@
 (require 'elisp-extras)
 (require 'eproject)
 (require 'eproject-extras)
+(require 'eproject-compile)
+(require 'eproject-tags)
 (require 'eshell)
 (require 'eshell-extras)
 (require 'eslide)
@@ -200,10 +202,10 @@ have this now."
 
 ;;; custom-set
 (custom-set-variables
-  ;; custom-set-variables was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-variables was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(Man-notify-method (quote pushy))
  '(auto-insert-mode t)
  '(auto-insert-query nil)
@@ -333,10 +335,10 @@ have this now."
  '(woman-use-own-frame nil))
 
 (custom-set-faces
-  ;; custom-set-faces was added by Custom.
-  ;; If you edit it by hand, you could mess it up, so be careful.
-  ;; Your init file should contain only one such instance.
-  ;; If there is more than one, they won't work right.
+ ;; custom-set-faces was added by Custom.
+ ;; If you edit it by hand, you could mess it up, so be careful.
+ ;; Your init file should contain only one such instance.
+ ;; If there is more than one, they won't work right.
  '(default ((t (:background "black" :foreground "gray90" :height 110 :family "DejaVu Sans Mono"))))
  '(compilation-error ((t (:inherit font-lock-warning-face))))
  '(compilation-info ((((class color) (min-colors 88) (background dark)) (:foreground "Green1"))))
