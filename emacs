@@ -117,7 +117,7 @@ Mono- every time I create a new frame.  This annoys me, so we
 have this now."
   (interactive
    (list (read-number "Size: " 10)))
-  (set-default-font (format "DejaVu Sans Mono-%d" size)))
+  (set-default-font (format "DejaVu Sans Mono-%f" size)))
 
 (defun log-edit-hide-buf (&optional buf where)
   (when (setq buf (get-buffer (or buf log-edit-files-buf)))
