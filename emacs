@@ -213,6 +213,7 @@ have this now."
  '(browse-url-generic-program "google-chrome")
  '(c-electric-pound-behavior (quote (alignleft)))
  '(case-fold-search t)
+ '(column-number-mode t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
