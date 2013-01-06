@@ -8,7 +8,7 @@ PATH=\
 $ANDROID_HOME/tools:\
 $ANDROID_HOME/platform-tools:\
 $HOME/.cabal/bin:\
-$HOME/local/bin:\
+$HOME/.local/bin:\
 /usr/local/scripts:\
 /usr/local/buildtools/java/jdk/bin:\
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
