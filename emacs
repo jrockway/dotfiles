@@ -79,6 +79,13 @@
                           (ibuffer-filter-by-predicate
                            '(not buffer-read-only))))
 
+(defun setup-java-style ()
+  (c-set-offset 'arglist-intro '+)
+  (c-set-offset 'arglist-cont-nonempty '+))
+
+(when (not (featurep 'google))
+  (add-hook 'java-mode-hook #'setup-java-style))
+
 ;;; this was lurking in auto-inserts.  what?
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
@@ -139,6 +146,7 @@ have this now."
 (define-key flyspell-mode-map (kbd "C-;") nil) ; HATE.
 
 ;; set
+(setq-default cc-electric-flag nil)
 
 (define-key text-mode-map "\C-cu" 'insert-same-number-of-chars-as-line-above)
 (define-key text-mode-map "\C-ccw" 'ispell-complete-word)
@@ -243,6 +251,7 @@ have this now."
  '(custom-magic-show-button t)
  '(default-input-method "japanese")
  '(display-hourglass nil)
+ '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
  '(eproject-completing-read-function (quote eproject--icompleting-read))
@@ -253,6 +262,7 @@ have this now."
  '(espresso-auto-indent-flag nil)
  '(fill-column 80)
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
+ '(flymake-start-syntax-check-on-newline nil)
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
  '(flyspell-mark-duplications-flag nil)
@@ -275,8 +285,9 @@ have this now."
  '(gnus-simplify-subject-functions (quote (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
  '(gnus-use-full-window nil)
  '(haskell-font-lock-symbols t)
+ '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
- '(haskell-mode-hook (quote (turn-on-haskell-indentation imenu-add-menubar-index)))
+ '(haskell-mode-hook (quote (turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index)))
  '(hippie-expand-try-functions-list (quote (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name)))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
@@ -341,6 +352,7 @@ have this now."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(default ((t (:background "black" :foreground "gray90" :height 110 :family "DejaVu Sans Mono"))))
+ '(c-annotation-face ((t (:foreground "DodgerBlue"))))
  '(compilation-error ((t (:inherit font-lock-warning-face))))
  '(compilation-info ((((class color) (min-colors 88) (background dark)) (:foreground "Green1"))))
  '(compilation-warning ((((class color) (min-colors 16)) (:foreground "Orange"))))
@@ -355,8 +367,8 @@ have this now."
  '(diff-removed ((t (:inherit diff-changed :foreground "red"))))
  '(eshell-prompt ((t (:foreground "green" :weight bold))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
- '(flymake-errline ((t (:underline "red" :weight normal))))
- '(flymake-warnline ((((class color)) (:box (:line-width 2 :color "yellow" :style released-button)))))
+ '(flymake-errline ((t (:background "red4"))))
+ '(flymake-warnline ((t (:background "#404000"))))
  '(flyspell-duplicate ((t (:underline "Gold3" :weight normal))))
  '(flyspell-incorrect ((t (:underline "OrangeRed" :weight normal))))
  '(font-lock-doc-face ((t (:inherit font-lock-string-face :foreground "#ffbbff"))))
