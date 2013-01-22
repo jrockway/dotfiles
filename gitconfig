@@ -8,6 +8,8 @@
 	ci = commit
 	br = branch
 	sta = stash
+	fixup = commit --amend -C HEAD
+
 [color]
 	status = auto
 	branch = auto
