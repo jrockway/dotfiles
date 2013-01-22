@@ -13,7 +13,6 @@ import XMonad.Hooks.ManageHelpers (isFullscreen)
 import XMonad.Layout.LayoutHints
 import XMonad.Layout.NoBorders
 import XMonad.Layout.OneBig
-import XMonad.Layout.ThreeColumns
 import XMonad.Prompt
 import XMonad.Prompt.Input
 import XMonad.Prompt.Ssh
@@ -37,52 +36,6 @@ import qualified Codec.Binary.UTF8.String as UTF8
 import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
 
--- The preferred terminal program, which is used in a binding below and by
--- certain contrib modules.
---
-myTerminal      = "urxvt"
-
--- Width of the window border in pixels.
---
-myBorderWidth   = 1
-
--- modMask lets you specify which modkey you want to use. The default
--- is mod1Mask ("left alt").  You may also consider using mod3Mask
--- ("right alt"), which does not conflict with emacs keybindings. The
--- "windows key" is usually mod4Mask.
---
-myModMask       = mod4Mask
-
--- The mask for the numlock key. Numlock status is "masked" from the
--- current modifier status, so the keybindings will work with numlock on or
--- off. You may need to change this on some systems.
---
--- You can find the numlock modifier by running "xmodmap" and looking for a
--- modifier with Num_Lock bound to it:
---
--- > $ xmodmap | grep Num
--- > mod2        Num_Lock (0x4d)
---
--- Set numlockMask = 0 if you don't have a numlock key, or want to treat
--- numlock status separately.
---
-myNumlockMask   = mod2Mask
-
--- The default number of workspaces (virtual screens) and their names.
--- By default we use numeric strings, but any string may be used as a
--- workspace name. The number of workspaces is determined by the length
--- of this list.
---
--- A tagging example:
---
--- > workspaces = ["web", "irc", "code" ] ++ map show [4..9]
---
-myWorkspaces = show <$> [1..9]
-
--- Border colors for unfocused and focused windows, respectively.
---
-myNormalBorderColor  = "#202020"
-myFocusedBorderColor = "#ff0000"
 
 promptConfig = defaultXPConfig { bgHLight = "DodgerBlue"
                                , fgHLight = "white"
@@ -201,9 +154,6 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- toggle the status bar gap
     , ((modMask              , xK_b     ), sendMessage ToggleStruts)
 
---          modifyGap (\i n -> let x = (XMonad.defaultGaps conf ++ rep--eat (0,0,0,0)) !! i
---                             in if n == x then (0,0,0,0) else x))
---
     -- Restart xmonad
     , ((modMask .|. shiftMask, xK_q     ),
           broadcastMessage ReleaseResources >> restart "xmonad" True)
@@ -223,7 +173,6 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
         , (f, m) <- [(W.greedyView, 0), (W.shift, shiftMask)]]
     ++
 
-    --
     -- mod-{w,e,r}, Switch to physical/Xinerama screens 1, 2, or 3
     -- mod-shift-{w,e,r}, Move client to screen 1, 2, or 3
     --
@@ -236,164 +185,46 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
 -- Mouse bindings: default actions bound to mouse events
 --
 myMouseBindings (XConfig {XMonad.modMask = modMask}) = M.fromList $
-
-    -- mod-button1, Set the window to floating mode and move by dragging
     [ ((modMask, button1), (\w -> focus w >> mouseMoveWindow w))
-
-    -- mod-button2, Raise the window to the top of the stack
     , ((modMask, button2), (\w -> focus w >> windows W.swapMaster))
-
-    -- mod-button3, Set the window to floating mode and resize by dragging
     , ((modMask, button3), (\w -> focus w >> mouseResizeWindow w))
-
-    -- you may also bind events to the mouse scroll wheel (button4 and button5)
     ]
 
-------------------------------------------------------------------------
--- Layouts:
-
--- You can specify and transform your layouts by modifying these values.
--- If you change layout bindings be sure to use 'mod-shift-space' after
--- restarting (with 'mod-q') to reset your layout state to the new
--- defaults, as xmonad preserves your old layout settings by default.
---
--- The available layouts.  Note that each layout is separated by |||,
--- which denotes layout choice.
---
---- myLayout = --- layoutHints (smartBorders (avoidStruts (tiled ||| Mirror tiled)))
-           --- ||| (smartBorders (avoidStruts Full))
-
-myCommonManagers = layoutHints . smartBorders . avoidStruts
-
-myLayout = myCommonManagers
-           $ tiled
-           ||| AlmostFull (5/9) delta tiled
-           ||| ThreeColMid 1 (3/100) (1/2)
-           ||| Full
-
+myLayout = commonManagers $
+           tiled |||
+           AlmostFull (5/9) delta tiled |||
+           Full
   where
-     -- default tiling algorithm partitions the screen into two panes
      tiled   = Tall nmaster delta ratio
-
-     -- The default number of windows in the master pane
      nmaster = 1
-
-     -- Default proportion of screen occupied by master pane
      ratio   = 1/2
-
-     -- Percent of screen to increment by when resizing panes
      delta   = 3/100
-
-------------------------------------------------------------------------
--- Window rules:
-
--- Execute arbitrary actions and WindowSet manipulations when managing
--- a new window. You can use this to, for example, always float a
--- particular program, or have a client always appear on a particular
--- workspace.
---
--- To find the property name associated with a program, use
--- > xprop | grep WM_CLASS
--- and click on the client you're interested in.
---
--- To match on the WM_NAME, you can use 'title' in the same way that
--- 'className' and 'resource' are used below.
---
-
+     commonManagers = layoutHints . smartBorders . avoidStruts
 -- Emacs syntax higlights lines with --> on it like comments, which annoys me.
 (=->) = (-->)
 
 myManageHook = composeAll
     [ className =? "mplayer2"          =-> doFloat
-    , className =? "Gimp"              =-> doFloat
+--    , className =? "Gimp"              =-> doFloat
     , className =? "Exe"               =-> doFloat
-    , className =? "empathy"           =-> doFloat
-    , className =? "Empathy"           =-> doFloat
     , resource  =? "desktop_window"    =-> doIgnore
     , isFullscreen                     =-> doFloat
-      -- chrome chat
-    , stringProperty "WM_WINDOW_ROLE" =? "pop-up" =-> doFloat
     ]
 
--- Whether focus follows the mouse pointer.
-myFocusFollowsMouse :: Bool
-myFocusFollowsMouse = True
-
-------------------------------------------------------------------------
--- Status bars and logging
-
--- Perform an arbitrary action on each internal state change or X event.
--- See the 'DynamicLog' extension for examples.
---
--- To emulate dwm's status bar
---
--- > logHook = dynamicLogDzen
---
-
--- myLogHook = dynamicLogWithPP $
---             defaultPP { ppCurrent = xmobarColor "#c0ffee" "" . wrap "[" "]"
---                       , ppTitle   = (\t -> ((xmobarColor "#c0ffee" "" . shorten 150) t))
---                       , ppVisible = wrap "(" ")"
---                       }
-myLogHook = ewmhDesktopsLogHook
-
--- | setup a normal session -- somewhat
-sessionSetupAction :: XConfig Layout -> X ()
-sessionSetupAction conf = do
-  spawnOn "1" "emacsclient -c"
-  forM_ [1..3] $ \_ -> spawnOn "2" "urxvt"
-  spawnOn "2" "conkeror"
-
-myStartupHook = setDefaultCursor xC_left_ptr >> ewmhDesktopsStartup
-
-notQ :: Query Bool -> Query Bool
-notQ x = x =? False
-
-isActiveEvent :: Atom -> Query Bool
-isActiveEvent mt = do
-  a_aw <- liftX . getAtom $ "_NET_ACTIVE_WINDOW"
-  return $ mt == a_aw
-
-doEwmhDesktopEventHook = liftX . ewmhDesktopsEventHook
-
-myHandleEventHook e@ClientMessageEvent { ev_window = w
-                                       , ev_message_type = mt
-                                       , ev_data = d
-                                       , ev_event_type = event_type
-                                       , ev_serial = serial
-                                       , ev_send_event = send_event
-                                       , ev_event_display = event_display
-                                       } = do
-  flip runQuery w
-    -- run ewmhDesktopsEventHook unless chrome is trying to activate itself
-    (notQ (isActiveEvent mt <&&> className =? "Google-chrome")
-    --> doEwmhDesktopEventHook e)
-
-myHandleEventHook _ = tryTheNextHook
-
-tryTheNextHook = return $ All True
-
-
-------------------------------------------------------------------------
--- Now run xmonad with all the defaults we set up.
-
--- Run xmonad with the settings you specify. No need to modify this.
---
-myXConfig = XConfig { terminal           = myTerminal
-                    , focusFollowsMouse  = myFocusFollowsMouse
-                    , borderWidth        = myBorderWidth
-                    , modMask            = myModMask
-                    -- , numlockMask        = myNumlockMask
-                    , workspaces         = myWorkspaces
-                    , normalBorderColor  = myNormalBorderColor
-                    , focusedBorderColor = myFocusedBorderColor
+myXConfig = XConfig { terminal           = "urxvt"
+                    , focusFollowsMouse  = True
+                    , borderWidth        = 1
+                    , modMask            = mod4Mask
+                    , workspaces         = show <$> [1..9]
+                    , normalBorderColor  = "#202020"
+                    , focusedBorderColor = "#ff0000"
                     , keys               = myKeys
                     , mouseBindings      = myMouseBindings
                     , layoutHook         = myLayout
                     , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
-                    , logHook            = myLogHook
-                    , startupHook        = myStartupHook
-                    , handleEventHook    = myHandleEventHook
+                    , startupHook        = setDefaultCursor xC_left_ptr
+                    , handleEventHook    = fullscreenEventHook
+                    , logHook            = return ()
                     }
 
-main = xmonad myXConfig
+main = xmonad $ ewmh myXConfig
