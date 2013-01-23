@@ -208,6 +208,8 @@ myManageHook = composeAll
 --    , className =? "Gimp"              =-> doFloat
     , className =? "Exe"               =-> doFloat
     , resource  =? "desktop_window"    =-> doIgnore
+    , className =? "Unity-2d-launcher" =-> doIgnore
+    , className =? "Unity-2d-panel"    =-> doIgnore
     , isFullscreen                     =-> doFloat
     ]
 
