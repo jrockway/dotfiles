@@ -4,6 +4,7 @@
 [alias]
 	st = status
 	di = diff
+	cdi = diff --cached
 	co = checkout
 	ci = commit
 	br = branch
@@ -16,17 +17,17 @@
 	diff = auto
 
 [push]
-        default = current
+	default = current
 
 [pull]
-        default = current
+	default = current
 
 [github]
 	user = jrockway
 	token = fake-token
 
 [github-import]
-        lowercase = 1
-        remote = origin
+	lowercase = 1
+	remote = origin
 [branch]
 	autosetuprebase = remote
