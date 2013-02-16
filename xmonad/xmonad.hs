@@ -74,6 +74,10 @@ xmmsCompletionPrompt = do
     inputPrompt promptConfig "Jump" ?+ \song ->
       spawn $ "/usr/bin/perl `which xmmsjump` " ++ (UTF8.encodeString song)
 
+userBindings modMask = [
+  ((controlMask .|. mod1Mask, xK_l), spawn "xscreensaver-command -lock"),
+  ((modMask, xK_grave), spawn "nyxmms2 toggle")]
+
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
 --
@@ -180,6 +184,9 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
         | (key, sc) <- zip [xK_w, xK_e, xK_r] [0..]
         , (f, m) <- [(W.view, 0), (W.shift, shiftMask)]]
 
+    ++
+    userBindings modMask
+
 
 ------------------------------------------------------------------------
 -- Mouse bindings: default actions bound to mouse events
@@ -213,6 +220,12 @@ myManageHook = composeAll
     , isFullscreen                     =-> doFloat
     ]
 
+myStartupHook = do
+  setDefaultCursor xC_left_ptr
+  spawn "xsetroot -solid black"
+  spawn "xscreensaver"
+  return ()
+
 myXConfig = XConfig { terminal           = "urxvt"
                     , focusFollowsMouse  = True
                     , borderWidth        = 1
@@ -224,7 +237,7 @@ myXConfig = XConfig { terminal           = "urxvt"
                     , mouseBindings      = myMouseBindings
                     , layoutHook         = myLayout
                     , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
-                    , startupHook        = setDefaultCursor xC_left_ptr
+                    , startupHook        = myStartupHook
                     , handleEventHook    = fullscreenEventHook
                     , logHook            = return ()
                     }
