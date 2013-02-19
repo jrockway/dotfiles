@@ -223,7 +223,8 @@ myManageHook = composeAll
 myStartupHook = do
   setDefaultCursor xC_left_ptr
   spawn "xsetroot -solid black"
-  spawn "xscreensaver"
+  spawn "xscreensaver -nosplash"
+  spawn "xmobar .xmonad/mobar.conf"
   return ()
 
 myXConfig = XConfig { terminal           = "urxvt"
@@ -239,7 +240,7 @@ myXConfig = XConfig { terminal           = "urxvt"
                     , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
                     , startupHook        = myStartupHook
                     , handleEventHook    = fullscreenEventHook
-                    , logHook            = return ()
+                    , logHook            = dynamicLogString xmobarPP >>= xmonadPropLog
                     }
 
 main = xmonad $ ewmh myXConfig
