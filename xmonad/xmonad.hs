@@ -225,6 +225,7 @@ myStartupHook = do
   spawn "xsetroot -solid black"
   spawn "xscreensaver -nosplash"
   spawn "xmobar .xmonad/mobar.conf"
+  spawn "redshift -l 40.7142:74.0064"
   return ()
 
 myXConfig = XConfig { terminal           = "urxvt"
