@@ -76,7 +76,11 @@ xmmsCompletionPrompt = do
 
 userBindings modMask = [
   ((controlMask .|. mod1Mask, xK_l), spawn "xscreensaver-command -lock"),
-  ((modMask, xK_grave), spawn "nyxmms2 toggle")]
+  ((modMask, xK_grave), spawn "nyxmms2 toggle"),
+  ((modMask, xK_Left), spawn "nyxmms2 prev"),
+  ((modMask, xK_Right), spawn "nyxmms2 next"),
+  ((modMask .|. shiftMask, xK_Left), spawn "nyxmms2 seek -5"),
+  ((modMask .|. shiftMask, xK_Right), spawn "nyxmms2 seek +5")]
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
@@ -225,7 +229,7 @@ myStartupHook = do
   spawn "xsetroot -solid black"
   spawn "xscreensaver -nosplash"
   spawn "xmobar .xmonad/mobar.conf"
-  spawn "redshift -l 40.7142:74.0064"
+  spawn "redshift -l 40.7142:-74.0064 -t 6500:5000"
   return ()
 
 myXConfig = XConfig { terminal           = "urxvt"
