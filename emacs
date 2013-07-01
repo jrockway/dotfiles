@@ -1,5 +1,18 @@
 (require 'cl)
 
+;;; assume we're on debian
+(when (file-exists-p "/usr/share/emacs/site-lisp/debian-startup.el")
+  (add-to-list 'load-path "/usr/share/emacs/site-lisp/")
+  (load "debian-startup")
+  (debian-startup 'emacs))
+
+;;; google
+(when (featurep 'google-platform)
+  (require 'google)
+  (require 'google3)
+  (require 'google3-build)
+  (require 'csearch))
+
 ;;; load extra modes
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/_local")
@@ -51,13 +64,6 @@
 (require 'uniquify)
 (require 'window-number)
 (require 'windowing-extras)
-
-;;; google
-(when (file-exists-p "/home/build/public/eng/elisp/google.el")
-  (load-file "/home/build/public/eng/elisp/google.el")
-  (require 'google3)
-  (require 'google3-build)
-  (require 'csearch))
 
 ;;; modes i want on by default
 (iswitchb-mode 1)
