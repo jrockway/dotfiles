@@ -151,10 +151,11 @@ have this now."
 
 ;; unset
 (require 'flyspell)
-(define-key flyspell-mode-map (kbd "C-;") nil) ; HATE.
+(define-key flyspell-mode-map (kbd "C-;") nil)
 
 ;; set
 (setq-default cc-electric-flag nil)
+(setq-default c-electric-flag nil)
 
 (define-key text-mode-map "\C-cu" 'insert-same-number-of-chars-as-line-above)
 (define-key text-mode-map "\C-ccw" 'ispell-complete-word)
