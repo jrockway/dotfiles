@@ -131,6 +131,14 @@ have this now."
     (let ((win (get-buffer-window buf where)))
       (bury-buffer buf))))
 
+(defun yank-primary ()
+  "Do what middle-mouse would."
+  (interactive)
+  (when (eq window-system 'x)
+    (let ((selection (or (x-get-selection 'PRIMARY)
+                         (x-get-selection-value))))
+      (when selection (insert selection)))))
+
 ;;; override stupid defaults
 (defalias 'yes-or-no-p 'y-or-n-p)
 
@@ -153,6 +161,7 @@ have this now."
 (define-key message-mode-map "\C-cw" 'message-widen-reply)
 (define-key help-mode-map "l" 'help-go-back)
 (define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
+(global-set-key (kbd "S-<insert>") #'yank-primary)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 (global-set-key "\C-xg" 'rgrep)
 (global-set-key "\C-x\C-m" 'execute-extended-command)
