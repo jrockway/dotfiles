@@ -1,9 +1,3 @@
-!! !! swap () and []
-!! keycode  18 = 9 bracketleft
-!! keycode  19 = 0 bracketright
-!! keycode  34 = parenleft braceleft
-!! keycode  35 = parenright braceright
-
-!! swap backspace and \ on the RealForce
+!! swap backspace and \ on the RealForce, which I now have on both machines :)
 keycode 51 = BackSpace
 keycode 22 = backslash bar
