@@ -77,6 +77,7 @@ xmmsCompletionPrompt = do
 userBindings modMask = [
   ((controlMask .|. mod1Mask, xK_l), spawn "xscreensaver-command -lock"),
   ((modMask, xK_grave), spawn "nyxmms2 toggle"),
+  ((0, xK_Pause), spawn "nyxmms2 toggle"),
   ((modMask, xK_Left), spawn "nyxmms2 prev"),
   ((modMask, xK_Right), spawn "nyxmms2 next"),
   ((modMask .|. shiftMask, xK_Left), spawn "nyxmms2 seek -5"),

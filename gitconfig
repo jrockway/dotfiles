@@ -31,3 +31,5 @@
 	remote = origin
 [branch]
 	autosetuprebase = remote
+[diff]
+	algorithm = histogram

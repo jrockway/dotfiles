@@ -89,8 +89,18 @@
   (c-set-offset 'arglist-intro '+)
   (c-set-offset 'arglist-cont-nonempty '+))
 
-(when (not (featurep 'google))
+(defun my-nongoogle-setup ()
   (add-hook 'java-mode-hook #'setup-java-style))
+
+(defun my-google-setup ()
+  ; (require 'gcomplete)
+  ; (gcomplete-setup-flymake)
+  ; (gcomplete-setup-for-auto-complete)
+)
+
+(if (featurep 'google)
+    (my-google-setup)
+  (my-nongoogle-setup))
 
 ;;; this was lurking in auto-inserts.  what?
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
@@ -105,6 +115,13 @@
 (put 'narrow-to-region 'disabled nil)
 (put 'save-buffers-kill-terminal 'disabled nil)
 (put 'dired-find-alternate-file 'disabled nil)
+
+;;; package
+(require 'package)
+(add-to-list 'package-archives
+    '("marmalade" .
+      "http://marmalade-repo.org/packages/"))
+(package-initialize)
 
 ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; it kills my main X session (with 9 windows or whatever), it is really

@@ -1,6 +1,6 @@
 URxvt.background: black
 URxvt.foreground: grey90
-URxvt.font: xft:DejaVu Sans Mono:size=9:antialias=true:autohint=true
+URxvt.font: xft:Droid Sans Mono:size=11:antialias=true:autohint=true
 URxvt.scrollBar: False
 URxvt.fading: 10
 URxvt.perl-ext-common: default,sponge
