@@ -34,6 +34,7 @@
 (require 'cperl-extras)
 (require 'cperl-hippie)
 (require 'css-mode)
+(require 'dart-mode)
 (require 'editing-extras)
 (require 'elisp-extras)
 (require 'eproject)
@@ -74,7 +75,8 @@
 ;;; auto-mode-alist
 (setq auto-mode-alist (append auto-mode-alist
                               '(("\\.t$" . cperl-mode)
-                                ("\\.hs$" . haskell-mode))))
+                                ("\\.hs$" . haskell-mode)
+                                ("\\.dart$" . dart-mode))))
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
