@@ -94,6 +94,12 @@
 (defun my-nongoogle-setup ()
   (add-hook 'java-mode-hook #'setup-java-style))
 
+(defun setup-golang-style ()
+  (set-fill-column 100)
+  (add-hook 'before-save-hook #'gofmt-before-save))
+
+(add-hook 'go-mode-hook #'setup-golang-style)
+
 (defun my-google-setup ()
   ; (require 'gcomplete)
   ; (gcomplete-setup-flymake)
