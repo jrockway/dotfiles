@@ -67,6 +67,10 @@ stty stop ''
 export EDITOR="emacsclient -a '' -t"
 export _JAVA_AWT_WM_NONREPARENTING=1
 
+# go
+export GOPATH="$HOME/projects/go"
+export PATH="$HOME/projects/go/bin:$PATH"
+
 # google
 export P4CONFIG=.p4config
 export P4DIFF="diff -u"
@@ -76,4 +80,3 @@ case $TERM in
     export PAGER="less"
 esac
 source $HOME/.google-bashrc
-

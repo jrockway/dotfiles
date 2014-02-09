@@ -5,7 +5,8 @@ import System.Exit
 import XMonad.Actions.FindEmptyWorkspace
 import XMonad.Actions.NoBorders
 import XMonad.Actions.SpawnOn
-import XMonad.Actions.WindowGo
+import XMonad.Actions.Volume
+import XMonad.Actions.WindowGo (raiseMaybe, runOrRaise, raiseNext)
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
 import XMonad.Hooks.ManageDocks
@@ -81,7 +82,10 @@ userBindings modMask = [
   ((modMask, xK_Left), spawn "nyxmms2 prev"),
   ((modMask, xK_Right), spawn "nyxmms2 next"),
   ((modMask .|. shiftMask, xK_Left), spawn "nyxmms2 seek -5"),
-  ((modMask .|. shiftMask, xK_Right), spawn "nyxmms2 seek +5")]
+  ((modMask .|. shiftMask, xK_Right), spawn "nyxmms2 seek +5"),
+  ((modMask, xK_Up), raiseVolume 3 >> return ()),
+  ((modMask, xK_Down), lowerVolume 3 >> return ())
+  ]
 
 ------------------------------------------------------------------------
 -- Key bindings. Add, modify or remove key bindings here.
@@ -212,25 +216,27 @@ myLayout = commonManagers $
      ratio   = 1/2
      delta   = 3/100
      commonManagers = layoutHints . smartBorders . avoidStruts
+
 -- Emacs syntax higlights lines with --> on it like comments, which annoys me.
 (=->) = (-->)
 
 myManageHook = composeAll
     [ className =? "mplayer2"          =-> doFloat
---    , className =? "Gimp"              =-> doFloat
     , className =? "Exe"               =-> doFloat
     , resource  =? "desktop_window"    =-> doIgnore
     , className =? "Unity-2d-launcher" =-> doIgnore
     , className =? "Unity-2d-panel"    =-> doIgnore
+    , title =? "Crunchyroll - Watch - Google Chrome" =-> doFloat
     , isFullscreen                     =-> doFloat
     ]
 
 myStartupHook = do
   setDefaultCursor xC_left_ptr
+  spawn "xrdb $HOME/.Xresources"
   spawn "xsetroot -solid black"
   spawn "xscreensaver -nosplash"
   spawn "xmobar .xmonad/mobar.conf"
-  spawn "redshift -l 40.7142:-74.0064 -t 6500:4800"
+  -- spawn "redshift -l 40.7142:-74.0064 -t 6500:4800"
   return ()
 
 myXConfig = XConfig { terminal           = "urxvt"
@@ -247,6 +253,7 @@ myXConfig = XConfig { terminal           = "urxvt"
                     , startupHook        = myStartupHook
                     , handleEventHook    = fullscreenEventHook
                     , logHook            = dynamicLogString xmobarPP >>= xmonadPropLog
+                    , clickJustFocuses   = False
                     }
 
 main = xmonad $ ewmh myXConfig

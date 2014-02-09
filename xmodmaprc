@@ -1,3 +1,0 @@
-!! swap backspace and \ on the RealForce, which I now have on both machines :)
-keycode 51 = BackSpace
-keycode 22 = backslash bar

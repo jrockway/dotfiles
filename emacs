@@ -20,7 +20,7 @@
 (add-to-list 'load-path "~/elisp/eproject")
 (add-to-list 'load-path "~/elisp/eproject/contrib")
 (add-to-list 'load-path "~/elisp/eproject/lang")
-(add-to-list 'load-path "~/elisp/eslide")
+; (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
 (add-to-list 'load-path "~/elisp/haskell-mode/")
 (add-to-list 'load-path "~/elisp/magit")
@@ -43,7 +43,7 @@
 (require 'eproject-tags)
 (require 'eshell)
 (require 'eshell-extras)
-(require 'eslide)
+; (require 'eslide)
 (require 'espresso)
 (require 'git)
 (require 'gnus)
@@ -141,7 +141,7 @@
   (make-frame-visible))
 
 (defun fix-font (size)
-  "Interactively set the default font to DejaVu Sans Mono- SIZE.
+  "Interactively set the default font to Droid Sans Mono- SIZE.
 
 My default seems to be ignored a good percentage of the time,
 which means I type set-default-font DejaVu C-q SPC Sans C-q SPC
@@ -149,7 +149,7 @@ Mono- every time I create a new frame.  This annoys me, so we
 have this now."
   (interactive
    (list (read-number "Size: " 10)))
-  (set-default-font (format "DejaVu Sans Mono-%f" size)))
+  (set-default-font (format "Droid Sans Mono-%f" size)))
 
 (defun log-edit-hide-buf (&optional buf where)
   (when (setq buf (get-buffer (or buf log-edit-files-buf)))
@@ -320,6 +320,7 @@ have this now."
  '(gnus-select-method (quote (nnnil "")))
  '(gnus-simplify-subject-functions (quote (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
  '(gnus-use-full-window nil)
+ '(gofmt-command "/home/jrockway/projects/go/bin/goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
