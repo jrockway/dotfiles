@@ -98,10 +98,11 @@
 (add-hook 'go-mode-hook #'setup-golang-style)
 
 (defun my-google-setup ()
-  ; (require 'gcomplete)
-  ; (gcomplete-setup-flymake)
-  ; (gcomplete-setup-for-auto-complete)
-)
+  (require 'google-go)
+  (require 'google-imports)
+  (add-hook 'java-mode-hook
+            (lambda () (setq fill-column 100)))
+  (define-key java-mode-map (kbd "C-c SPC") #'google-imports-add-import-from-tag))
 
 (if (featurep 'google)
     (my-google-setup)
