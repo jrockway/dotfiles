@@ -1,4 +1,4 @@
-personal_ws-1.1 en 120 
+personal_ws-1.1 en 121 
 dereference
 templating
 proven
@@ -36,8 +36,8 @@ composable
 btw
 multilog
 dists
-formatters
 formatter's
+formatters
 md
 one's
 namespace
@@ -47,8 +47,8 @@ javascript
 XHTML
 MooseX
 REPL
-MetaDescription
 metadescription
+MetaDescription
 repo
 Liskov's
 vivification
@@ -114,6 +114,7 @@ builtins
 ORM
 timestamping
 refactored
+refactoring
 xml
 substitutability
 formatter
