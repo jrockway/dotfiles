@@ -26,8 +26,6 @@
 (add-to-list 'load-path "~/elisp/magit")
 (add-to-list 'load-path "~/elisp/ocaml")
 (add-to-list 'load-path "~/elisp/scala-mode")
-(add-to-list 'load-path "~/elisp/slime/")
-(add-to-list 'load-path "~/elisp/slime/contrib")
 
 (require 'auto-inserts)
 (require 'cperl-mode)
@@ -59,7 +57,6 @@
 (require 'rcirc)
 (require 'rcirc-extras)
 (require 'rcirc-xmonad-notify)
-(require 'slime-load)
 (require 'term-extras)
 (require 'text-extras)
 (require 'uniquify)
