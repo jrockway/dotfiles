@@ -76,7 +76,7 @@ export P4CONFIG=.p4config
 export P4DIFF="diff -u"
 export PAGER="cat"
 case $TERM in
-  xterm* | rxvt* )
+  xterm* | rxvt* | screen* )
     export PAGER="less"
 esac
 source $HOME/.google-bashrc
