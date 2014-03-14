@@ -79,4 +79,11 @@ case $TERM in
   xterm* | rxvt* | screen* )
     export PAGER="less"
 esac
-source $HOME/.google-bashrc
+
+if [ -e $HOME/.google-bashrc ]; then
+    source $HOME/.google-bashrc
+fi
+
+if [ -e $HOME/.gpg-agent-info ]; then
+    source $HOME/.gpg-agent-info
+fi

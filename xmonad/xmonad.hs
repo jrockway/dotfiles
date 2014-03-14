@@ -239,7 +239,8 @@ myStartupHook = do
   spawn "xscreensaver -nosplash"
   spawn "xmobar .xmonad/mobar.conf"
   spawn "compton -b"
-  spawn "feh --bg-fill /home/jrockway/.dotfiles/background.jpg"
+  spawn "feh --bg-fill .dotfiles/background.jpg"
+  spawn "gpg-agent --daemon  --enable-ssh-support --use-standard-socket --write-env-file .gpg-agent-info"
   -- spawn "redshift -l 40.7142:-74.0064 -t 6500:4800"
   return ()
 
