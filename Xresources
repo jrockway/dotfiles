@@ -1,5 +1,5 @@
-URxvt.background: black
+URxvt.background: rgba:0000/0000/0000/cccc
 URxvt.foreground: grey90
-URxvt.font: xft:Droid Sans Mono:size=10
+URxvt.font: xft:Droid Sans Mono:size=12
 URxvt.scrollBar: False
-URxvt.fading: 10
+URxvt.depth: 32
