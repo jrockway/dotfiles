@@ -222,20 +222,24 @@ myLayout = commonManagers $
 
 myManageHook = composeAll
     [ className =? "mplayer2"          =-> doFloat
+    , className =? "mpv"               =-> doFloat
     , className =? "Exe"               =-> doFloat
     , resource  =? "desktop_window"    =-> doIgnore
     , className =? "Unity-2d-launcher" =-> doIgnore
     , className =? "Unity-2d-panel"    =-> doIgnore
     , title =? "Crunchyroll - Watch - Google Chrome" =-> doFloat
+    , className =? "Steam"             =-> doFloat
+    ,  className =? "Steam"            =-> doIgnore
     , isFullscreen                     =-> doFloat
     ]
 
 myStartupHook = do
   setDefaultCursor xC_left_ptr
   spawn "xrdb $HOME/.Xresources"
-  spawn "xsetroot -solid black"
   spawn "xscreensaver -nosplash"
   spawn "xmobar .xmonad/mobar.conf"
+  spawn "compton -b"
+  spawn "feh --bg-fill /home/jrockway/.dotfiles/background.jpg"
   -- spawn "redshift -l 40.7142:-74.0064 -t 6500:4800"
   return ()
 
