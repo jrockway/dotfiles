@@ -27,13 +27,19 @@ case $TERM in
 	;;
 esac
 
+
+SSH_STATUS=""
+if [ -n "$SSH_CLIENT" ]; then
+    SSH_STATUS=" (ssh)"
+fi
+
 # prompts
 case $TERM in
     dumb* | emacs* )
 	export PS1="[\w]\$ "
 	;;
     *)
-	export PS1="\[\033[01;32m\]\n[\w] \j (\u@\h)\n\$ \[\033[00m\]"
+	export PS1="\[\033[01;32m\]\n[\w] \j (\u@\h)$SSH_STATUS\n\$ \[\033[00m\]"
 	export PS2="\w$ "
 	export PS3="\$ "
 	;;
@@ -86,4 +92,7 @@ fi
 
 if [ -e $HOME/.gpg-agent-info ]; then
     source $HOME/.gpg-agent-info
+    export GPG_AGENT_INFO
+    export SSH_AUTH_SOCK
+    export SSH_AGENT_PID
 fi
