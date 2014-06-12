@@ -47,42 +47,14 @@ promptConfig = defaultXPConfig { bgHLight = "DodgerBlue"
                                , height = 42
                                }
 
--- -- case-insensitive string comparison
--- mkCompletionFunction :: [String] -> String -> IO [String]
--- mkCompletionFunction options [] = return []
--- mkCompletionFunction options query =
---     let toLower' = fmap toLower
---         quotemeta c = case c of
---                         ')' -> "\\)"
---                         '(' -> "\\("
---                         '[' -> "\\["
---                         ']' -> "\\]"
---                         '\\' -> "\\\\"
---                         _   -> c:[]
---         quotemeta' x = join (fmap quotemeta x)
---         query' = toLower' . quotemeta' $ query
---     in return $ filter (\opt -> (toLower' opt) =~ query') options
-
--- allXmmsCompletions :: X [String]
--- allXmmsCompletions = do
---   result <- runProcessWithInput "sh" ["-c", "/usr/bin/perl `which xmmsjump` --list-all"] ""
---   return . take 20 . lines . UTF8.decodeString $ result
-
-xmmsCompletionPrompt :: X ()
-xmmsCompletionPrompt = do
-    -- completions <- allXmmsCompletions
-    -- let completionFn = mkCompletionFunction completions
-    inputPrompt promptConfig "Jump" ?+ \song ->
-      spawn $ "/usr/bin/perl `which xmmsjump` " ++ (UTF8.encodeString song)
-
 userBindings modMask = [
   ((controlMask .|. mod1Mask, xK_l), spawn "xscreensaver-command -lock"),
   ((modMask, xK_grave), spawn "nyxmms2 toggle"),
   ((0, xK_Pause), spawn "nyxmms2 toggle"),
-  ((modMask, xK_Left), spawn "nyxmms2 prev"),
-  ((modMask, xK_Right), spawn "nyxmms2 next"),
-  ((modMask .|. shiftMask, xK_Left), spawn "nyxmms2 seek -5"),
-  ((modMask .|. shiftMask, xK_Right), spawn "nyxmms2 seek +5"),
+  ((modMask .|. shiftMask, xK_u), spawn "nyxmms2 prev"),
+  ((modMask .|. shiftMask, xK_i), spawn "nyxmms2 next"),
+  ((modMask, xK_u), spawn "nyxmms2 seek -5"),
+  ((modMask, xK_i), spawn "nyxmms2 seek +5"),
   ((modMask, xK_Up), raiseVolume 3 >> return ()),
   ((modMask, xK_Down), lowerVolume 3 >> return ())
   ]
@@ -108,9 +80,6 @@ myKeys conf@(XConfig {XMonad.modMask = modMask}) = M.fromList $
     -- window prompt
     , ((modMask, xK_semicolon                   ), windowPromptGoto  promptConfig)
     , ((modMask .|. shiftMask, xK_semicolon     ), windowPromptBring promptConfig)
-
-    -- xmmsjump
-    , ((modMask, xK_i),  xmmsCompletionPrompt)
 
     -- ssh
     , ((modMask, xK_o), sshPrompt promptConfig)
