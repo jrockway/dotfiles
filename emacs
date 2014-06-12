@@ -129,6 +129,9 @@
       "http://marmalade-repo.org/packages/"))
 (package-initialize)
 
+;; frame stuff
+(add-to-list 'default-frame-alist '(alpha 80))
+
 ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; it kills my main X session (with 9 windows or whatever), it is really
 ;; annoying.
