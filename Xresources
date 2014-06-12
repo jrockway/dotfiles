@@ -3,3 +3,4 @@ URxvt.foreground: grey90
 URxvt.font: xft:Droid Sans Mono:size=12
 URxvt.scrollBar: False
 URxvt.depth: 32
+URxvt.perl-ext: selection-to-clipboard
