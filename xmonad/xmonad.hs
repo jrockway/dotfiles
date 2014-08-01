@@ -5,7 +5,6 @@ import System.Exit
 import XMonad.Actions.FindEmptyWorkspace
 import XMonad.Actions.NoBorders
 import XMonad.Actions.SpawnOn
-import XMonad.Actions.Volume
 import XMonad.Actions.WindowGo (raiseMaybe, runOrRaise, raiseNext)
 import XMonad.Hooks.DynamicLog
 import XMonad.Hooks.EwmhDesktops
@@ -48,15 +47,13 @@ promptConfig = defaultXPConfig { bgHLight = "DodgerBlue"
                                }
 
 userBindings modMask = [
-  ((controlMask .|. mod1Mask, xK_l), spawn "xscreensaver-command -lock"),
+  ((controlMask .|. shiftMask, xK_l), spawn "xscreensaver-command -lock"),
   ((modMask, xK_grave), spawn "nyxmms2 toggle"),
   ((0, xK_Pause), spawn "nyxmms2 toggle"),
   ((modMask .|. shiftMask, xK_u), spawn "nyxmms2 prev"),
   ((modMask .|. shiftMask, xK_i), spawn "nyxmms2 next"),
   ((modMask, xK_u), spawn "nyxmms2 seek -5"),
-  ((modMask, xK_i), spawn "nyxmms2 seek +5"),
-  ((modMask, xK_Up), raiseVolume 3 >> return ()),
-  ((modMask, xK_Down), lowerVolume 3 >> return ())
+  ((modMask, xK_i), spawn "nyxmms2 seek +5")
   ]
 
 ------------------------------------------------------------------------
