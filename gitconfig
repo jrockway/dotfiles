@@ -1,6 +1,6 @@
 [user]
 	name = Jonathan Rockway
-	email = jrockway@google.com
+	email = jrockway@chromium.org
 [alias]
 	st = status
 	di = diff
@@ -33,3 +33,5 @@
 	autosetuprebase = remote
 [diff]
 	algorithm = histogram
+[rerere]
+	enabled = true
