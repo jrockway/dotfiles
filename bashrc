@@ -5,6 +5,7 @@ export ANDROID_HOME
 
 # path
 PATH=\
+$HOME/Things/depot_tools:\
 $ANDROID_HOME/tools:\
 $ANDROID_HOME/platform-tools:\
 $HOME/.cabal/bin:\
