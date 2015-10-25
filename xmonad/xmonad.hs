@@ -204,6 +204,7 @@ myStartupHook = do
   setDefaultCursor xC_left_ptr
   spawn "xrdb $HOME/.Xresources"
   spawn "xscreensaver -nosplash"
+  spawn "xcalib .dotfiles/PQ321.icm"
   spawn "xmobar .xmonad/mobar.conf"
   spawn "compton -b"
   spawn "feh --bg-fill .dotfiles/background.jpg"
