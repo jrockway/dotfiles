@@ -195,8 +195,9 @@ myManageHook = composeAll
     , className =? "Unity-2d-panel"    =-> doIgnore
     , title =? "Crunchyroll - Watch - Google Chrome" =-> doFloat
     , className =? "Steam"             =-> doFloat
-    ,  className =? "Steam"            =-> doIgnore
+    , className =? "Steam"            =-> doIgnore
     , isFullscreen                     =-> doFloat
+    , title =? "Hangouts - jon@jrock.us" =-> doFloat
     ]
 
 myStartupHook = do
