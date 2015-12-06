@@ -1,4 +1,4 @@
-personal_ws-1.1 en 121 
+personal_ws-1.1 en 123 
 dereference
 templating
 proven
@@ -95,6 +95,7 @@ KiokuDB
 kiokudb
 plugins
 CPAN
+timestamped
 MySQL
 OMG
 html
@@ -106,6 +107,7 @@ boolean
 filenames
 pfizer
 DBIx
+decrypt
 Args
 profiler
 conf
