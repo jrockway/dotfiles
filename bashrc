@@ -5,7 +5,7 @@ export ANDROID_HOME
 
 # path
 PATH=\
-$HOME/Things/depot_tools:\
+$HOME/.depot_tools/depot_tools:\
 $ANDROID_HOME/tools:\
 $ANDROID_HOME/platform-tools:\
 $HOME/.cabal/bin:\
@@ -97,3 +97,6 @@ if [ -e $HOME/.gpg-agent-info ]; then
     export SSH_AUTH_SOCK
     export SSH_AGENT_PID
 fi
+
+# for chromeos
+umask 022
