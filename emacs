@@ -7,38 +7,35 @@
   (debian-startup 'emacs))
 
 ;;; google
-(require 'google)
-(require 'google3)
-(require 'google3-build)
-(require 'csearch)
+;(require 'google)
+;(require 'google3)
+;(require 'google3-build)
+;(require 'csearch)
 
 ;;; load extra modes
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/_local")
 (add-to-list 'load-path "~/elisp/cperl-mode")
-; (add-to-list 'load-path "~/elisp/eproject")
+(add-to-list 'load-path "~/elisp/eproject")
 (add-to-list 'load-path "~/elisp/eproject/contrib")
 (add-to-list 'load-path "~/elisp/eproject/lang")
-; (add-to-list 'load-path "~/elisp/eslide")
+(add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
-(add-to-list 'load-path "~/elisp/haskell-mode/")
-(add-to-list 'load-path "~/elisp/ocaml")
-(add-to-list 'load-path "~/elisp/scala-mode")
 
 (require 'auto-inserts)
-(require 'cperl-mode)
 (require 'cperl-extras)
 (require 'cperl-hippie)
+(require 'cperl-mode)
 (require 'css-mode)
 (require 'editing-extras)
 (require 'elisp-extras)
-; (require 'eproject)
-; (require 'eproject-extras)
-; (require 'eproject-compile)
-; (require 'eproject-tags)
+(require 'eproject)
+(require 'eproject-compile)
+(require 'eproject-extras)
+(require 'eproject-tags)
 (require 'eshell)
 (require 'eshell-extras)
-; (require 'eslide)
+(require 'eslide)
 (require 'espresso)
 (require 'git)
 (require 'gnus)
@@ -46,7 +43,7 @@
 (require 'ibuffer-git)
 (require 'lisp-extras)
 (require 'message)
-(require 'rcirc)
+(require 'slime)
 (require 'text-extras)
 (require 'uniquify)
 (require 'window-number)
@@ -256,7 +253,9 @@ have this now."
  '(compilation-read-command nil)
  '(compilation-scroll-output t)
  '(compile-auto-highlight 10)
- '(completion-ignored-extensions (quote (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi")))
+ '(completion-ignored-extensions
+   (quote
+    (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi")))
  '(confirm-nonexistent-file-or-buffer nil)
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
@@ -277,18 +276,28 @@ have this now."
  '(current-language-environment "UTF-8")
  '(custom-buffer-done-kill t)
  '(custom-magic-show-button t)
- '(custom-safe-themes (quote ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" default)))
+ '(custom-safe-themes
+   (quote
+    ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" default)))
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
- '(eproject-completing-read-function (quote eproject--icompleting-read))
+ '(eproject-completing-read-function (quote eproject--ido-completing-read))
  '(eshell-after-prompt-hook nil)
- '(eshell-prompt-function (lambda nil (format "
+ '(eshell-prompt-function
+   (lambda nil
+     (format "
 %s
-%s" (eshell/pwd) (if (= (user-uid) 0) " # " " $ "))))
+%s"
+             (eshell/pwd)
+             (if
+                 (=
+                  (user-uid)
+                  0)
+                 " # " " $ "))))
  '(espresso-auto-indent-flag nil)
  '(fill-column 80)
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
@@ -312,17 +321,69 @@ have this now."
  '(gnus-secondary-select-methods (quote ((nnimap "localhost" (username jon)))))
  '(gnus-secondary-servers nil)
  '(gnus-select-method (quote (nnnil "")))
- '(gnus-simplify-subject-functions (quote (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
+ '(gnus-simplify-subject-functions
+   (quote
+    (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
  '(gnus-use-full-window nil)
  '(gofmt-command "/usr/bin/goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
- '(haskell-mode-hook (quote (turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index)))
- '(hippie-expand-try-functions-list (quote (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name)))
+ '(haskell-mode-hook
+   (quote
+    (turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index)))
+ '(hippie-expand-try-functions-list
+   (quote
+    (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name)))
  '(ibuffer-expert t)
- '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
- '(ibuffer-formats (quote ((mark modified read-only git-status-mini " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " (git-status 8 8 :left) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
+ '(ibuffer-fontification-alist
+   (quote
+    ((10 buffer-read-only font-lock-constant-face)
+     (15
+      (and buffer-file-name
+           (string-match ibuffer-compressed-file-name-regexp buffer-file-name))
+      font-lock-doc-face)
+     (20
+      (string-match "^*"
+                    (buffer-name))
+      font-lock-keyword-face)
+     (25
+      (and
+       (string-match "^ "
+                     (buffer-name))
+       (null buffer-file-name))
+      italic)
+     (30
+      (memq major-mode ibuffer-help-buffer-modes)
+      font-lock-comment-face)
+     (35
+      (eq major-mode
+          (quote dired-mode))
+      font-lock-function-name-face)
+     (1
+      (eq major-mode
+          (quote cperl-mode))
+      cperl-hash-face)
+     (1
+      (eq major-mode
+          (quote rcirc-mode))
+      rcirc-server))))
+ '(ibuffer-formats
+   (quote
+    ((mark modified read-only git-status-mini " "
+           (name 18 18 :left :elide)
+           " "
+           (size 9 -1 :right)
+           " "
+           (mode 16 16 :left :elide)
+           " "
+           (eproject 16 16 :left :elide)
+           " "
+           (git-status 8 8 :left)
+           " " filename-and-process)
+     (mark " "
+           (name 16 -1)
+           " " filename))))
  '(ibuffer-git-column-length 8)
  '(ido-everywhere nil)
  '(ido-mode (quote buffer) nil (ido))
@@ -344,7 +405,9 @@ have this now."
  '(message-dont-reply-to-names (quote ("jon@jrock.us")))
  '(message-kill-buffer-on-exit t)
  '(message-mail-alias-type (quote ecomplete))
- '(minibuffer-prompt-properties (quote (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+ '(minibuffer-prompt-properties
+   (quote
+    (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
  '(mouse-avoidance-mode nil nil (avoid))
  '(mouse-yank-at-point t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
@@ -369,7 +432,9 @@ have this now."
  '(sql-sqlite-program "sqlite3")
  '(term-scroll-to-bottom-on-output t)
  '(tex-default-mode (quote latex-mode))
- '(text-mode-hook (quote (turn-on-flyspell turn-on-auto-fill text-mode-hook-identify)))
+ '(text-mode-hook
+   (quote
+    (turn-on-flyspell turn-on-auto-fill text-mode-hook-identify)))
  '(tool-bar-mode nil nil (tool-bar))
  '(tooltip-use-echo-area t)
  '(transient-mark-mode nil)
@@ -412,8 +477,6 @@ have this now."
  '(font-lock-warning-face ((((class color) (min-colors 88) (background dark)) (:foreground "Pink"))))
  '(gnus-group-mail-3 ((t (:foreground "aquamarine1" :weight bold))))
  '(ido-subdir ((t (:foreground "color-121"))))
- '(magit-diff-add ((((class color) (background dark)) (:foreground "Green"))))
- '(magit-item-highlight ((((class color) (background dark)) (:background "gray15"))))
  '(message-header-subject ((t (:foreground "#5555ff" :weight bold))))
  '(message-header-to ((t (:foreground "#3333ff" :weight bold))))
  '(message-separator ((t (:background "black" :foreground "LightSkyBlue1" :inverse-video t :weight bold))))
