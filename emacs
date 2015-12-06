@@ -7,11 +7,10 @@
   (debian-startup 'emacs))
 
 ;;; google
-(when (featurep 'google-platform)
-  (require 'google)
-  (require 'google3)
-  (require 'google3-build)
-  (require 'csearch))
+(require 'google)
+(require 'google3)
+(require 'google3-build)
+(require 'csearch)
 
 ;;; load extra modes
 (add-to-list 'load-path "~/elisp")
@@ -31,7 +30,6 @@
 (require 'cperl-extras)
 (require 'cperl-hippie)
 (require 'css-mode)
-(require 'dart-mode)
 (require 'editing-extras)
 (require 'elisp-extras)
 ; (require 'eproject)
@@ -45,24 +43,17 @@
 (require 'git)
 (require 'gnus)
 (require 'help-mode)
-(require 'haskell-extras)
-(require 'haskell-mode)
 (require 'ibuffer-git)
-(require 'inf-haskell)
-(require 'iswitchb-extras)
 (require 'lisp-extras)
 (require 'message)
 (require 'rcirc)
-(require 'rcirc-extras)
-(require 'rcirc-xmonad-notify)
-(require 'term-extras)
 (require 'text-extras)
 (require 'uniquify)
 (require 'window-number)
 (require 'windowing-extras)
 
 ;;; modes i want on by default
-(iswitchb-mode 1)
+(ido-mode 1)
 (winner-mode 1)
 (window-number-mode 1)
 (defalias 'perl-mode 'cperl-mode)
@@ -70,9 +61,7 @@
 ;;; auto-mode-alist
 (setq auto-mode-alist (append auto-mode-alist
                               '(("\\.t$" . cperl-mode)
-                                ("\\.hs$" . haskell-mode)
-                                ("\\.dart$" . dart-mode))))
-
+                                ("\\.hs$" . haskell-mode))))
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
 
@@ -123,8 +112,8 @@
 ;;; package
 (require 'package)
 (add-to-list 'package-archives
-    '("marmalade" .
-      "http://marmalade-repo.org/packages/"))
+    '("marmalade" . "http://marmalade-repo.org/packages/")
+    '("melpa-stable" . "http://stable.melpa.org/packages/") )
 (package-initialize)
 
 ;; frame stuff
@@ -288,6 +277,7 @@ have this now."
  '(current-language-environment "UTF-8")
  '(custom-buffer-done-kill t)
  '(custom-magic-show-button t)
+ '(custom-safe-themes (quote ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" default)))
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
  '(display-hourglass nil)
@@ -324,7 +314,7 @@ have this now."
  '(gnus-select-method (quote (nnnil "")))
  '(gnus-simplify-subject-functions (quote (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
  '(gnus-use-full-window nil)
- '(gofmt-command "/home/jrockway/projects/go/bin/goimports")
+ '(gofmt-command "/usr/bin/goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
@@ -334,6 +324,8 @@ have this now."
  '(ibuffer-fontification-alist (quote ((10 buffer-read-only font-lock-constant-face) (15 (and buffer-file-name (string-match ibuffer-compressed-file-name-regexp buffer-file-name)) font-lock-doc-face) (20 (string-match "^*" (buffer-name)) font-lock-keyword-face) (25 (and (string-match "^ " (buffer-name)) (null buffer-file-name)) italic) (30 (memq major-mode ibuffer-help-buffer-modes) font-lock-comment-face) (35 (eq major-mode (quote dired-mode)) font-lock-function-name-face) (1 (eq major-mode (quote cperl-mode)) cperl-hash-face) (1 (eq major-mode (quote rcirc-mode)) rcirc-server))))
  '(ibuffer-formats (quote ((mark modified read-only git-status-mini " " (name 18 18 :left :elide) " " (size 9 -1 :right) " " (mode 16 16 :left :elide) " " (eproject 16 16 :left :elide) " " (git-status 8 8 :left) " " filename-and-process) (mark " " (name 16 -1) " " filename))))
  '(ibuffer-git-column-length 8)
+ '(ido-everywhere nil)
+ '(ido-mode (quote buffer) nil (ido))
  '(ielm-mode-hook (quote (turn-on-eldoc-mode)))
  '(indent-tabs-mode nil)
  '(indicate-buffer-boundaries (quote left))
@@ -356,7 +348,7 @@ have this now."
  '(mouse-avoidance-mode nil nil (avoid))
  '(mouse-yank-at-point t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
- '(p4-use-p4config-exclusively t)
+ '(p4-use-p4config-exclusively t t)
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(rcirc-bright-nicks (quote ("schmeidi" "nothingmuch" "rafl")))
@@ -386,7 +378,8 @@ have this now."
  '(user-mail-address "jon@jrock.us")
  '(vc-follow-symlinks t)
  '(vc-handled-backends (quote (git)))
- '(woman-use-own-frame nil))
+ '(woman-use-own-frame nil)
+ '(xterm-mouse-mode t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -418,6 +411,9 @@ have this now."
  '(font-lock-regexp-grouping-construct ((t (:inherit font-lock-regexp-grouping-backslash))))
  '(font-lock-warning-face ((((class color) (min-colors 88) (background dark)) (:foreground "Pink"))))
  '(gnus-group-mail-3 ((t (:foreground "aquamarine1" :weight bold))))
+ '(ido-subdir ((t (:foreground "color-121"))))
+ '(magit-diff-add ((((class color) (background dark)) (:foreground "Green"))))
+ '(magit-item-highlight ((((class color) (background dark)) (:background "gray15"))))
  '(message-header-subject ((t (:foreground "#5555ff" :weight bold))))
  '(message-header-to ((t (:foreground "#3333ff" :weight bold))))
  '(message-separator ((t (:background "black" :foreground "LightSkyBlue1" :inverse-video t :weight bold))))
