@@ -53,7 +53,8 @@ userBindings modMask = [
   ((modMask .|. shiftMask, xK_u), spawn "nyxmms2 prev"),
   ((modMask .|. shiftMask, xK_i), spawn "nyxmms2 next"),
   ((modMask, xK_u), spawn "nyxmms2 seek -5"),
-  ((modMask, xK_i), spawn "nyxmms2 seek +5")
+  ((modMask, xK_i), spawn "nyxmms2 seek +5"),
+  ((controlMask .|. shiftMask, xK_F5), spawn "gnome-screenshot -a")
   ]
 
 ------------------------------------------------------------------------
