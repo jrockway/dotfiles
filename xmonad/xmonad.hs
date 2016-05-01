@@ -37,14 +37,14 @@ import qualified XMonad.StackSet as W
 import qualified Data.Map        as M
 
 
-promptConfig = defaultXPConfig { bgHLight = "DodgerBlue"
-                               , fgHLight = "white"
-                               , bgColor = "grey70"
-                               , fgColor = "black"
-                               , font = "xft:DejaVu Sans Mono-30"
-                               , promptBorderWidth = 0
-                               , height = 42
-                               }
+promptConfig = def { bgHLight = "DodgerBlue"
+                   , fgHLight = "white"
+                   , bgColor = "grey70"
+                   , fgColor = "black"
+                   , font = "xft:DejaVu Sans Mono-30"
+                   , promptBorderWidth = 0
+                   , height = 42
+                   }
 
 userBindings modMask = [
   ((controlMask .|. shiftMask, xK_l), spawn "xscreensaver-command -lock"),
@@ -212,21 +212,21 @@ myStartupHook = do
   -- spawn "redshift -l 40.7142:-74.0064 -t 6500:4800"
   return ()
 
-myXConfig = XConfig { terminal           = "urxvt"
-                    , focusFollowsMouse  = True
-                    , borderWidth        = 1
-                    , modMask            = mod4Mask
-                    , workspaces         = show <$> [1..9]
-                    , normalBorderColor  = "#202020"
-                    , focusedBorderColor = "#ff0000"
-                    , keys               = myKeys
-                    , mouseBindings      = myMouseBindings
-                    , layoutHook         = myLayout
-                    , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
-                    , startupHook        = myStartupHook
-                    , handleEventHook    = fullscreenEventHook
-                    , logHook            = dynamicLogString xmobarPP >>= xmonadPropLog
-                    , clickJustFocuses   = False
-                    }
+myXConfig = def { terminal           = "urxvt"
+                , focusFollowsMouse  = True
+                , borderWidth        = 1
+                , modMask            = mod4Mask
+                , workspaces         = show <$> [1..9]
+                , normalBorderColor  = "#202020"
+                , focusedBorderColor = "#ff0000"
+                , keys               = myKeys
+                , mouseBindings      = myMouseBindings
+                , layoutHook         = myLayout
+                , manageHook         = myManageHook <+> manageDocks <+> manageSpawn
+                , startupHook        = myStartupHook
+                , handleEventHook    = fullscreenEventHook
+                , logHook            = dynamicLogString xmobarPP >>= xmonadPropLog
+                , clickJustFocuses   = False
+                }
 
 main = xmonad $ ewmh myXConfig
