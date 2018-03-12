@@ -23,6 +23,7 @@
 (require 'uniquify)
 (require 'window-number)
 
+(require 'editing-extras)
 (require 'text-extras)
 
 ;;; modes i want on by default
