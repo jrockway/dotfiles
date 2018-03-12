@@ -23,6 +23,8 @@
 (require 'uniquify)
 (require 'window-number)
 
+(require 'text-extras)
+
 ;;; modes i want on by default
 (ido-mode 1)
 (winner-mode 1)
@@ -34,7 +36,7 @@
                               '(("\\.t$" . cperl-mode)
                                 ("\\.hs$" . haskell-mode))))
 ;;; hooks
-;; (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
+(add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
 
 (add-hook 'ibuffer-hook (lambda ()
                           (ibuffer-filter-by-predicate
