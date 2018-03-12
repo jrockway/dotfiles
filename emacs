@@ -1,19 +1,8 @@
 (require 'cl)
 
-;;; assume we're on debian
-(when (file-exists-p "/usr/share/emacs/site-lisp/debian-startup.el")
-  (add-to-list 'load-path "/usr/share/emacs/site-lisp/")
-  (load "debian-startup")
-  (debian-startup 'emacs))
-
-;;; google
-;(require 'google)
-;(require 'google3)
-;(require 'google3-build)
-;(require 'csearch)
-
 ;;; load extra modes
 (add-to-list 'load-path "~/elisp")
+(add-to-list 'load-path "~/elisp/go-mode")
 (add-to-list 'load-path "~/elisp/_local")
 (add-to-list 'load-path "~/elisp/cperl-mode")
 (add-to-list 'load-path "~/elisp/eproject")
@@ -22,32 +11,17 @@
 (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
 
-(require 'auto-inserts)
-(require 'cperl-extras)
-(require 'cperl-hippie)
-(require 'cperl-mode)
 (require 'css-mode)
-(require 'editing-extras)
-(require 'elisp-extras)
 (require 'eproject)
 (require 'eproject-compile)
 (require 'eproject-extras)
-(require 'eproject-tags)
 (require 'eshell)
-(require 'eshell-extras)
 (require 'eslide)
-(require 'espresso)
-(require 'git)
-(require 'gnus)
+(require 'go-mode)
 (require 'help-mode)
 (require 'ibuffer-git)
-(require 'lisp-extras)
-(require 'message)
-(require 'slime)
-(require 'text-extras)
 (require 'uniquify)
 (require 'window-number)
-(require 'windowing-extras)
 
 ;;; modes i want on by default
 (ido-mode 1)
@@ -60,7 +34,7 @@
                               '(("\\.t$" . cperl-mode)
                                 ("\\.hs$" . haskell-mode))))
 ;;; hooks
-(add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
+;; (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
 
 (add-hook 'ibuffer-hook (lambda ()
                           (ibuffer-filter-by-predicate
@@ -72,27 +46,12 @@
   (c-set-offset 'arglist-intro '+)
   (c-set-offset 'arglist-cont-nonempty '+))
 
-(defun my-nongoogle-setup ()
-  (add-hook 'java-mode-hook #'setup-java-style))
-
 (defun setup-golang-style ()
   (set-fill-column 100)
   (add-hook 'before-save-hook #'gofmt-before-save))
 
 (add-hook 'go-mode-hook #'setup-golang-style)
 
-(defun my-google-setup ()
-  (require 'google-go)
-  (require 'google-imports)
-  (add-hook 'java-mode-hook
-            (lambda () (setq fill-column 100)))
-  (define-key java-mode-map (kbd "C-c SPC") #'google-imports-add-import-from-tag))
-
-(if (featurep 'google)
-    (my-google-setup)
-  (my-nongoogle-setup))
-
-;;; this was lurking in auto-inserts.  what?
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
   (make-directory (file-name-directory (buffer-file-name)) t))
@@ -108,52 +67,32 @@
 
 ;;; package
 (require 'package)
-(add-to-list 'package-archives
-    '("marmalade" . "http://marmalade-repo.org/packages/")
-    '("melpa-stable" . "http://stable.melpa.org/packages/") )
 (package-initialize)
 
-;; frame stuff
-(add-to-list 'default-frame-alist '(alpha 80))
+;;; per-platform setup
+(cond
+ ((eq window-system 'w32)
+  (setq gofmt-command "C:/users/jon/go/bin/goimports.exe")
+  (setq exec-path
+        (quote
+         ("c:/WINDOWS/system32" "C:/WINDOWS" "C:/WINDOWS/System32/Wbem" "C:/WINDOWS/System32/WindowsPowerShell/v1.0/" "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common" "c:/Users/jon/go/bin" "C:/Go/bin" "C:/Program Files/Git/cmd" "C:/Users/jon/AppData/Local/Microsoft/WindowsApps" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/libexec/emacs/25.3/x86_64-w64-mingw32" "C:\\msys64\\usr\\bin" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/bin"))))
+ (t
+  (setq gofmt-command "goimports")))
 
-;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
-;; it kills my main X session (with 9 windows or whatever), it is really
-;; annoying.
-(defadvice save-buffers-kill-terminal (around dont-kill-my-x-session-kthx)
-  "Disable C-x C-c under X."
-  (if (or (eq window-system 'x) (eq window-system 'w32))
-      (message "I'm afraid I can't do that, Dave.")
-    ad-do-it))
-(ad-activate 'save-buffers-kill-terminal)
+;; ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
+;; ;; it kills my main X session (with 9 windows or whatever), it is really
+;; ;; annoying.
+;; (defadvice save-buffers-kill-terminal (around dont-kill-my-x-session-kthx)
+;;   "Disable C-x C-c under X."
+;;   (if (or (eq window-system 'x) (eq window-system 'w32))
+;;       (message "I'm afraid I can't do that, Dave.")
+;;     ad-do-it))
+;; (ad-activate 'save-buffers-kill-terminal)
 
 (defun iconify-or-deiconify-frame ()
   "Don't iconify, since that makes emacs freeze under xmonad."
   (interactive)
   (make-frame-visible))
-
-(defun fix-font (size)
-  "Interactively set the default font to Droid Sans Mono- SIZE.
-
-My default seems to be ignored a good percentage of the time,
-which means I type set-default-font DejaVu C-q SPC Sans C-q SPC
-Mono- every time I create a new frame.  This annoys me, so we
-have this now."
-  (interactive
-   (list (read-number "Size: " 10)))
-  (set-default-font (format "Droid Sans Mono-%f" size)))
-
-(defun log-edit-hide-buf (&optional buf where)
-  (when (setq buf (get-buffer (or buf log-edit-files-buf)))
-    (let ((win (get-buffer-window buf where)))
-      (bury-buffer buf))))
-
-(defun yank-primary ()
-  "Do what middle-mouse would."
-  (interactive)
-  (when (eq window-system 'x)
-    (let ((selection (or (x-get-selection 'PRIMARY)
-                         (x-get-selection-value))))
-      (when selection (insert selection)))))
 
 ;;; override stupid defaults
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -175,7 +114,6 @@ have this now."
 
 (define-key text-mode-map "\C-cu" 'insert-same-number-of-chars-as-line-above)
 (define-key text-mode-map "\C-ccw" 'ispell-complete-word)
-(define-key message-mode-map "\C-cw" 'message-widen-reply)
 (define-key help-mode-map "l" 'help-go-back)
 (define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
 (global-set-key (kbd "S-<insert>") #'yank-primary)
@@ -203,11 +141,8 @@ have this now."
 (global-set-key (kbd "C-M-;") 'replace-regexp)
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "C-c C-k") 'compile)
-(define-key c-mode-map (kbd "C-c C-l") 'compile)
 
 (define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
-(define-key gnus-summary-mode-map (kbd "D") 'gnus-summary-delete-article)
-(define-key gnus-summary-mode-map (kbd "S") 'gnus-summary-mark-as-spam)
 
 ;; use hippie instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
@@ -240,8 +175,6 @@ have this now."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(Man-notify-method (quote pushy))
- '(auto-insert-mode t)
- '(auto-insert-query nil)
  '(browse-url-browser-function (quote browse-url-generic))
  '(browse-url-generic-program "google-chrome")
  '(c-electric-pound-behavior (quote (alignleft)))
@@ -276,9 +209,6 @@ have this now."
  '(current-language-environment "UTF-8")
  '(custom-buffer-done-kill t)
  '(custom-magic-show-button t)
- '(custom-safe-themes
-   (quote
-    ("8db4b03b9ae654d4a57804286eb3e332725c84d7cdab38463cb6b97d5762ad26" default)))
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
  '(display-hourglass nil)
@@ -307,34 +237,12 @@ have this now."
  '(flyspell-mark-duplications-flag nil)
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
- '(gnus-always-force-window-configuration nil)
- '(gnus-asynchronous t)
- '(gnus-dribble-directory "~/.gnus.dribble")
- '(gnus-fetch-old-headers nil)
- '(gnus-gcc-mark-as-read t)
- '(gnus-ignored-from-addresses "\\\\(?:jon@snowball2\\.jrock\\.us\\\\|jon@jrock\\.us\\\\)")
- '(gnus-local-domain "jrock.us")
- '(gnus-message-archive-group "Sent")
- '(gnus-message-replyencrypt t)
- '(gnus-message-replysign nil)
- '(gnus-novice-user nil)
- '(gnus-secondary-select-methods (quote ((nnimap "localhost" (username jon)))))
- '(gnus-secondary-servers nil)
- '(gnus-select-method (quote (nnnil "")))
- '(gnus-simplify-subject-functions
-   (quote
-    (gnus-simplify-subject-re gnus-simplify-whitespace gnus-simplify-subject-fuzzy)))
- '(gnus-use-full-window nil)
- '(gofmt-command "/usr/bin/goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
  '(haskell-mode-hook
    (quote
     (turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index)))
- '(hippie-expand-try-functions-list
-   (quote
-    (try-complete-moose-method try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-list try-expand-line try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-complete-file-name-partially try-complete-file-name)))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist
    (quote
@@ -370,14 +278,12 @@ have this now."
       rcirc-server))))
  '(ibuffer-formats
    (quote
-    ((mark modified read-only git-status-mini " "
+    ((mark modified read-only " "
            (name 18 18 :left :elide)
            " "
            (size 9 -1 :right)
            " "
            (mode 16 16 :left :elide)
-           " "
-           (eproject 16 16 :left :elide)
            " "
            (git-status 8 8 :left)
            " " filename-and-process)
@@ -393,10 +299,10 @@ have this now."
  '(indicate-empty-lines nil)
  '(inhibit-startup-screen t)
  '(initial-scratch-message nil)
+ '(ispell-program-name "C:/Program Files (x86)/Aspell/bin/aspell.exe")
  '(kill-read-only-ok t)
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
- '(mail-user-agent (quote gnus-user-agent))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
  '(menu-bar-mode nil nil (menu-bar))
@@ -451,7 +357,7 @@ have this now."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:background "black" :foreground "gray90" :height 110 :family "DejaVu Sans Mono"))))
+ '(default ((t (:background "black" :foreground "grey90" :height 110 :family "DejaVu Sans Mono"))))
  '(c-annotation-face ((t (:foreground "DodgerBlue"))))
  '(compilation-error ((t (:inherit font-lock-warning-face))))
  '(compilation-info ((((class color) (min-colors 88) (background dark)) (:foreground "Green1"))))
@@ -475,7 +381,6 @@ have this now."
  '(font-lock-regexp-grouping-backslash ((t (:inherit bold :background "grey10"))))
  '(font-lock-regexp-grouping-construct ((t (:inherit font-lock-regexp-grouping-backslash))))
  '(font-lock-warning-face ((((class color) (min-colors 88) (background dark)) (:foreground "Pink"))))
- '(gnus-group-mail-3 ((t (:foreground "aquamarine1" :weight bold))))
  '(ido-subdir ((t (:foreground "color-121"))))
  '(message-header-subject ((t (:foreground "#5555ff" :weight bold))))
  '(message-header-to ((t (:foreground "#3333ff" :weight bold))))
