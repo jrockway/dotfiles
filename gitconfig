@@ -35,3 +35,5 @@
 	algorithm = histogram
 [rerere]
 	enabled = true
+[credential]
+	helper = cache
