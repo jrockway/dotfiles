@@ -100,3 +100,8 @@ fi
 
 # for chromeos
 umask 022
+
+# print a message reminding me of tmux sessions
+if [ ! -v TMUX ]; then
+  tmux list-sessions
+fi
