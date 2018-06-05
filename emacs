@@ -246,6 +246,9 @@
  '(haskell-mode-hook
    (quote
     (turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index)))
+ '(hippie-expand-try-functions-list
+   (quote
+    (try-complete-file-name-partially try-complete-file-name try-expand-all-abbrevs try-expand-list try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-expand-line)))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist
    (quote
