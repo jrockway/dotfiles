@@ -102,6 +102,6 @@ fi
 umask 022
 
 # print a message reminding me of tmux sessions
-if [ ! -v TMUX ]; then
+if test '!' $TMUX; then
   tmux list-sessions
 fi
