@@ -10,6 +10,7 @@
 (add-to-list 'load-path "~/elisp/eproject/lang")
 (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
+(add-to-list 'load-path "~/elisp/js2-mode")
 
 (require 'css-mode)
 (require 'eproject)
@@ -20,6 +21,7 @@
 (require 'go-mode)
 (require 'help-mode)
 (require 'ibuffer-git)
+(require 'js2-mode)
 (require 'uniquify)
 (require 'window-number)
 
@@ -35,7 +37,9 @@
 ;;; auto-mode-alist
 (setq auto-mode-alist (append auto-mode-alist
                               '(("\\.t$" . cperl-mode)
-                                ("\\.hs$" . haskell-mode))))
+                                ("\\.hs$" . haskell-mode)
+                                ("\\.js$" . js2-mode))))
+
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
 
@@ -128,7 +132,7 @@
 (define-key text-mode-map "\C-ccw" 'ispell-complete-word)
 (define-key help-mode-map "l" 'help-go-back)
 (define-key read-expression-map (kbd "TAB") #'lisp-complete-symbol)
-(global-set-key (kbd "S-<insert>") #'yank-primary)
+(global-set-key (kbd "S-<insert>") #'yank)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 (global-set-key "\C-xg" 'rgrep)
 (global-set-key "\C-x\C-m" 'execute-extended-command)
