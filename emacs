@@ -10,7 +10,6 @@
 (add-to-list 'load-path "~/elisp/eproject/lang")
 (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
-(add-to-list 'load-path "~/elisp/js2-mode")
 
 (require 'css-mode)
 (require 'eproject)
@@ -21,7 +20,6 @@
 (require 'go-mode)
 (require 'help-mode)
 (require 'ibuffer-git)
-(require 'js2-mode)
 (require 'uniquify)
 (require 'window-number)
 
