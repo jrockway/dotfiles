@@ -1,7 +1,0 @@
-set blink-matching-paren on
-set completion-ignore-case on
-set input-meta on
-set output-meta on
-set convert-meta off
-"\ep": previous-history
-"\en": next-history

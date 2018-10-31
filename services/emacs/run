@@ -1,4 +1,0 @@
-#!/bin/bash
-
-cd ~;
-exec fghack emacs --daemon 2>&1
