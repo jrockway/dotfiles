@@ -5,6 +5,7 @@ export ANDROID_HOME
 
 # path
 PATH=\
+/usr/local/go/bin:\
 $HOME/.depot_tools/depot_tools:\
 $ANDROID_HOME/tools:\
 $ANDROID_HOME/platform-tools:\
