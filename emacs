@@ -165,6 +165,7 @@
 (global-set-key (kbd "C-M-;") 'replace-regexp)
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "C-c C-k") 'compile)
+(global-set-key (kbd "C-<backspace>") 'backward-char)
 
 (define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
 
@@ -242,7 +243,7 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
- '(electric-indent-mode nil)
+ '(electric-indent-mode t)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
  '(eproject-completing-read-function (quote eproject--ido-completing-read))
  '(eshell-after-prompt-hook nil)
