@@ -83,6 +83,11 @@
     (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
 (package-initialize)
 
+;;; things that depend on packages
+(when (file-exists-p "~/go/src/github.com/mdempsky/gocode/emacs-company")
+  (add-to-list 'load-path "~/go/src/github.com/mdempsky/gocode/emacs-company")
+  (require 'company-go))
+
 ;;; per-platform setup
 (cond
  ((eq window-system 'w32)
@@ -203,6 +208,8 @@
  '(c-electric-pound-behavior (quote (alignleft)))
  '(case-fold-search t)
  '(column-number-mode t)
+ '(company-backends (quote ((company-go))))
+ '(company-go-show-annotation t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
@@ -260,6 +267,7 @@
  '(flyspell-mark-duplications-flag nil)
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
+ '(global-company-mode t)
  '(godoc-and-godef-command "/usr/local/go/bin/go doc")
  '(godoc-at-point-function (quote godoc-gogetdoc))
  '(godoc-command "/usr/local/go/bin/go doc")
@@ -348,7 +356,7 @@
  '(mouse-yank-at-point t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
  '(p4-use-p4config-exclusively t t)
- '(package-selected-packages (quote (company)))
+ '(package-selected-packages (quote (js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(rcirc-bright-nicks (quote ("schmeidi" "nothingmuch" "rafl")))
