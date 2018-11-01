@@ -99,10 +99,9 @@
  ((eq window-system 'ns)
   (setq exec-path
         (quote
-         ("/Users/jonathanrockway/projects/go/bin" "/usr/local/go/bin" "/Users/jonathanrockway/.depot_tools/depot_tools" "/usr/local/jrockway/android-sdk-linux/tools" "/usr/local/jrockway/android-sdk-linux/platform-tools" "/Users/jonathanrockway/.cabal/bin" "/Users/jonathanrockway/.local/bin" "/usr/local/scripts" "/usr/local/buildtools/java/jdk/bin" "/usr/local/sbin" "/usr/local/bin" "/usr/sbin" "/usr/bin" "/sbin" "/bin" "/Users/jonathanrockway/projects/depot_tools")))
+         ("/Users/jonathanrockway/go/bin" "/usr/local/go/bin" "/Users/jonathanrockway/.depot_tools/depot_tools" "/usr/local/jrockway/android-sdk-linux/tools" "/usr/local/jrockway/android-sdk-linux/platform-tools" "/Users/jonathanrockway/.cabal/bin" "/Users/jonathanrockway/.local/bin" "/usr/local/scripts" "/usr/local/buildtools/java/jdk/bin" "/usr/local/sbin" "/usr/local/bin" "/usr/sbin" "/usr/bin" "/sbin" "/bin")))
     (setq godoc-command "/usr/local/go/bin/godoc")
     (setq godoc-and-godef-command "/usr/local/go/bin/godoc")
-    (setenv "GOPATH" "/Users/jonathanrockway/projects/go")
     (setq gofmt-command "goimports"))
  (t
   (setq gofmt-command "goimports")))
