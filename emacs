@@ -91,7 +91,6 @@
 ;;; per-platform setup
 (cond
  ((eq window-system 'w32)
-  (setq gofmt-command "C:/users/jon/go/bin/goimports.exe")
   (setq ispell-program-name "C:/Program Files (x86)/Aspell/bin/aspell.exe")
   (setq exec-path
         (quote
@@ -99,11 +98,7 @@
  ((eq window-system 'ns)
   (setq exec-path
         (quote
-         ("/Users/jonathanrockway/go/bin" "/usr/local/go/bin" "/Users/jonathanrockway/.depot_tools/depot_tools" "/usr/local/jrockway/android-sdk-linux/tools" "/usr/local/jrockway/android-sdk-linux/platform-tools" "/Users/jonathanrockway/.cabal/bin" "/Users/jonathanrockway/.local/bin" "/usr/local/scripts" "/usr/local/buildtools/java/jdk/bin" "/usr/local/sbin" "/usr/local/bin" "/usr/sbin" "/usr/bin" "/sbin" "/bin")))
-    (setq godoc-command "/usr/local/go/bin/godoc")
-    (setq godoc-and-godef-command "/usr/local/go/bin/godoc")
- (t
-  (setq gofmt-command "goimports")))
+         ("/Users/jonathanrockway/go/bin" "/usr/local/go/bin" "/Users/jonathanrockway/.depot_tools/depot_tools" "/usr/local/jrockway/android-sdk-linux/tools" "/usr/local/jrockway/android-sdk-linux/platform-tools" "/Users/jonathanrockway/.cabal/bin" "/Users/jonathanrockway/.local/bin" "/usr/local/scripts" "/usr/local/buildtools/java/jdk/bin" "/usr/local/sbin" "/usr/local/bin" "/usr/sbin" "/usr/bin" "/sbin" "/bin")))))
 
 ;; ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; ;; it kills my main X session (with 9 windows or whatever), it is really
@@ -272,6 +267,7 @@
  '(godoc-and-godef-command "/usr/local/go/bin/go doc")
  '(godoc-at-point-function (quote godoc-gogetdoc))
  '(godoc-command "/usr/local/go/bin/go doc")
+ '(gofmt-command "goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
