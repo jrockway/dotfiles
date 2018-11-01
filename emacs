@@ -10,8 +10,6 @@
 (add-to-list 'load-path "~/elisp/eproject/lang")
 (add-to-list 'load-path "~/elisp/eslide")
 (add-to-list 'load-path "~/elisp/ibuffer-git")
-(add-to-list 'load-path "~/elisp/flycheck")
-(add-to-list 'load-path "~/projects/go/src/github.com/dougm/goflymake")
 
 (require 'css-mode)
 (require 'eproject)
@@ -264,7 +262,6 @@
  '(espresso-auto-indent-flag nil)
  '(fill-column 80)
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
- '(flymake-start-syntax-check-on-newline nil)
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
  '(flyspell-mark-duplications-flag nil)
