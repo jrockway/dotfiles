@@ -4,7 +4,8 @@
 [alias]
 	st = status
 	di = diff
-	cdi = diff --cached
+        id = diff
+	dic = diff --cached
 	co = checkout
 	ci = commit
 	br = branch
