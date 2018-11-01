@@ -102,7 +102,6 @@
          ("/Users/jonathanrockway/go/bin" "/usr/local/go/bin" "/Users/jonathanrockway/.depot_tools/depot_tools" "/usr/local/jrockway/android-sdk-linux/tools" "/usr/local/jrockway/android-sdk-linux/platform-tools" "/Users/jonathanrockway/.cabal/bin" "/Users/jonathanrockway/.local/bin" "/usr/local/scripts" "/usr/local/buildtools/java/jdk/bin" "/usr/local/sbin" "/usr/local/bin" "/usr/sbin" "/usr/bin" "/sbin" "/bin")))
     (setq godoc-command "/usr/local/go/bin/godoc")
     (setq godoc-and-godef-command "/usr/local/go/bin/godoc")
-    (setq gofmt-command "goimports"))
  (t
   (setq gofmt-command "goimports")))
 
@@ -208,7 +207,9 @@
  '(c-electric-pound-behavior (quote (alignleft)))
  '(case-fold-search t)
  '(column-number-mode t)
- '(company-backends (quote ((company-go))))
+ '(company-backends
+   (quote
+    (company-elisp company-go company-abbrev company-ispell company-capf)))
  '(company-go-show-annotation t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
@@ -271,7 +272,6 @@
  '(godoc-and-godef-command "/usr/local/go/bin/go doc")
  '(godoc-at-point-function (quote godoc-gogetdoc))
  '(godoc-command "/usr/local/go/bin/go doc")
- '(gofmt-command "/Users/jonathanrockway/projects/go/bin/goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
