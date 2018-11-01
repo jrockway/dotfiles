@@ -208,6 +208,7 @@
  '(company-backends
    (quote
     (company-elisp company-go company-abbrev company-ispell company-capf)))
+ '(company-go-begin-after-member-access t)
  '(company-go-show-annotation t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
