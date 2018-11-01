@@ -88,6 +88,8 @@
   (add-to-list 'load-path "~/go/src/github.com/mdempsky/gocode/emacs-company")
   (require 'company-go))
 
+(setq yas-snippet-dirs '("~/elisp/snippets/"))
+
 ;;; per-platform setup
 (cond
  ((eq window-system 'w32)
@@ -356,7 +358,7 @@
  '(mouse-yank-at-point t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
  '(p4-use-p4config-exclusively t t)
- '(package-selected-packages (quote (js2-mode company)))
+ '(package-selected-packages (quote (yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
