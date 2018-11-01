@@ -1,10 +1,8 @@
 #!/bin/bash
 
-ANDROID_HOME="/usr/local/jrockway/android-sdk-linux"
-export ANDROID_HOME
-
 # path
 PATH=\
+$HOME/go/bin:\
 /usr/local/go/bin:\
 $HOME/.depot_tools/depot_tools:\
 $ANDROID_HOME/tools:\
@@ -48,7 +46,6 @@ case $TERM in
 esac
 
 # aliases
-alias xmms=nyxmms2
 alias ec="emacsclient -t" # yay for multi-tty!
 
 # limits
@@ -61,10 +58,7 @@ shopt -s cdable_vars
 shopt -s histappend
 
 alias h=history
-alias r='fc -s'
-alias g="cd /usr/local/google/code"
 
-#export HISTSIZE=10000
 export HISTFILESIZE=100000
 unset HISTSIZE
 
@@ -73,34 +67,11 @@ stty stop ''
 
 # exports
 export EDITOR="emacsclient -a '' -t"
-export _JAVA_AWT_WM_NONREPARENTING=1
 
-# go
-export GOPATH="$HOME/projects/go"
-export PATH="$HOME/projects/go/bin:$PATH"
-
-# google
-export P4CONFIG=.p4config
-export P4DIFF="diff -u"
-export PAGER="cat"
 case $TERM in
   xterm* | rxvt* | screen* )
     export PAGER="less"
 esac
-
-if [ -e $HOME/.google-bashrc ]; then
-    source $HOME/.google-bashrc
-fi
-
-if [ -e $HOME/.gpg-agent-info ]; then
-    source $HOME/.gpg-agent-info
-    export GPG_AGENT_INFO
-    export SSH_AUTH_SOCK
-    export SSH_AGENT_PID
-fi
-
-# for chromeos
-umask 022
 
 # print a message reminding me of tmux sessions
 if test '!' $TMUX; then
