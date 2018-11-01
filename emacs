@@ -245,6 +245,7 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
+ '(electric-indent-mode nil)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
  '(eproject-completing-read-function (quote eproject--ido-completing-read))
  '(eshell-after-prompt-hook nil)
