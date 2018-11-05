@@ -122,3 +122,5 @@ substitutability
 formatter
 Makefile
 ConfigLoader
+deprovisioned
+dequeued
