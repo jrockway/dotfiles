@@ -166,6 +166,7 @@
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "C-c C-k") 'compile)
 (global-set-key (kbd "C-<backspace>") 'backward-char)
+(global-set-key (kbd "M-=") 'company-complete)
 
 (define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
 
@@ -207,9 +208,12 @@
  '(column-number-mode t)
  '(company-backends
    (quote
-    (company-elisp company-go company-abbrev company-ispell company-capf)))
- '(company-go-begin-after-member-access t)
+    (company-elisp
+     (company-go company-dabbrev-code company-dabbrev)
+     company-dabbrev-code company-capf)))
+ '(company-go-insert-arguments nil)
  '(company-go-show-annotation t)
+ '(company-idle-delay nil)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
@@ -360,7 +364,9 @@
  '(mouse-yank-at-point t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
  '(p4-use-p4config-exclusively t t)
- '(package-selected-packages (quote (yasnippet vue-mode php-mode js2-mode company)))
+ '(package-selected-packages
+   (quote
+    (with-editor magit yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
@@ -392,7 +398,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:background "black" :foreground "grey90" :height 145 :family "Droid Sans Mono"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "grey90" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 120 :width normal :foundry "outline" :family "Droid Sans Mono Slashed"))))
  '(cursor ((t (:background "turquoise" :inverse-video t))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(ido-first-match ((t (:foreground "green"))))
