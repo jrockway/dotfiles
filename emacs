@@ -62,7 +62,6 @@
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
   (flycheck-mode t)
   (eldoc-mode t)
-  (tide-hl-identifier-mode t)
   (company-mode t))
 
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
