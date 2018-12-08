@@ -74,6 +74,11 @@ case $TERM in
 esac
 
 # print a message reminding me of tmux sessions
-if test '!' $TMUX; then
+if [[ $- == *i* ]] && test '!' $TMUX; then
   tmux list-sessions
 fi
+
+# complete go commands if gotab is installed
+which gotab >/dev/null && complete -C gotab -o nospace go
+
+alias gohome="cd $HOME/go/src/github.com/PilotFiber/"
