@@ -102,14 +102,12 @@
 ;;; per-platform setup
 (cond
  ((eq window-system 'w32)
-  (setq ispell-program-name "C:/Program Files (x86)/Aspell/bin/aspell.exe")
-  (setq exec-path
-        (quote
-         ("c:/WINDOWS/system32" "C:/WINDOWS" "C:/WINDOWS/System32/Wbem" "C:/WINDOWS/System32/WindowsPowerShell/v1.0/" "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common" "c:/Users/jon/go/bin" "C:/Go/bin" "C:/Program Files/Git/cmd" "C:/Users/jon/AppData/Local/Microsoft/WindowsApps" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/libexec/emacs/25.3/x86_64-w64-mingw32" "C:\\msys64\\usr\\bin" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/bin" "c:/Program Files/nodejs"))))
+  (add-to-list 'exec-path "C:/Program Files/Git/usr/bin")
+  (add-to-list 'exec-path "C:/Users/jon/go/bin")
+  (add-to-list 'exec-path "C:/Program Files/nodejs"))
  ((eq window-system 'ns)
-  (setq exec-path
-        (quote
-         ("/Users/jonathanrockway/go/bin" "/usr/local/go/bin" "/Users/jonathanrockway/.depot_tools/depot_tools" "/usr/local/jrockway/android-sdk-linux/tools" "/usr/local/jrockway/android-sdk-linux/platform-tools" "/Users/jonathanrockway/.cabal/bin" "/Users/jonathanrockway/.local/bin" "/usr/local/scripts" "/usr/local/buildtools/java/jdk/bin" "/usr/local/sbin" "/usr/local/bin" "/usr/sbin" "/usr/bin" "/sbin" "/bin")))))
+  (add-to-list 'exec-path "/Users/jonathanrockway/go/bin")
+  (add-to-list 'exec-path "/usr/local/go/bin")))
 
 ;; ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; ;; it kills my main X session (with 9 windows or whatever), it is really
