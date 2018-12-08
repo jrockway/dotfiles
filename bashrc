@@ -45,8 +45,13 @@ case $TERM in
 	;;
 esac
 
+EMACSCLIENT="emacsclient"
+if [ -e "/Applications/Emacs.app/Contents/MacOS/bin/emacsclient" ]; then
+    EMACSCLIENT="/Applications/Emacs.app/Contents/MacOS/bin/emacsclient"
+fi
+
 # aliases
-alias ec="emacsclient -t" # yay for multi-tty!
+alias ec="$EMACSCLIENT -t" # yay for multi-tty!
 
 # limits
 ulimit -S -c 0
@@ -66,7 +71,7 @@ unset HISTSIZE
 stty stop ''
 
 # exports
-export EDITOR="emacsclient -a '' -t"
+export EDITOR="$EMACSCLIENT -a '' -t"
 
 case $TERM in
   xterm* | rxvt* | screen* )
