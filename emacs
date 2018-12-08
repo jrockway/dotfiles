@@ -57,6 +57,16 @@
 
 (add-hook 'go-mode-hook #'setup-golang-style)
 
+(defun setup-tide-mode ()
+  (tide-setup)
+  (setq flycheck-check-syntax-automatically '(save mode-enabled))
+  (flycheck-mode t)
+  (eldoc-mode t)
+  (tide-hl-identifier-mode t)
+  (company-mode t))
+
+(add-hook 'typescript-mode-hook #'setup-tide-mode)
+
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
   (make-directory (file-name-directory (buffer-file-name)) t))
@@ -96,7 +106,7 @@
   (setq ispell-program-name "C:/Program Files (x86)/Aspell/bin/aspell.exe")
   (setq exec-path
         (quote
-         ("c:/WINDOWS/system32" "C:/WINDOWS" "C:/WINDOWS/System32/Wbem" "C:/WINDOWS/System32/WindowsPowerShell/v1.0/" "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common" "c:/Users/jon/go/bin" "C:/Go/bin" "C:/Program Files/Git/cmd" "C:/Users/jon/AppData/Local/Microsoft/WindowsApps" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/libexec/emacs/25.3/x86_64-w64-mingw32" "C:\\msys64\\usr\\bin" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/bin"))))
+         ("c:/WINDOWS/system32" "C:/WINDOWS" "C:/WINDOWS/System32/Wbem" "C:/WINDOWS/System32/WindowsPowerShell/v1.0/" "C:/Program Files (x86)/NVIDIA Corporation/PhysX/Common" "c:/Users/jon/go/bin" "C:/Go/bin" "C:/Program Files/Git/cmd" "C:/Users/jon/AppData/Local/Microsoft/WindowsApps" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/libexec/emacs/25.3/x86_64-w64-mingw32" "C:\\msys64\\usr\\bin" "c:/Users/jon/Programs/emacs-25.3_1-x86_64/bin" "c:/Program Files/nodejs"))))
  ((eq window-system 'ns)
   (setq exec-path
         (quote
@@ -211,9 +221,7 @@
     (company-elisp
      (company-go company-dabbrev-code company-dabbrev)
      company-dabbrev-code company-capf)))
- '(company-go-insert-arguments nil)
  '(company-go-show-annotation t)
- '(company-idle-delay nil)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
@@ -367,7 +375,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (with-editor magit yasnippet vue-mode php-mode js2-mode company)))
+    (go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
