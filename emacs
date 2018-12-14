@@ -372,7 +372,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
+    (protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
