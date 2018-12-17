@@ -56,6 +56,7 @@
   (add-hook 'before-save-hook #'gofmt-before-save))
 
 (add-hook 'go-mode-hook #'setup-golang-style)
+(add-hook 'go-mode-hook #'go-eldoc-setup)
 
 (defun setup-tide-mode ()
   (tide-setup)
@@ -418,6 +419,7 @@
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
+ '(mmm-default-submode-face ((t nil)))
  '(mode-line ((t (:background "grey20" :foreground "white" :box (:line-width 1 :color "grey30")))))
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
