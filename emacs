@@ -65,6 +65,13 @@
   (company-mode t))
 
 (add-hook 'typescript-mode-hook #'setup-tide-mode)
+(add-hook 'typescript-mode-hook #'prettier-js-mode)
+(add-hook 'web-mode-hook #'prettier-js-mode)
+(add-hook 'js-mode-hook #'prettier-js-mode)
+(add-hook 'js2-mode-hook #'prettier-js-mode)
+(add-hook 'markdown-mode-hook #'prettier-js-mode)
+(add-hook 'yaml-mode-hook #'prettier-js-mode)
+(add-hook 'vue-mode-hook #'prettier-js-mode)
 
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
@@ -107,7 +114,9 @@
   (add-to-list 'exec-path "C:/Program Files/nodejs"))
  ((eq window-system 'ns)
   (add-to-list 'exec-path "/Users/jonathanrockway/go/bin")
-  (add-to-list 'exec-path "/usr/local/go/bin")))
+  (add-to-list 'exec-path "/usr/local/bin")
+  (add-to-list 'exec-path "/usr/local/go/bin")
+  (setenv "PATH" (mapconcat 'identity (cons (getenv "PATH") exec-path) ":"))))
 
 ;; ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; ;; it kills my main X session (with 9 windows or whatever), it is really
@@ -372,7 +381,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
+    (yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
