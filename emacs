@@ -74,6 +74,11 @@
 (add-hook 'yaml-mode-hook #'prettier-js-mode)
 (add-hook 'vue-mode-hook #'prettier-js-mode)
 
+(defun setup-vue-mode ()
+  (turn-off-flyspell))
+
+(add-hook 'vue-mode-hook #'setup-vue-mode)
+
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
   (make-directory (file-name-directory (buffer-file-name)) t))
