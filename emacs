@@ -230,9 +230,7 @@
  '(column-number-mode t)
  '(company-backends
    (quote
-    (company-elisp
-     (company-go company-dabbrev-code company-dabbrev)
-     company-dabbrev-code company-capf)))
+    (company-tide company-elisp company-go company-dabbrev-code company-dabbrev company-capf)))
  '(company-go-show-annotation t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
