@@ -428,3 +428,4 @@
 
 (set-face-foreground 'default "grey90")
 (set-face-background 'default "black")
+(server-start)
