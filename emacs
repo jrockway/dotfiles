@@ -111,6 +111,7 @@
   (require 'company-go))
 
 (setq yas-snippet-dirs '("~/elisp/snippets/"))
+(yas-global-mode t)
 
 ;;; per-platform setup
 (cond
