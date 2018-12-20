@@ -87,3 +87,4 @@ fi
 which gotab >/dev/null && complete -C gotab -o nospace go
 
 alias gohome="cd $HOME/go/src/github.com/PilotFiber/"
+export GO111MODULE=on
