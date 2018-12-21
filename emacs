@@ -33,10 +33,11 @@
 (defalias 'perl-mode 'cperl-mode)
 
 ;;; auto-mode-alist
-(setq auto-mode-alist (append auto-mode-alist
-                              '(("\\.t$" . cperl-mode)
-                                ("\\.hs$" . haskell-mode)
-                                ("\\.js$" . js2-mode))))
+(setq auto-mode-alist (append
+                       '(("\\.t$" . cperl-mode)
+                         ("\\.hs$" . haskell-mode)
+                         ("\\.html$" . web-mode))
+                       auto-mode-alist))
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
