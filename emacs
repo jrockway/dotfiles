@@ -73,6 +73,7 @@
 (add-hook 'js2-mode-hook #'prettier-js-mode)
 (add-hook 'markdown-mode-hook #'prettier-js-mode)
 (add-hook 'yaml-mode-hook #'prettier-js-mode)
+(add-hook 'yaml-mode-hook #'highlight-indentation-mode)
 (add-hook 'vue-mode-hook #'prettier-js-mode)
 
 (defun setup-vue-mode ()
@@ -387,7 +388,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
+    (dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
@@ -399,9 +400,6 @@
  '(sql-sqlite-program "sqlite3")
  '(term-scroll-to-bottom-on-output t)
  '(tex-default-mode (quote latex-mode))
- '(text-mode-hook
-   (quote
-    (turn-on-flyspell turn-on-auto-fill text-mode-hook-identify)))
  '(tool-bar-mode nil nil (tool-bar))
  '(tooltip-use-echo-area t)
  '(transient-mark-mode nil)
@@ -412,16 +410,18 @@
  '(vc-handled-backends (quote (git)))
  '(view-inhibit-help-message t)
  '(woman-use-own-frame nil)
- '(xterm-mouse-mode t))
+ '(xterm-mouse-mode t)
+ '(yaml-indent-offset 4))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:inherit nil :stipple nil :background "black" :foreground "grey90" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 120 :width normal :foundry "outline" :family "Droid Sans Mono Slashed"))))
+ '(default ((t (:inherit nil :stipple nil :background "black" :foreground "grey90" :inverse-video nil :box nil :strike-through nil :overline nil :underline nil :slant normal :weight normal :height 160 :width normal :foundry "nil" :family "Droid Sans Mono Slashed"))))
  '(cursor ((t (:background "turquoise" :inverse-video t))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
+ '(highlight-indentation-current-column-face ((t (:background "#338833"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
  '(mmm-default-submode-face ((t nil)))
