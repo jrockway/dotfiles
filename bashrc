@@ -88,3 +88,7 @@ which gotab >/dev/null && complete -C gotab -o nospace go
 
 alias gohome="cd $HOME/go/src/github.com/PilotFiber/"
 export GO111MODULE=on
+
+if [ -f /usr/local/etc/bash_completion ]; then
+    source /usr/local/etc/bash_completion;
+fi
