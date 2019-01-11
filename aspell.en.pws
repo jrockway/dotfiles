@@ -1,4 +1,4 @@
-personal_ws-1.1 en 125
+personal_ws-1.1 en 126 
 dereference
 templating
 proven
@@ -36,9 +36,10 @@ composable
 btw
 multilog
 dists
-formatter's
 formatters
+formatter's
 md
+dequeued
 one's
 namespace
 src
@@ -47,8 +48,8 @@ javascript
 XHTML
 MooseX
 REPL
-metadescription
 MetaDescription
+metadescription
 repo
 Liskov's
 vivification
@@ -70,6 +71,7 @@ auth
 ro
 lexicals
 uchicago
+deprovisioned
 ERC
 Liskov
 metaclass
@@ -113,6 +115,7 @@ profiler
 conf
 brian
 builtins
+Commissionable
 ORM
 timestamping
 refactored
@@ -122,5 +125,3 @@ substitutability
 formatter
 Makefile
 ConfigLoader
-deprovisioned
-dequeued
