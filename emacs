@@ -424,6 +424,7 @@
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
+ '(markdown-code-face ((t (:foreground "dodgerblue"))))
  '(mmm-default-submode-face ((t nil)))
  '(mode-line ((t (:background "grey20" :foreground "white" :box (:line-width 1 :color "grey30")))))
  '(mode-line-buffer-id ((t (:foreground "green"))))
