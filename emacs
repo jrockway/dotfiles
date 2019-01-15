@@ -57,7 +57,6 @@
   (add-hook 'before-save-hook #'gofmt-before-save))
 
 (add-hook 'go-mode-hook #'setup-golang-style)
-(add-hook 'go-mode-hook #'go-eldoc-setup)
 
 (defun setup-tide-mode ()
   (tide-setup)
