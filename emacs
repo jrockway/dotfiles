@@ -293,6 +293,7 @@
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
  '(global-company-mode t)
+ '(global-prettify-symbols-mode t)
  '(godoc-and-godef-command "/usr/local/go/bin/go doc")
  '(godoc-at-point-function (quote godoc-gogetdoc))
  '(godoc-command "/usr/local/go/bin/go doc")
