@@ -11,6 +11,7 @@ $HOME/.cabal/bin:\
 $HOME/.local/bin:\
 /usr/local/scripts:\
 /usr/local/buildtools/java/jdk/bin:\
+/snap/bin:\
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
 $HOME/projects/depot_tools
 
@@ -88,6 +89,7 @@ which gotab >/dev/null && complete -C gotab -o nospace go
 
 alias gohome="cd $HOME/go/src/github.com/PilotFiber/"
 export GO111MODULE=on
+export GOPROXY=https://athens.pilotfiber.ninja/
 
 if [ -f /usr/local/etc/bash_completion ]; then
     source /usr/local/etc/bash_completion;
