@@ -34,7 +34,8 @@
 
 ;;; auto-mode-alist
 (setq auto-mode-alist (append
-                       '(("\\.t$" . cperl-mode)
+                       '(("Dockerfile" . dockerfile-mode)
+                         ("\\.t$" . cperl-mode)
                          ("\\.hs$" . haskell-mode)
                          ("\\.html$" . web-mode))
                        auto-mode-alist))
@@ -388,7 +389,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
+    (forge groovy-mode jenkins dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
@@ -418,7 +419,7 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:background "black" :foreground "grey90" :weight normal :height 120 :family "Iosevka"))))
+ '(default ((t (:background "black" :foreground "grey90" :weight light :height 180 :family "Iosevka"))))
  '(cursor ((t (:background "turquoise" :inverse-video t))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
