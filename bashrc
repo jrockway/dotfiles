@@ -19,16 +19,6 @@ export PATH
 
 export PROMPT_COMMAND="history -a"
 
-# xterm titlebar
-case $TERM in
-    xterm* | rxvt* | cygwin*)
-        PROMPT_COMMAND='history -a; echo -ne "\033]0;$(hostname -s):$(basename "$PWD")\007"'
-      ;;
-    *)
-	;;
-esac
-
-
 SSH_STATUS=""
 if [ -n "$SSH_CLIENT" ]; then
     SSH_STATUS=" (ssh)"
@@ -41,7 +31,7 @@ case $TERM in
 	;;
     *)
 	export PS1="\[\033[01;32m\]\n[\w] \j (\u@\h)$SSH_STATUS\n\$ \[\033[00m\]"
-	export PS2="\w$ "
+	export PS2="\$ "
 	export PS3="\$ "
 	;;
 esac
