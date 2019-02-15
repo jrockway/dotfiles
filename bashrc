@@ -68,9 +68,6 @@ alias h=history
 export HISTFILESIZE=100000
 unset HISTSIZE
 
-# term setup
-stty stop ''
-
 # exports
 export EDITOR="$EMACSCLIENT -a '' -t"
 
@@ -79,8 +76,11 @@ case $TERM in
     export PAGER="less"
 esac
 
-# print a message reminding me of tmux sessions
+# stuff to be done only in interactive shells
 if [[ $- == *i* ]] && test '!' $TMUX; then
+  stty stop ''
+
+  # print a message reminding me of tmux sessions
   tmux list-sessions
 fi
 
