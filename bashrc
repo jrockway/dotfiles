@@ -91,6 +91,9 @@ alias gohome="cd $HOME/go/src/github.com/PilotFiber/"
 export GO111MODULE=on
 export GOPROXY=https://athens.pilotfiber.ninja/
 
-if [ -f /usr/local/etc/bash_completion ]; then
-    source /usr/local/etc/bash_completion;
+if [ -f /etc/bash_completion ]; then
+    source /etc/bash_completion;
+    if [ -f $HOME/.dotfiles/kubectl_completion ]; then
+        source $HOME/.dotfiles/kubectl_completion;
+    fi
 fi
