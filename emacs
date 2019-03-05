@@ -81,6 +81,12 @@
 
 (add-hook 'vue-mode-hook #'setup-vue-mode)
 
+(defun setup-protobuf-mode ()
+  (c-add-style "my-style" '((c-basic-offset . 4) (indent-tabs-mode . nil)) t)
+  (add-hook 'before-save-hook #'clang-format-buffer))
+
+(add-hook 'protobuf-mode-hook #'setup-protobuf-mode)
+
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
   (make-directory (file-name-directory (buffer-file-name)) t))
@@ -235,6 +241,7 @@
    (quote
     (company-tide company-elisp company-go company-dabbrev-code company-dabbrev company-capf)))
  '(company-go-show-annotation t)
+ '(company-idle-delay nil)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
@@ -389,7 +396,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (forge groovy-mode jenkins dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor magit yasnippet vue-mode php-mode js2-mode company)))
+    (clang-format groovy-mode jenkins dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor yasnippet vue-mode php-mode js2-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
