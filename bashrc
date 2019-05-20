@@ -2,6 +2,7 @@
 
 # path
 PATH=\
+/usr/local/lib/nodejs/node-v10.15.3-linux-x64/bin:\
 $HOME/go/bin:\
 /usr/local/go/bin:\
 $HOME/.depot_tools/depot_tools:\
@@ -87,3 +88,7 @@ if [ -f /etc/bash_completion ]; then
         source $HOME/.dotfiles/kubectl_completion;
     fi
 fi
+
+alias json="npx prettier --stdin --stdin-filepath foo.json"
+alias kloc="kubectl config use-context minikube"
+alias kprod="kubectl config use-context arn:aws:eks:us-east-1:393453136086:cluster/production-kube"
