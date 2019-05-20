@@ -1,6 +1,7 @@
 [user]
 	name = Jonathan Rockway
 	email = jrockway@users.noreply.github.com
+
 [alias]
 	st = status
 	di = diff
@@ -9,8 +10,10 @@
 	co = checkout
 	ci = commit
 	br = branch
+        bb = branch
 	sta = stash
 	fixup = commit --amend -C HEAD
+        pr = pull --rebase
 
 [color]
 	status = auto
@@ -23,18 +26,14 @@
 [pull]
 	default = current
 
-[github]
-	user = jrockway
-	token = fake-token
-
-[github-import]
-	lowercase = 1
-	remote = origin
 [branch]
 	autosetuprebase = remote
+
 [diff]
 	algorithm = histogram
+
 [rerere]
 	enabled = true
+
 [credential]
 	helper = cache
