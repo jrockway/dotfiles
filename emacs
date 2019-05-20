@@ -55,7 +55,7 @@
 
 (defun setup-golang-style ()
   (set-fill-column 100)
-  (add-hook 'before-save-hook #'gofmt-before-save))
+  (add-hook 'before-save-hook #'gofmt-before-save nil t))
 
 (add-hook 'go-mode-hook #'setup-golang-style)
 
@@ -83,7 +83,7 @@
 
 (defun setup-protobuf-mode ()
   (c-add-style "my-style" '((c-basic-offset . 4) (indent-tabs-mode . nil)) t)
-  (add-hook 'before-save-hook #'clang-format-buffer))
+  (add-hook 'before-save-hook #'clang-format-buffer nil t))
 
 (add-hook 'protobuf-mode-hook #'setup-protobuf-mode)
 
@@ -268,6 +268,7 @@
  '(cperl-merge-trailing-else nil)
  '(cperl-tab-always-indent t)
  '(cperl-under-as-char nil)
+ '(css-tab-mode (quote indent))
  '(current-language-environment "UTF-8")
  '(custom-buffer-done-kill t)
  '(custom-magic-show-button t)
@@ -396,7 +397,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (clang-format groovy-mode jenkins dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode go-eldoc tide with-editor yasnippet vue-mode php-mode js2-mode company)))
+    (clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
