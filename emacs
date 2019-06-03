@@ -113,11 +113,6 @@
     (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
 (package-initialize)
 
-;;; things that depend on packages
-(when (file-exists-p "~/go/src/github.com/mdempsky/gocode/emacs-company")
-  (add-to-list 'load-path "~/go/src/github.com/mdempsky/gocode/emacs-company")
-  (require 'company-go))
-
 (setq yas-snippet-dirs '("~/elisp/snippets/"))
 (yas-global-mode t)
 
@@ -239,7 +234,7 @@
  '(column-number-mode t)
  '(company-backends
    (quote
-    (company-tide company-elisp company-go company-dabbrev-code company-dabbrev company-capf)))
+    (company-tide company-elisp company-lsp company-dabbrev-code company-dabbrev company-capf)))
  '(company-go-show-annotation t)
  '(company-idle-delay nil)
  '(compilation-ask-about-save nil)
@@ -397,7 +392,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+    (company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode company-go markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
