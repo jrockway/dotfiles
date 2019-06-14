@@ -92,3 +92,9 @@ fi
 alias json="npx prettier --stdin --stdin-filepath foo.json"
 alias kloc="kubectl config use-context minikube"
 alias kprod="kubectl config use-context arn:aws:eks:us-east-1:393453136086:cluster/production-kube"
+
+export MYSQL_DSN="root:test@tcp(localhost:3306)/pilot"
+export MYSQL_USER="root"
+export MYSQL_PASSWORD="test"
+export MYSQL_HOST="localhost:3306"
+export MYSQL_DATABASE="pilot"
