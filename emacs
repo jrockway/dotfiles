@@ -290,7 +290,7 @@
                   0)
                  " # " " $ "))))
  '(espresso-auto-indent-flag nil)
- '(fill-column 80)
+ '(fill-column 100)
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
