@@ -98,3 +98,5 @@ export MYSQL_USER="root"
 export MYSQL_PASSWORD="test"
 export MYSQL_HOST="localhost:3306"
 export MYSQL_DATABASE="pilot"
+
+alias cover="go test ./... -p 1 -covermode=count -coverprofile cover.out && go tool cover -html cover.out; rm -f cover.out"
