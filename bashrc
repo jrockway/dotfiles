@@ -78,9 +78,7 @@ fi
 # complete go commands if gotab is installed
 which gotab >/dev/null && complete -C gotab -o nospace go
 
-alias gohome="cd $HOME/go/src/github.com/PilotFiber/"
 export GO111MODULE=on
-export GOPROXY=https://athens.pilotfiber.ninja/
 
 if [ -f /etc/bash_completion ]; then
     source /etc/bash_completion;
@@ -90,13 +88,4 @@ if [ -f /etc/bash_completion ]; then
 fi
 
 alias json="npx prettier --stdin --stdin-filepath foo.json"
-alias kloc="kubectl config use-context minikube"
-alias kprod="kubectl config use-context arn:aws:eks:us-east-1:393453136086:cluster/production-kube"
-
-export MYSQL_DSN="root:test@tcp(localhost:3306)/pilot"
-export MYSQL_USER="root"
-export MYSQL_PASSWORD="test"
-export MYSQL_HOST="localhost:3306"
-export MYSQL_DATABASE="pilot"
-
 alias cover="go test ./... -p 1 -covermode=count -coverprofile cover.out && go tool cover -html cover.out; rm -f cover.out"
