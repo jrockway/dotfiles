@@ -78,8 +78,6 @@ fi
 # complete go commands if gotab is installed
 which gotab >/dev/null && complete -C gotab -o nospace go
 
-export GO111MODULE=on
-
 if [ -f /etc/bash_completion ]; then
     source /etc/bash_completion;
     if [ -f $HOME/.dotfiles/kubectl_completion ]; then
