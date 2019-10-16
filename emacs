@@ -4,7 +4,6 @@
 (add-to-list 'load-path "~/elisp")
 (add-to-list 'load-path "~/elisp/go-mode")
 (add-to-list 'load-path "~/elisp/_local")
-(add-to-list 'load-path "~/elisp/cperl-mode")
 (add-to-list 'load-path "~/elisp/eproject")
 (add-to-list 'load-path "~/elisp/eproject/contrib")
 (add-to-list 'load-path "~/elisp/eproject/lang")
@@ -166,7 +165,6 @@
 (define-key text-mode-map "\C-ccw" 'ispell-complete-word)
 (define-key help-mode-map "l" 'help-go-back)
 (define-key read-expression-map (kbd "TAB") #'completion-at-point)
-(define-key go-mode-map "\M-." 'godef-jump)
 (global-set-key (kbd "S-<insert>") #'yank-primary)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
 (global-set-key "\C-xg" 'rgrep)
@@ -197,9 +195,12 @@
 
 (define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
 
+(with-eval-after-load "lsp-ui"
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
+
 ;; use hippie instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
-(global-set-key (kbd "M-?") 'dabbrev-expand)
 
 ;; use C-h c for customize
 (global-unset-key (kbd "C-h c"))
@@ -235,9 +236,13 @@
  '(column-number-mode t)
  '(company-backends
    (quote
-    (company-tide company-elisp company-lsp company-dabbrev-code company-dabbrev company-capf)))
+    (company-lsp company-elisp company-dabbrev-code company-dabbrev)))
+ '(company-frontends
+   (quote
+    (company-pseudo-tooltip-frontend company-echo-metadata-frontend company-preview-if-just-one-frontend)))
  '(company-go-show-annotation t)
  '(company-idle-delay nil)
+ '(company-show-numbers t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
@@ -299,9 +304,7 @@
  '(font-lock-global-modes t)
  '(global-company-mode t)
  '(global-prettify-symbols-mode t)
- '(godoc-and-godef-command "/usr/local/go/bin/go doc")
  '(godoc-at-point-function (quote godoc-gogetdoc))
- '(godoc-command "/usr/local/go/bin/go doc")
  '(gofmt-command "goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
@@ -382,11 +385,10 @@
  '(lsp-enable-symbol-highlighting nil)
  '(lsp-prefer-flymake nil)
  '(lsp-restart (quote auto-restart))
- '(lsp-ui-doc-delay 0.1)
- '(lsp-ui-doc-enable nil)
+ '(lsp-ui-doc-enable t)
  '(lsp-ui-flycheck-enable t)
  '(lsp-ui-imenu-enable nil)
- '(lsp-ui-peek-enable nil)
+ '(lsp-ui-peek-enable t)
  '(lsp-ui-sideline-enable nil)
  '(lsp-ui-sideline-ignore-duplicate t)
  '(lsp-ui-sideline-show-code-actions nil)
