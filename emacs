@@ -119,8 +119,9 @@
     (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
 (package-initialize)
 
-(setq yas-snippet-dirs '("~/elisp/snippets/"))
-(yas-global-mode t)
+(when (featurep 'yas)
+  (setq yas-snippet-dirs '("~/elisp/snippets/"))
+  (yas-global-mode t))
 
 ;;; per-platform setup
 (cond
