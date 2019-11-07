@@ -36,7 +36,8 @@
                        '(("Dockerfile" . dockerfile-mode)
                          ("\\.t$" . cperl-mode)
                          ("\\.hs$" . haskell-mode)
-                         ("\\.html$" . web-mode))
+                         ("\\.html$" . web-mode)
+                         ("\\.ino$" . c++-mode))
                        auto-mode-alist))
 
 ;;; hooks
@@ -86,6 +87,11 @@
   (add-hook 'before-save-hook #'clang-format-buffer nil t))
 
 (add-hook 'protobuf-mode-hook #'setup-protobuf-mode)
+
+(defun setup-c-mode ()
+  (add-hook 'before-save-hook #'clang-format-buffer nil t))
+
+(add-hook 'c-mode-common-hook #'setup-c-mode)
 
 (defadvice after-find-file (before ad-mkdir-after-find-file activate)
   "Make the directory containing the visited file."
@@ -379,6 +385,7 @@
  '(kill-read-only-ok t)
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
+ '(lsp-auto-guess-root t)
  '(lsp-eldoc-enable-hover nil)
  '(lsp-eldoc-enable-signature-help nil)
  '(lsp-enable-links nil)
