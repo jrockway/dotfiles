@@ -2,19 +2,13 @@
 
 # path
 PATH=\
-/usr/local/lib/nodejs/node-v10.15.3-linux-x64/bin:\
+$HOME/bin:\
 $HOME/go/bin:\
 /usr/local/go/bin:\
-$HOME/.depot_tools/depot_tools:\
-$ANDROID_HOME/tools:\
-$ANDROID_HOME/platform-tools:\
-$HOME/.cabal/bin:\
+/snap/bin:\
 $HOME/.local/bin:\
 /usr/local/scripts:\
-/usr/local/buildtools/java/jdk/bin:\
-/snap/bin:\
-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:\
-$HOME/projects/depot_tools
+/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
 export PATH
 
