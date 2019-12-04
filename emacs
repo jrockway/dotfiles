@@ -418,7 +418,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+    (jsonnet-mode lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
