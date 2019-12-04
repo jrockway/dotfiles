@@ -77,6 +77,9 @@ if [ -f /etc/bash_completion ]; then
     if [ -f $HOME/.dotfiles/kubectl_completion ]; then
         source $HOME/.dotfiles/kubectl_completion;
     fi
+    if [ -f $HOME/.dotfiles/doctl_completion ]; then
+        source $HOME/.dotfiles/doctl_completion;
+    fi
 fi
 
 alias json="npx prettier --stdin --stdin-filepath foo.json"
