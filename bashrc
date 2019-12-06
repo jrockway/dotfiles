@@ -75,11 +75,7 @@ which gotab >/dev/null && complete -C gotab -o nospace go
 
 if [ -f /etc/bash_completion ]; then
     source /etc/bash_completion;
-    source $HOME/.dotfiles/kubectl_completion;
-    source $HOME/.dotfiles/doctl_completion;
-    source $HOME/.dotfiles/istioctl.bash;
-    source $HOME/.dotfiles/kubectx.bash;
-    source $HOME/.dotfiles/kubens.bash;
+    for i in $HOME/.dotfiles/completion/*; do source $i; done
 fi
 
 alias json="npx prettier --stdin --stdin-filepath foo.json"
