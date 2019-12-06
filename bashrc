@@ -7,6 +7,7 @@ $HOME/go/bin:\
 /usr/local/go/bin:\
 /snap/bin:\
 $HOME/.local/bin:\
+$HOME/.dotfiles/bin:\
 /usr/local/scripts:\
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 
@@ -74,12 +75,11 @@ which gotab >/dev/null && complete -C gotab -o nospace go
 
 if [ -f /etc/bash_completion ]; then
     source /etc/bash_completion;
-    if [ -f $HOME/.dotfiles/kubectl_completion ]; then
-        source $HOME/.dotfiles/kubectl_completion;
-    fi
-    if [ -f $HOME/.dotfiles/doctl_completion ]; then
-        source $HOME/.dotfiles/doctl_completion;
-    fi
+    source $HOME/.dotfiles/kubectl_completion;
+    source $HOME/.dotfiles/doctl_completion;
+    source $HOME/.dotfiles/istioctl.bash;
+    source $HOME/.dotfiles/kubectx.bash;
+    source $HOME/.dotfiles/kubens.bash;
 fi
 
 alias json="npx prettier --stdin --stdin-filepath foo.json"
