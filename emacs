@@ -58,7 +58,7 @@
   (add-hook 'before-save-hook #'gofmt-before-save nil t))
 
 (add-hook 'go-mode-hook #'setup-golang-style)
-(add-hook 'go-mode-hook #'lsp)
+(add-hook 'go-mode-hook #'lsp-deferred)
 
 (defun setup-tide-mode ()
   (tide-setup)
@@ -304,6 +304,7 @@
  '(espresso-auto-indent-flag nil)
  '(fill-column 100)
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
+ '(flycheck-display-errors-delay 0)
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
  '(flyspell-mark-duplications-flag nil)
@@ -391,9 +392,11 @@
  '(lsp-eldoc-enable-signature-help nil)
  '(lsp-enable-links nil)
  '(lsp-enable-symbol-highlighting nil)
+ '(lsp-gopls-server-args (quote ("--logfile=/tmp/gopls")))
  '(lsp-prefer-flymake nil)
  '(lsp-restart (quote auto-restart))
  '(lsp-ui-doc-enable nil)
+ '(lsp-ui-doc-max-width 30)
  '(lsp-ui-flycheck-enable t)
  '(lsp-ui-imenu-enable nil)
  '(lsp-ui-peek-enable t)
@@ -418,7 +421,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (jsonnet-mode lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+    (go-mode jsonnet-mode lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
