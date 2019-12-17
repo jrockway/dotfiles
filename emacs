@@ -1,35 +1,29 @@
 (require 'cl)
 
-;;; load extra modes
-(add-to-list 'load-path "~/elisp")
-(add-to-list 'load-path "~/elisp/go-mode")
-(add-to-list 'load-path "~/elisp/_local")
-(add-to-list 'load-path "~/elisp/eproject")
-(add-to-list 'load-path "~/elisp/eproject/contrib")
-(add-to-list 'load-path "~/elisp/eproject/lang")
-(add-to-list 'load-path "~/elisp/eslide")
-(add-to-list 'load-path "~/elisp/ibuffer-git")
-
-(require 'css-mode)
-(require 'eproject)
-(require 'eproject-compile)
-(require 'eproject-extras)
-(require 'eshell)
-(require 'eslide)
-(require 'go-mode)
-(require 'help-mode)
-(require 'ibuffer-git)
-(require 'uniquify)
-(require 'window-number)
-
-(require 'editing-extras)
-(require 'text-extras)
+(when (file-exists-p "~/elisp" )
+  ;; load extra modes from ~/elisp
+  (add-to-list 'load-path "~/elisp")
+  (add-to-list 'load-path "~/elisp/_local")
+  (add-to-list 'load-path "~/elisp/eproject")
+  (add-to-list 'load-path "~/elisp/eproject/contrib")
+  (add-to-list 'load-path "~/elisp/eproject/lang")
+  (add-to-list 'load-path "~/elisp/eslide")
+  (add-to-list 'load-path "~/elisp/ibuffer-git")
+  (require 'eproject)
+  (require 'eproject-compile)
+  (require 'eproject-extras)
+  (require 'eshell)
+  (require 'eslide)
+  (require 'ibuffer-git)
+  (require 'editing-extras)
+  (require 'text-extras))
 
 ;;; modes i want on by default
 (ido-mode 1)
 (winner-mode 1)
-(window-number-mode 1)
-(defalias 'perl-mode 'cperl-mode)
+
+;;; override stupid defaults
+(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;;; auto-mode-alist
 (setq auto-mode-alist (append
@@ -49,16 +43,45 @@
                           (ibuffer-filter-by-predicate
                            '(not buffer-read-only))))
 
-(defun setup-java-style ()
-  (c-set-offset 'arglist-intro '+)
-  (c-set-offset 'arglist-cont-nonempty '+))
+(defun setup-c-mode ()
+  (add-hook 'before-save-hook #'clang-format-buffer nil t))
+(add-hook 'c-mode-common-hook #'setup-c-mode)
+
+(defadvice after-find-file (before ad-mkdir-after-find-file activate)
+  "Make the directory containing the visited file."
+  (make-directory (file-name-directory (buffer-file-name)) t))
+
+;;; load packages
+(require 'package)
+(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
+                    (not (gnutls-available-p))))
+       (proto (if no-ssl "http" "https")))
+  ;; comment/uncomment these two lines to enable/disable melpa and melpa stable as desired
+  (add-to-list 'package-archives (cons "melpa" (concat proto "://melpa.org/packages/")) t)
+  ;;(add-to-list 'package-archives (cons "melpa-stable" (concat proto "://stable.melpa.org/packages/")) t)
+  (when (< emacs-major-version 24)
+    ;; for important compatibility libraries like cl-lib
+    (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
+(package-initialize)
+
+(use-package lsp)
+(use-package lsp-ui
+  :config
+  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
+  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
+
+(use-package window-number
+  :config
+  (window-number-meta-mode 1)
+  (window-number-mode 1))
 
 (defun setup-golang-style ()
   (set-fill-column 100)
   (add-hook 'before-save-hook #'gofmt-before-save nil t))
-
-(add-hook 'go-mode-hook #'setup-golang-style)
-(add-hook 'go-mode-hook #'lsp-deferred)
+(use-package go-mode
+  :config
+  (add-hook 'go-mode-hook #'setup-golang-style)
+  (add-hook 'go-mode-hook #'lsp-deferred))
 
 (defun setup-tide-mode ()
   (tide-setup)
@@ -66,36 +89,40 @@
   (flycheck-mode t)
   (eldoc-mode t)
   (company-mode t))
-
-(add-hook 'typescript-mode-hook #'setup-tide-mode)
-(add-hook 'typescript-mode-hook #'prettier-js-mode)
-(add-hook 'web-mode-hook #'prettier-js-mode)
-(add-hook 'js-mode-hook #'prettier-js-mode)
-(add-hook 'js2-mode-hook #'prettier-js-mode)
-(add-hook 'markdown-mode-hook #'prettier-js-mode)
-(add-hook 'yaml-mode-hook #'prettier-js-mode)
-(add-hook 'yaml-mode-hook #'highlight-indentation-mode)
-(add-hook 'vue-mode-hook #'prettier-js-mode)
+(use-package tide
+  :config
+  (add-hook 'typescript-mode-hook #'setup-tide-mode))
 
 (defun setup-vue-mode ()
   (turn-off-flyspell))
+(use-package vue-mode
+  :config
+  (add-hook 'vue-mode-hook #'setup-vue-mode))
 
-(add-hook 'vue-mode-hook #'setup-vue-mode)
+(use-package web-mode)
+(use-package yaml-mode
+  :config
+  (add-hook 'yaml-mode-hook #'lsp-deferred))
+
+(use-package highlight-indentation
+  :hook (yaml-mode))
+
+(use-package prettier-js
+  :hook (typescript-mode web-mode yaml-mode vue-mode markdown-mode))
+
+(use-package clang-format)
 
 (defun setup-protobuf-mode ()
   (c-add-style "my-style" '((c-basic-offset . 4) (indent-tabs-mode . nil)) t)
   (add-hook 'before-save-hook #'clang-format-buffer nil t))
+(use-package protobuf-mode
+  :config
+  (add-hook 'protobuf-mode-hook #'setup-protobuf-mode))
 
-(add-hook 'protobuf-mode-hook #'setup-protobuf-mode)
-
-(defun setup-c-mode ()
-  (add-hook 'before-save-hook #'clang-format-buffer nil t))
-
-(add-hook 'c-mode-common-hook #'setup-c-mode)
-
-(defadvice after-find-file (before ad-mkdir-after-find-file activate)
-  "Make the directory containing the visited file."
-  (make-directory (file-name-directory (buffer-file-name)) t))
+(use-package yasnippet
+  :config
+  (setq yas-snippet-dirs '("~/elisp/snippets/"))
+  (yas-global-mode t))
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
@@ -106,34 +133,12 @@
 (put 'save-buffers-kill-terminal 'disabled nil)
 (put 'dired-find-alternate-file 'disabled nil)
 
-;;; package
-(require 'package)
-(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                    (not (gnutls-available-p))))
-       (proto (if no-ssl "http" "https")))
-  ;; Comment/uncomment these two lines to enable/disable MELPA and MELPA Stable as desired
-  (add-to-list 'package-archives (cons "melpa" (concat proto "://melpa.org/packages/")) t)
-  ;;(add-to-list 'package-archives (cons "melpa-stable" (concat proto "://stable.melpa.org/packages/")) t)
-  (when (< emacs-major-version 24)
-    ;; For important compatibility libraries like cl-lib
-    (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
-(package-initialize)
-
-(when (featurep 'yas)
-  (setq yas-snippet-dirs '("~/elisp/snippets/"))
-  (yas-global-mode t))
-
 ;;; per-platform setup
 (cond
  ((eq window-system 'w32)
   (add-to-list 'exec-path "C:/Program Files/Git/usr/bin")
   (add-to-list 'exec-path "C:/Users/jon/go/bin")
-  (add-to-list 'exec-path "C:/Program Files/nodejs"))
- ((eq window-system 'ns)
-  (add-to-list 'exec-path "/Users/jonathanrockway/go/bin")
-  (add-to-list 'exec-path "/usr/local/bin")
-  (add-to-list 'exec-path "/usr/local/go/bin")
-  (setenv "PATH" (mapconcat 'identity (cons (getenv "PATH") exec-path) ":"))))
+  (add-to-list 'exec-path "C:/Program Files/nodejs")))
 
 ;; ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; ;; it kills my main X session (with 9 windows or whatever), it is really
@@ -145,13 +150,6 @@
 ;;     ad-do-it))
 ;; (ad-activate 'save-buffers-kill-terminal)
 
-(defun iconify-or-deiconify-frame ()
-  "Don't iconify, since that makes emacs freeze under xmonad."
-  (interactive)
-  (make-frame-visible))
-
-;;; override stupid defaults
-(defalias 'yes-or-no-p 'y-or-n-p)
 
 ;;; key-bindings
 ;; functions
@@ -199,12 +197,10 @@
 (global-set-key (kbd "C-c C-k") 'compile)
 (global-set-key (kbd "C-<backspace>") 'backward-char)
 (global-set-key (kbd "M-=") 'company-complete)
+(global-set-key (kbd "<mouse-4>") 'scroll-down-line)
+(global-set-key (kbd "<mouse-5>") 'scroll-up-line)
 
 (define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
-
-(with-eval-after-load "lsp-ui"
-  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
 
 ;; use hippie instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
@@ -424,7 +420,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (bazel-mode go-mode jsonnet-mode lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+    (use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
@@ -467,7 +463,7 @@
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
  '(mode-line-inactive ((default (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20"))) (nil nil)))
- '(window-number-face ((nil (:foreground "red")))))
+ '(window-number-face ((t nil)) t))
 
 (set-face-foreground 'default "grey90")
 (set-face-background 'default "black")
