@@ -70,10 +70,17 @@
   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
   (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
 
+(defface my-window-number-face '((t :foreground "red")) "")
+
 (use-package window-number
   :config
-  (window-number-meta-mode 1)
-  (window-number-mode 1))
+  (defun window-number-set-inactive-color () (force-mode-line-update))
+  (defun window-number-set-active-color () (force-mode-line-update))
+  (defun window-number-string ()
+    (propertize (number-to-string (window-number))
+                'face 'my-window-number-face))
+  (window-number-meta-mode 1))
+
 
 (defun setup-golang-style ()
   (set-fill-column 100)
@@ -414,6 +421,14 @@
  '(minibuffer-prompt-properties
    (quote
     (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+ '(mode-line-format
+   (quote
+    ("%e" mode-line-front-space mode-line-mule-info mode-line-client mode-line-modified mode-line-remote " "
+     (:eval
+      (window-number-string))
+     " " mode-line-buffer-identification " " mode-line-position
+     (vc-mode vc-mode)
+     "  " mode-line-modes mode-line-misc-info)))
  '(mouse-avoidance-mode nil nil (avoid))
  '(mouse-yank-at-point t)
  '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
@@ -463,7 +478,7 @@
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
  '(mode-line-inactive ((default (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20"))) (nil nil)))
- '(window-number-face ((t nil)) t))
+ '(window-number-face ((t (:foreground "red"))) t))
 
 (set-face-foreground 'default "grey90")
 (set-face-background 'default "black")
