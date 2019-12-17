@@ -83,6 +83,7 @@ alias json="npx prettier --stdin --stdin-filepath foo.json"
 alias cover="go test ./... -p 1 -covermode=count -coverprofile cover.out && go tool cover -html cover.out; rm -f cover.out"
 alias kctx=kubectx
 alias kns=kubens
-
 alias fl="fly -t jrock"
 complete -F _complete_alias fl
+alias blaze=bazel
+complete -F _complete_alias blaze
