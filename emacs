@@ -404,6 +404,9 @@
  '(lsp-ui-sideline-ignore-duplicate t)
  '(lsp-ui-sideline-show-code-actions nil)
  '(lsp-ui-sideline-show-symbol nil)
+ '(lsp-yaml-schemas
+   (quote #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data
+                        ("kubernetes" "/*"))))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
  '(menu-bar-mode nil nil (menu-bar))

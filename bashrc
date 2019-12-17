@@ -5,6 +5,7 @@ PATH=\
 $HOME/bin:\
 $HOME/go/bin:\
 /usr/local/go/bin:\
+$HOME/.npm-packages/bin:\
 /snap/bin:\
 $HOME/.local/bin:\
 $HOME/.dotfiles/bin:\
