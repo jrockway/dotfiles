@@ -64,7 +64,9 @@
     (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
 (package-initialize)
 
-(use-package lsp)
+(use-package lsp
+  :config
+  (define-key lsp-mode-map (kbd "M-DEL") #'lsp-describe-thing-at-point))
 (use-package lsp-ui
   :config
   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
@@ -94,7 +96,6 @@
   (tide-setup)
   (setq flycheck-check-syntax-automatically '(save mode-enabled))
   (flycheck-mode t)
-  (eldoc-mode t)
   (company-mode t))
 (use-package tide
   :config
@@ -112,10 +113,16 @@
   (add-hook 'yaml-mode-hook #'lsp-deferred))
 
 (use-package highlight-indentation
-  :hook (yaml-mode))
+  :config
+  (add-hook 'yaml-mode-hook #'highlight-indentation-mode))
 
 (use-package prettier-js
-  :hook (typescript-mode web-mode yaml-mode vue-mode markdown-mode))
+  :config
+  (add-hook 'typescript-mode-hook #'prettier-js-mode)
+  (add-hook 'web-mode-hook #'prettier-js-mode)
+  (add-hook 'yaml-mode-hook #'prettier-js-mode)
+  (add-hook 'vue-mode-hook #'prettier-js-mode)
+  (add-hook 'markdown-mode-hook #'prettier-js-mode))
 
 (use-package clang-format)
 
@@ -391,13 +398,16 @@
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
  '(lsp-auto-guess-root nil)
+ '(lsp-debounce-full-sync-notifications nil)
  '(lsp-eldoc-enable-hover nil)
  '(lsp-eldoc-enable-signature-help nil)
  '(lsp-enable-links nil)
  '(lsp-enable-symbol-highlighting nil)
- '(lsp-gopls-server-args (quote ("--logfile=/tmp/gopls")))
+ '(lsp-idle-delay 0.05)
+ '(lsp-keep-workspace-alive nil)
  '(lsp-prefer-flymake nil)
  '(lsp-restart (quote auto-restart))
+ '(lsp-signature-render-documentation nil)
  '(lsp-ui-doc-enable nil)
  '(lsp-ui-doc-max-width 30)
  '(lsp-ui-flycheck-enable t)
@@ -409,7 +419,7 @@
  '(lsp-ui-sideline-show-symbol nil)
  '(lsp-yaml-schemas
    (quote #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data
-                        ("kubernetes" "/*"))))
+                        ())))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
  '(menu-bar-mode nil nil (menu-bar))
