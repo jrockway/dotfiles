@@ -1,0 +1,18 @@
+Windows Registry Editor Version 5.00
+;; Be sure to set the correct path to Emacs on your system!
+[HKEY_CURRENT_USER\Software\Classes\*\shell]
+
+
+;; Open file in existing frame
+[HKEY_CURRENT_USER\Software\Classes\*\shell\emacsopencurrentframe]
+@="&Emacs: Edit in existing window"
+"icon"="C:\\ProgramData\\chocolatey\\lib\\Emacs\\tools\\emacs\\bin\\emacsclientw.exe"
+[HKEY_CURRENT_USER\Software\Classes\*\shell\emacsopencurrentframe\command]
+@="C:\\ProgramData\\chocolatey\\lib\\Emacs\\tools\\emacs\\bin\\emacsclientw.exe -n --alternate-editor=\"C:\\ProgramData\\chocolatey\\lib\\Emacs\\tools\\emacs\\bin\\runemacs.exe\" \"%1\""
+
+;; Open file in new frame
+[HKEY_CURRENT_USER\Software\Classes\*\shell\emacsopennewframe]
+@="&Emacs: Edit in new window"
+"icon"="C:\\ProgramData\\chocolatey\\lib\\Emacs\\tools\\emacs\\bin\\emacsclientw.exe"
+[HKEY_CURRENT_USER\Software\Classes\*\shell\emacsopennewframe\command]
+@="C:\\ProgramData\\chocolatey\\lib\\Emacs\\tools\\emacs\\bin\\emacsclientw.exe -n --alternate-editor=\"C:\\ProgramData\\chocolatey\\lib\\Emacs\\tools\\emacs\\bin\\runemacs.exe\" -c \"%1\""
