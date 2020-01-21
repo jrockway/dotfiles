@@ -247,7 +247,13 @@
  '(Man-notify-method (quote pushy))
  '(browse-url-browser-function (quote browse-url-generic))
  '(browse-url-generic-program "google-chrome")
- '(c-electric-pound-behavior (quote (alignleft)))
+ '(c-default-style
+   (quote
+    ((c-mode . "python")
+     (java-mode . "java")
+     (awk-mode . "awk")
+     (other . "gnu"))))
+ '(c-electric-pound-behavior nil)
  '(case-fold-search t)
  '(column-number-mode t)
  '(company-backends
@@ -294,7 +300,7 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
- '(electric-indent-mode t)
+ '(electric-indent-mode nil)
  '(electric-pair-mode t)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
  '(eproject-completing-read-function (quote eproject--ido-completing-read))
