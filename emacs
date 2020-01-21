@@ -209,7 +209,6 @@
 (global-set-key (kbd "C-M-;") 'replace-regexp)
 (global-set-key (kbd "C-;") 'align-regexp)
 (global-set-key (kbd "C-c C-k") 'compile)
-(global-set-key (kbd "C-<backspace>") 'backward-char)
 (global-set-key (kbd "M-=") 'company-complete)
 (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
 (global-set-key (kbd "<mouse-5>") 'scroll-up-line)
