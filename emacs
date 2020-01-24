@@ -108,9 +108,7 @@
   (add-hook 'vue-mode-hook #'setup-vue-mode))
 
 (use-package web-mode)
-(use-package yaml-mode
-  :config
-  (add-hook 'yaml-mode-hook #'lsp-deferred))
+(use-package yaml-mode)
 
 (use-package highlight-indentation
   :config
