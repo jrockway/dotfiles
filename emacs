@@ -456,6 +456,7 @@
  '(read-buffer-completion-ignore-case t)
  '(read-file-name-completion-ignore-case t)
  '(save-place-mode t nil (saveplace))
+ '(savehist-mode t)
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
  '(sql-product (quote mysql))
