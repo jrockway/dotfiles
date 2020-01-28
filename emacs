@@ -289,6 +289,7 @@
  '(cperl-merge-trailing-else nil)
  '(cperl-tab-always-indent t)
  '(cperl-under-as-char nil)
+ '(create-lockfiles nil)
  '(css-tab-mode (quote indent))
  '(current-language-environment "UTF-8")
  '(custom-buffer-done-kill t)
