@@ -5,6 +5,7 @@ PATH=\
 $HOME/bin:\
 $HOME/go/bin:\
 /usr/local/go/bin:\
+$HOME/.cargo/bin:\
 $HOME/.npm-packages/bin:\
 /snap/bin:\
 $HOME/.local/bin:\
@@ -87,3 +88,5 @@ alias fl="fly -t jrock"
 complete -F _complete_alias fl
 alias blaze=bazel
 complete -F _complete_alias blaze
+
+export LOKI_ADDR="https://loki.jrock.us"
