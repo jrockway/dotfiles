@@ -108,6 +108,7 @@
   (add-hook 'vue-mode-hook #'setup-vue-mode))
 
 (use-package web-mode)
+
 (use-package yaml-mode)
 
 (use-package highlight-indentation
@@ -139,7 +140,8 @@
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
 (put 'narrow-to-page 'disabled nil)
-(put 'set-goal-column 'disabled nil)
+(put 'set-goal-column 'disabled t)
+(global-unset-key (kbd "C-x C-n"))
 (put 'upcase-region 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 (put 'save-buffers-kill-terminal 'disabled nil)
@@ -484,6 +486,7 @@
  '(default ((t (:background "black" :foreground "grey90" :weight normal :height 140 :family "Iosevka"))))
  '(cursor ((t (:background "turquoise" :inverse-video t))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
+ '(flycheck-error ((t (:foreground "color-225" :underline t))))
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
