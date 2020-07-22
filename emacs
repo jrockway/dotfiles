@@ -238,6 +238,12 @@
   (ignore-errors (replace-string "&apos;" "'" nil (point-min) (point-max)))
   (ignore-errors (replace-string "&amp;" "&" nil (point-min) (point-max))))
 
+(defun tmux-here ()
+  (interactive)
+  (if (not (eq (getenv "TMUX") ""))
+      (shell-command (format "tmux new-window -c %s" default-directory))
+    (error "Not inside a tmux session.")))
+
 ;;; custom-set
 (custom-set-variables
  ;; custom-set-variables was added by Custom.
