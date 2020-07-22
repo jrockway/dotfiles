@@ -6,6 +6,7 @@ $HOME/bin:\
 $HOME/go/bin:\
 /usr/local/go/bin:\
 $HOME/.cargo/bin:\
+$HOME/tmp/node-v12.18.2-linux-x64/bin/:\
 $HOME/.npm-packages/bin:\
 /snap/bin:\
 $HOME/.local/bin:\
@@ -90,3 +91,4 @@ alias blaze=bazel
 complete -F _complete_alias blaze
 
 export LOKI_ADDR="https://loki.jrock.us"
+export FLUX_FORWARD_NAMESPACE=flux
