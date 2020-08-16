@@ -8,8 +8,11 @@ $HOME/go/bin:\
 $HOME/.cargo/bin:\
 $HOME/tmp/node-v12.18.2-linux-x64/bin/:\
 $HOME/.npm-packages/bin:\
+$HOME/.krew/bin:\
 /snap/bin:\
 $HOME/.local/bin:\
+$HOME/.gem/bin:\
+$HOME/.gem/ruby/2.5.0/bin:\
 $HOME/.dotfiles/bin:\
 /usr/local/scripts:\
 /usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
@@ -87,8 +90,11 @@ alias kctx=kubectx
 alias kns=kubens
 alias fl="fly -t jrock"
 complete -F _complete_alias fl
+alias k="kubectl"
+complete -F _complete_alias k
 alias blaze=bazel
 complete -F _complete_alias blaze
+complete -F _completion_goflags jlog
 
 export LOKI_ADDR="https://loki.jrock.us"
 export FLUX_FORWARD_NAMESPACE=flux

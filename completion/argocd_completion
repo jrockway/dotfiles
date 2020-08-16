@@ -1,0 +1,5034 @@
+# bash completion for argocd                               -*- shell-script -*-
+
+__argocd_debug()
+{
+    if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+        echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+    fi
+}
+
+# Homebrew on Macs have version 1.3 of bash-completion which doesn't include
+# _init_completion. This is a very minimal version of that function.
+__argocd_init_completion()
+{
+    COMPREPLY=()
+    _get_comp_words_by_ref "$@" cur prev words cword
+}
+
+__argocd_index_of_word()
+{
+    local w word=$1
+    shift
+    index=0
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+        index=$((index+1))
+    done
+    index=-1
+}
+
+__argocd_contains_word()
+{
+    local w word=$1; shift
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+    done
+    return 1
+}
+
+__argocd_handle_reply()
+{
+    __argocd_debug "${FUNCNAME[0]}"
+    case $cur in
+        -*)
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                compopt -o nospace
+            fi
+            local allflags
+            if [ ${#must_have_one_flag[@]} -ne 0 ]; then
+                allflags=("${must_have_one_flag[@]}")
+            else
+                allflags=("${flags[*]} ${two_word_flags[*]}")
+            fi
+            COMPREPLY=( $(compgen -W "${allflags[*]}" -- "$cur") )
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                [[ "${COMPREPLY[0]}" == *= ]] || compopt +o nospace
+            fi
+
+            # complete after --flag=abc
+            if [[ $cur == *=* ]]; then
+                if [[ $(type -t compopt) = "builtin" ]]; then
+                    compopt +o nospace
+                fi
+
+                local index flag
+                flag="${cur%=*}"
+                __argocd_index_of_word "${flag}" "${flags_with_completion[@]}"
+                COMPREPLY=()
+                if [[ ${index} -ge 0 ]]; then
+                    PREFIX=""
+                    cur="${cur#*=}"
+                    ${flags_completion[${index}]}
+                    if [ -n "${ZSH_VERSION}" ]; then
+                        # zsh completion needs --flag= prefix
+                        eval "COMPREPLY=( \"\${COMPREPLY[@]/#/${flag}=}\" )"
+                    fi
+                fi
+            fi
+            return 0;
+            ;;
+    esac
+
+    # check if we are handling a flag with special work handling
+    local index
+    __argocd_index_of_word "${prev}" "${flags_with_completion[@]}"
+    if [[ ${index} -ge 0 ]]; then
+        ${flags_completion[${index}]}
+        return
+    fi
+
+    # we are parsing a flag and don't have a special handler, no completion
+    if [[ ${cur} != "${words[cword]}" ]]; then
+        return
+    fi
+
+    local completions
+    completions=("${commands[@]}")
+    if [[ ${#must_have_one_noun[@]} -ne 0 ]]; then
+        completions=("${must_have_one_noun[@]}")
+    fi
+    if [[ ${#must_have_one_flag[@]} -ne 0 ]]; then
+        completions+=("${must_have_one_flag[@]}")
+    fi
+    COMPREPLY=( $(compgen -W "${completions[*]}" -- "$cur") )
+
+    if [[ ${#COMPREPLY[@]} -eq 0 && ${#noun_aliases[@]} -gt 0 && ${#must_have_one_noun[@]} -ne 0 ]]; then
+        COMPREPLY=( $(compgen -W "${noun_aliases[*]}" -- "$cur") )
+    fi
+
+    if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+		if declare -F __argocd_custom_func >/dev/null; then
+			# try command name qualified custom func
+			__argocd_custom_func
+		else
+			# otherwise fall back to unqualified for compatibility
+			declare -F __custom_func >/dev/null && __custom_func
+		fi
+    fi
+
+    # available in bash-completion >= 2, not always present on macOS
+    if declare -F __ltrim_colon_completions >/dev/null; then
+        __ltrim_colon_completions "$cur"
+    fi
+
+    # If there is only 1 completion and it is a flag with an = it will be completed
+    # but we don't want a space after the =
+    if [[ "${#COMPREPLY[@]}" -eq "1" ]] && [[ $(type -t compopt) = "builtin" ]] && [[ "${COMPREPLY[0]}" == --*= ]]; then
+       compopt -o nospace
+    fi
+}
+
+# The arguments should be in the form "ext1|ext2|extn"
+__argocd_handle_filename_extension_flag()
+{
+    local ext="$1"
+    _filedir "@(${ext})"
+}
+
+__argocd_handle_subdirs_in_dir_flag()
+{
+    local dir="$1"
+    pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1
+}
+
+__argocd_handle_flag()
+{
+    __argocd_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    # if a command required a flag, and we found it, unset must_have_one_flag()
+    local flagname=${words[c]}
+    local flagvalue
+    # if the word contained an =
+    if [[ ${words[c]} == *"="* ]]; then
+        flagvalue=${flagname#*=} # take in as flagvalue after the =
+        flagname=${flagname%=*} # strip everything after the =
+        flagname="${flagname}=" # but put the = back
+    fi
+    __argocd_debug "${FUNCNAME[0]}: looking for ${flagname}"
+    if __argocd_contains_word "${flagname}" "${must_have_one_flag[@]}"; then
+        must_have_one_flag=()
+    fi
+
+    # if you set a flag which only applies to this command, don't show subcommands
+    if __argocd_contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
+      commands=()
+    fi
+
+    # keep flag value with flagname as flaghash
+    # flaghash variable is an associative array which is only supported in bash > 3.
+    if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+        if [ -n "${flagvalue}" ] ; then
+            flaghash[${flagname}]=${flagvalue}
+        elif [ -n "${words[ $((c+1)) ]}" ] ; then
+            flaghash[${flagname}]=${words[ $((c+1)) ]}
+        else
+            flaghash[${flagname}]="true" # pad "true" for bool flag
+        fi
+    fi
+
+    # skip the argument to a two word flag
+    if [[ ${words[c]} != *"="* ]] && __argocd_contains_word "${words[c]}" "${two_word_flags[@]}"; then
+			  __argocd_debug "${FUNCNAME[0]}: found a flag ${words[c]}, skip the next argument"
+        c=$((c+1))
+        # if we are looking for a flags value, don't show commands
+        if [[ $c -eq $cword ]]; then
+            commands=()
+        fi
+    fi
+
+    c=$((c+1))
+
+}
+
+__argocd_handle_noun()
+{
+    __argocd_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    if __argocd_contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+        must_have_one_noun=()
+    elif __argocd_contains_word "${words[c]}" "${noun_aliases[@]}"; then
+        must_have_one_noun=()
+    fi
+
+    nouns+=("${words[c]}")
+    c=$((c+1))
+}
+
+__argocd_handle_command()
+{
+    __argocd_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    local next_command
+    if [[ -n ${last_command} ]]; then
+        next_command="_${last_command}_${words[c]//:/__}"
+    else
+        if [[ $c -eq 0 ]]; then
+            next_command="_argocd_root_command"
+        else
+            next_command="_${words[c]//:/__}"
+        fi
+    fi
+    c=$((c+1))
+    __argocd_debug "${FUNCNAME[0]}: looking for ${next_command}"
+    declare -F "$next_command" >/dev/null && $next_command
+}
+
+__argocd_handle_word()
+{
+    if [[ $c -ge $cword ]]; then
+        __argocd_handle_reply
+        return
+    fi
+    __argocd_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    if [[ "${words[c]}" == -* ]]; then
+        __argocd_handle_flag
+    elif __argocd_contains_word "${words[c]}" "${commands[@]}"; then
+        __argocd_handle_command
+    elif [[ $c -eq 0 ]]; then
+        __argocd_handle_command
+    elif __argocd_contains_word "${words[c]}" "${command_aliases[@]}"; then
+        # aliashash variable is an associative array which is only supported in bash > 3.
+        if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+            words[c]=${aliashash[${words[c]}]}
+            __argocd_handle_command
+        else
+            __argocd_handle_noun
+        fi
+    else
+        __argocd_handle_noun
+    fi
+    __argocd_handle_word
+}
+
+
+__argocd_list_apps() {
+	local -a argocd_out
+	if argocd_out=($(argocd app list --output name 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_list_app_history() {
+	local app=$1
+	local -a argocd_out
+	if argocd_out=($(argocd app history $app --output id 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_app_rollback() {
+	local -a command
+	for comp_word in "${COMP_WORDS[@]}"; do
+		if [[ $comp_word =~ ^-.*$ ]]; then
+			continue
+		fi
+		command+=($comp_word)
+	done
+
+	# fourth arg is app (if present): e.g.- argocd app rollback guestbook
+	local app=${command[3]}
+	local id=${command[4]}
+	if [[ -z $app || $app == $cur ]]; then
+		__argocd_list_apps
+	elif [[ -z $id || $id == $cur ]]; then
+		__argocd_list_app_history $app
+	fi
+}
+
+__argocd_list_servers() {
+	local -a argocd_out
+	if argocd_out=($(argocd cluster list --output server 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_list_repos() {
+	local -a argocd_out
+	if argocd_out=($(argocd repo list --output url 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_list_projects() {
+	local -a argocd_out
+	if argocd_out=($(argocd proj list --output name 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_list_namespaces() {
+	local -a argocd_out
+	if argocd_out=($(kubectl get namespaces --no-headers 2>/dev/null | cut -f1 -d' ' 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_proj_server_namespace() {
+	local -a command
+	for comp_word in "${COMP_WORDS[@]}"; do
+		if [[ $comp_word =~ ^-.*$ ]]; then
+			continue
+		fi
+		command+=($comp_word)
+	done
+
+	# expect something like this: argocd proj add-destination PROJECT SERVER NAMESPACE
+	local project=${command[3]}
+	local server=${command[4]}
+	local namespace=${command[5]}
+	if [[ -z $project || $project == $cur ]]; then
+		__argocd_list_projects
+	elif [[ -z $server || $server == $cur ]]; then
+		__argocd_list_servers
+	elif [[ -z $namespace || $namespace == $cur ]]; then
+		__argocd_list_namespaces
+	fi
+}
+
+__argocd_list_project_role() {
+	local project="$1"
+	local -a argocd_out
+	if argocd_out=($(argocd proj role list "$project" --output=name 2>/dev/null)); then
+		COMPREPLY+=( $( compgen -W "${argocd_out[*]}" -- "$cur" ) )
+	fi
+}
+
+__argocd_proj_role(){
+	local -a command
+	for comp_word in "${COMP_WORDS[@]}"; do
+		if [[ $comp_word =~ ^-.*$ ]]; then
+			continue
+		fi
+		command+=($comp_word)
+	done
+
+	# expect something like this: argocd proj role add-policy PROJECT ROLE-NAME
+	local project=${command[4]}
+	local role=${command[5]}
+	if [[ -z $project || $project == $cur ]]; then
+		__argocd_list_projects
+	elif [[ -z $role || $role == $cur ]]; then
+		__argocd_list_project_role $project
+	fi
+}
+
+__argocd_custom_func() {
+	case ${last_command} in
+		argocd_app_delete | \
+		argocd_app_diff | \
+		argocd_app_edit | \
+		argocd_app_get | \
+		argocd_app_history | \
+		argocd_app_manifests | \
+		argocd_app_patch-resource | \
+		argocd_app_set | \
+		argocd_app_sync | \
+		argocd_app_terminate-op | \
+		argocd_app_unset | \
+		argocd_app_wait | \
+		argocd_app_create)
+			__argocd_list_apps
+			return
+			;;
+		argocd_app_rollback)
+			__argocd_app_rollback
+			return
+			;;
+		argocd_cluster_get | \
+		argocd_cluster_rm | \
+		argocd_login | \
+		argocd_cluster_add)
+			__argocd_list_servers
+			return
+			;;
+		argocd_repo_rm | \
+		argocd_repo_add)
+			__argocd_list_repos
+			return
+			;;
+		argocd_proj_add-destination | \
+		argocd_proj_remove-destination)
+			__argocd_proj_server_namespace
+			return
+			;;
+		argocd_proj_add-source | \
+		argocd_proj_remove-source | \
+		argocd_proj_allow-cluster-resource | \
+		argocd_proj_allow-namespace-resource | \
+		argocd_proj_deny-cluster-resource | \
+		argocd_proj_deny-namespace-resource | \
+		argocd_proj_delete | \
+		argocd_proj_edit | \
+		argocd_proj_get | \
+		argocd_proj_set | \
+		argocd_proj_role_list)
+			__argocd_list_projects
+			return
+			;;
+		argocd_proj_role_remove-policy | \
+		argocd_proj_role_add-policy | \
+		argocd_proj_role_create | \
+		argocd_proj_role_delete | \
+		argocd_proj_role_get | \
+		argocd_proj_role_create-token | \
+		argocd_proj_role_delete-token)
+			__argocd_proj_role
+			return
+			;;
+		*)
+			;;
+	esac
+}
+	
+_argocd_account_can-i()
+{
+    last_command="argocd_account_can-i"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account_delete-token()
+{
+    last_command="argocd_account_delete-token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--account=")
+    two_word_flags+=("--account")
+    two_word_flags+=("-a")
+    local_nonpersistent_flags+=("--account=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account_generate-token()
+{
+    last_command="argocd_account_generate-token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--account=")
+    two_word_flags+=("--account")
+    two_word_flags+=("-a")
+    local_nonpersistent_flags+=("--account=")
+    flags+=("--expires-in=")
+    two_word_flags+=("--expires-in")
+    two_word_flags+=("-e")
+    local_nonpersistent_flags+=("--expires-in=")
+    flags+=("--id=")
+    two_word_flags+=("--id")
+    local_nonpersistent_flags+=("--id=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account_get()
+{
+    last_command="argocd_account_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--account=")
+    two_word_flags+=("--account")
+    two_word_flags+=("-a")
+    local_nonpersistent_flags+=("--account=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account_get-user-info()
+{
+    last_command="argocd_account_get-user-info"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account_list()
+{
+    last_command="argocd_account_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account_update-password()
+{
+    last_command="argocd_account_update-password"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--account=")
+    two_word_flags+=("--account")
+    local_nonpersistent_flags+=("--account=")
+    flags+=("--current-password=")
+    two_word_flags+=("--current-password")
+    local_nonpersistent_flags+=("--current-password=")
+    flags+=("--new-password=")
+    two_word_flags+=("--new-password")
+    local_nonpersistent_flags+=("--new-password=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_account()
+{
+    last_command="argocd_account"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("can-i")
+    commands+=("delete-token")
+    commands+=("generate-token")
+    commands+=("get")
+    commands+=("get-user-info")
+    commands+=("list")
+    commands+=("update-password")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_actions_list()
+{
+    last_command="argocd_app_actions_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--group=")
+    two_word_flags+=("--group")
+    local_nonpersistent_flags+=("--group=")
+    flags+=("--kind=")
+    two_word_flags+=("--kind")
+    local_nonpersistent_flags+=("--kind=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--out=")
+    two_word_flags+=("--out")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--out=")
+    flags+=("--resource-name=")
+    two_word_flags+=("--resource-name")
+    local_nonpersistent_flags+=("--resource-name=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_actions_run()
+{
+    last_command="argocd_app_actions_run"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--group=")
+    two_word_flags+=("--group")
+    local_nonpersistent_flags+=("--group=")
+    flags+=("--kind=")
+    two_word_flags+=("--kind")
+    local_nonpersistent_flags+=("--kind=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--resource-name=")
+    two_word_flags+=("--resource-name")
+    local_nonpersistent_flags+=("--resource-name=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--kind=")
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_actions()
+{
+    last_command="argocd_app_actions"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("list")
+    commands+=("run")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_create()
+{
+    last_command="argocd_app_create"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auto-prune")
+    local_nonpersistent_flags+=("--auto-prune")
+    flags+=("--config-management-plugin=")
+    two_word_flags+=("--config-management-plugin")
+    local_nonpersistent_flags+=("--config-management-plugin=")
+    flags+=("--dest-namespace=")
+    two_word_flags+=("--dest-namespace")
+    local_nonpersistent_flags+=("--dest-namespace=")
+    flags+=("--dest-server=")
+    two_word_flags+=("--dest-server")
+    local_nonpersistent_flags+=("--dest-server=")
+    flags+=("--directory-recurse")
+    local_nonpersistent_flags+=("--directory-recurse")
+    flags+=("--env=")
+    two_word_flags+=("--env")
+    local_nonpersistent_flags+=("--env=")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    flags_with_completion+=("--file")
+    flags_completion+=("__argocd_handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__argocd_handle_filename_extension_flag json|yaml|yml")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--helm-chart=")
+    two_word_flags+=("--helm-chart")
+    local_nonpersistent_flags+=("--helm-chart=")
+    flags+=("--helm-set=")
+    two_word_flags+=("--helm-set")
+    local_nonpersistent_flags+=("--helm-set=")
+    flags+=("--helm-set-file=")
+    two_word_flags+=("--helm-set-file")
+    local_nonpersistent_flags+=("--helm-set-file=")
+    flags+=("--helm-set-string=")
+    two_word_flags+=("--helm-set-string")
+    local_nonpersistent_flags+=("--helm-set-string=")
+    flags+=("--jsonnet-ext-var-code=")
+    two_word_flags+=("--jsonnet-ext-var-code")
+    local_nonpersistent_flags+=("--jsonnet-ext-var-code=")
+    flags+=("--jsonnet-ext-var-str=")
+    two_word_flags+=("--jsonnet-ext-var-str")
+    local_nonpersistent_flags+=("--jsonnet-ext-var-str=")
+    flags+=("--jsonnet-tla-code=")
+    two_word_flags+=("--jsonnet-tla-code")
+    local_nonpersistent_flags+=("--jsonnet-tla-code=")
+    flags+=("--jsonnet-tla-str=")
+    two_word_flags+=("--jsonnet-tla-str")
+    local_nonpersistent_flags+=("--jsonnet-tla-str=")
+    flags+=("--kustomize-image=")
+    two_word_flags+=("--kustomize-image")
+    local_nonpersistent_flags+=("--kustomize-image=")
+    flags+=("--kustomize-version=")
+    two_word_flags+=("--kustomize-version")
+    local_nonpersistent_flags+=("--kustomize-version=")
+    flags+=("--label=")
+    two_word_flags+=("--label")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--label=")
+    flags+=("--name=")
+    two_word_flags+=("--name")
+    local_nonpersistent_flags+=("--name=")
+    flags+=("--nameprefix=")
+    two_word_flags+=("--nameprefix")
+    local_nonpersistent_flags+=("--nameprefix=")
+    flags+=("--namesuffix=")
+    two_word_flags+=("--namesuffix")
+    local_nonpersistent_flags+=("--namesuffix=")
+    flags+=("--parameter=")
+    two_word_flags+=("--parameter")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parameter=")
+    flags+=("--path=")
+    two_word_flags+=("--path")
+    local_nonpersistent_flags+=("--path=")
+    flags+=("--project=")
+    two_word_flags+=("--project")
+    local_nonpersistent_flags+=("--project=")
+    flags+=("--release-name=")
+    two_word_flags+=("--release-name")
+    local_nonpersistent_flags+=("--release-name=")
+    flags+=("--repo=")
+    two_word_flags+=("--repo")
+    local_nonpersistent_flags+=("--repo=")
+    flags+=("--revision=")
+    two_word_flags+=("--revision")
+    local_nonpersistent_flags+=("--revision=")
+    flags+=("--revision-history-limit=")
+    two_word_flags+=("--revision-history-limit")
+    local_nonpersistent_flags+=("--revision-history-limit=")
+    flags+=("--self-heal")
+    local_nonpersistent_flags+=("--self-heal")
+    flags+=("--sync-option=")
+    two_word_flags+=("--sync-option")
+    local_nonpersistent_flags+=("--sync-option=")
+    flags+=("--sync-policy=")
+    two_word_flags+=("--sync-policy")
+    local_nonpersistent_flags+=("--sync-policy=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--values=")
+    two_word_flags+=("--values")
+    local_nonpersistent_flags+=("--values=")
+    flags+=("--values-literal-file=")
+    two_word_flags+=("--values-literal-file")
+    local_nonpersistent_flags+=("--values-literal-file=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_delete()
+{
+    last_command="argocd_app_delete"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cascade")
+    local_nonpersistent_flags+=("--cascade")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_diff()
+{
+    last_command="argocd_app_diff"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--hard-refresh")
+    local_nonpersistent_flags+=("--hard-refresh")
+    flags+=("--local=")
+    two_word_flags+=("--local")
+    local_nonpersistent_flags+=("--local=")
+    flags+=("--refresh")
+    local_nonpersistent_flags+=("--refresh")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_edit()
+{
+    last_command="argocd_app_edit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_get()
+{
+    last_command="argocd_app_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--hard-refresh")
+    local_nonpersistent_flags+=("--hard-refresh")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--refresh")
+    local_nonpersistent_flags+=("--refresh")
+    flags+=("--show-operation")
+    local_nonpersistent_flags+=("--show-operation")
+    flags+=("--show-params")
+    local_nonpersistent_flags+=("--show-params")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_history()
+{
+    last_command="argocd_app_history"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_list()
+{
+    last_command="argocd_app_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--project=")
+    two_word_flags+=("--project")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--project=")
+    flags+=("--selector=")
+    two_word_flags+=("--selector")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--selector=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_manifests()
+{
+    last_command="argocd_app_manifests"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--revision=")
+    two_word_flags+=("--revision")
+    local_nonpersistent_flags+=("--revision=")
+    flags+=("--source=")
+    two_word_flags+=("--source")
+    local_nonpersistent_flags+=("--source=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_patch()
+{
+    last_command="argocd_app_patch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--patch=")
+    two_word_flags+=("--patch")
+    local_nonpersistent_flags+=("--patch=")
+    flags+=("--type=")
+    two_word_flags+=("--type")
+    local_nonpersistent_flags+=("--type=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_patch-resource()
+{
+    last_command="argocd_app_patch-resource"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--group=")
+    two_word_flags+=("--group")
+    local_nonpersistent_flags+=("--group=")
+    flags+=("--kind=")
+    two_word_flags+=("--kind")
+    local_nonpersistent_flags+=("--kind=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--patch=")
+    two_word_flags+=("--patch")
+    local_nonpersistent_flags+=("--patch=")
+    flags+=("--patch-type=")
+    two_word_flags+=("--patch-type")
+    local_nonpersistent_flags+=("--patch-type=")
+    flags+=("--resource-name=")
+    two_word_flags+=("--resource-name")
+    local_nonpersistent_flags+=("--resource-name=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_flag+=("--kind=")
+    must_have_one_flag+=("--patch=")
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_rollback()
+{
+    last_command="argocd_app_rollback"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--prune")
+    local_nonpersistent_flags+=("--prune")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_set()
+{
+    last_command="argocd_app_set"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auto-prune")
+    local_nonpersistent_flags+=("--auto-prune")
+    flags+=("--config-management-plugin=")
+    two_word_flags+=("--config-management-plugin")
+    local_nonpersistent_flags+=("--config-management-plugin=")
+    flags+=("--dest-namespace=")
+    two_word_flags+=("--dest-namespace")
+    local_nonpersistent_flags+=("--dest-namespace=")
+    flags+=("--dest-server=")
+    two_word_flags+=("--dest-server")
+    local_nonpersistent_flags+=("--dest-server=")
+    flags+=("--directory-recurse")
+    local_nonpersistent_flags+=("--directory-recurse")
+    flags+=("--env=")
+    two_word_flags+=("--env")
+    local_nonpersistent_flags+=("--env=")
+    flags+=("--helm-chart=")
+    two_word_flags+=("--helm-chart")
+    local_nonpersistent_flags+=("--helm-chart=")
+    flags+=("--helm-set=")
+    two_word_flags+=("--helm-set")
+    local_nonpersistent_flags+=("--helm-set=")
+    flags+=("--helm-set-file=")
+    two_word_flags+=("--helm-set-file")
+    local_nonpersistent_flags+=("--helm-set-file=")
+    flags+=("--helm-set-string=")
+    two_word_flags+=("--helm-set-string")
+    local_nonpersistent_flags+=("--helm-set-string=")
+    flags+=("--jsonnet-ext-var-code=")
+    two_word_flags+=("--jsonnet-ext-var-code")
+    local_nonpersistent_flags+=("--jsonnet-ext-var-code=")
+    flags+=("--jsonnet-ext-var-str=")
+    two_word_flags+=("--jsonnet-ext-var-str")
+    local_nonpersistent_flags+=("--jsonnet-ext-var-str=")
+    flags+=("--jsonnet-tla-code=")
+    two_word_flags+=("--jsonnet-tla-code")
+    local_nonpersistent_flags+=("--jsonnet-tla-code=")
+    flags+=("--jsonnet-tla-str=")
+    two_word_flags+=("--jsonnet-tla-str")
+    local_nonpersistent_flags+=("--jsonnet-tla-str=")
+    flags+=("--kustomize-image=")
+    two_word_flags+=("--kustomize-image")
+    local_nonpersistent_flags+=("--kustomize-image=")
+    flags+=("--kustomize-version=")
+    two_word_flags+=("--kustomize-version")
+    local_nonpersistent_flags+=("--kustomize-version=")
+    flags+=("--nameprefix=")
+    two_word_flags+=("--nameprefix")
+    local_nonpersistent_flags+=("--nameprefix=")
+    flags+=("--namesuffix=")
+    two_word_flags+=("--namesuffix")
+    local_nonpersistent_flags+=("--namesuffix=")
+    flags+=("--parameter=")
+    two_word_flags+=("--parameter")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parameter=")
+    flags+=("--path=")
+    two_word_flags+=("--path")
+    local_nonpersistent_flags+=("--path=")
+    flags+=("--project=")
+    two_word_flags+=("--project")
+    local_nonpersistent_flags+=("--project=")
+    flags+=("--release-name=")
+    two_word_flags+=("--release-name")
+    local_nonpersistent_flags+=("--release-name=")
+    flags+=("--repo=")
+    two_word_flags+=("--repo")
+    local_nonpersistent_flags+=("--repo=")
+    flags+=("--revision=")
+    two_word_flags+=("--revision")
+    local_nonpersistent_flags+=("--revision=")
+    flags+=("--revision-history-limit=")
+    two_word_flags+=("--revision-history-limit")
+    local_nonpersistent_flags+=("--revision-history-limit=")
+    flags+=("--self-heal")
+    local_nonpersistent_flags+=("--self-heal")
+    flags+=("--sync-option=")
+    two_word_flags+=("--sync-option")
+    local_nonpersistent_flags+=("--sync-option=")
+    flags+=("--sync-policy=")
+    two_word_flags+=("--sync-policy")
+    local_nonpersistent_flags+=("--sync-policy=")
+    flags+=("--values=")
+    two_word_flags+=("--values")
+    local_nonpersistent_flags+=("--values=")
+    flags+=("--values-literal-file=")
+    two_word_flags+=("--values-literal-file")
+    local_nonpersistent_flags+=("--values-literal-file=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_sync()
+{
+    last_command="argocd_app_sync"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--async")
+    local_nonpersistent_flags+=("--async")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--force")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--info=")
+    two_word_flags+=("--info")
+    local_nonpersistent_flags+=("--info=")
+    flags+=("--label=")
+    two_word_flags+=("--label")
+    local_nonpersistent_flags+=("--label=")
+    flags+=("--local=")
+    two_word_flags+=("--local")
+    local_nonpersistent_flags+=("--local=")
+    flags+=("--prune")
+    local_nonpersistent_flags+=("--prune")
+    flags+=("--resource=")
+    two_word_flags+=("--resource")
+    local_nonpersistent_flags+=("--resource=")
+    flags+=("--revision=")
+    two_word_flags+=("--revision")
+    local_nonpersistent_flags+=("--revision=")
+    flags+=("--selector=")
+    two_word_flags+=("--selector")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--selector=")
+    flags+=("--strategy=")
+    two_word_flags+=("--strategy")
+    local_nonpersistent_flags+=("--strategy=")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_terminate-op()
+{
+    last_command="argocd_app_terminate-op"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_unset()
+{
+    last_command="argocd_app_unset"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--kustomize-image=")
+    two_word_flags+=("--kustomize-image")
+    local_nonpersistent_flags+=("--kustomize-image=")
+    flags+=("--kustomize-version")
+    local_nonpersistent_flags+=("--kustomize-version")
+    flags+=("--nameprefix")
+    local_nonpersistent_flags+=("--nameprefix")
+    flags+=("--namesuffix")
+    local_nonpersistent_flags+=("--namesuffix")
+    flags+=("--parameter=")
+    two_word_flags+=("--parameter")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parameter=")
+    flags+=("--values=")
+    two_word_flags+=("--values")
+    local_nonpersistent_flags+=("--values=")
+    flags+=("--values-literal")
+    local_nonpersistent_flags+=("--values-literal")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app_wait()
+{
+    last_command="argocd_app_wait"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--health")
+    local_nonpersistent_flags+=("--health")
+    flags+=("--operation")
+    local_nonpersistent_flags+=("--operation")
+    flags+=("--resource=")
+    two_word_flags+=("--resource")
+    local_nonpersistent_flags+=("--resource=")
+    flags+=("--selector=")
+    two_word_flags+=("--selector")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--selector=")
+    flags+=("--suspended")
+    local_nonpersistent_flags+=("--suspended")
+    flags+=("--sync")
+    local_nonpersistent_flags+=("--sync")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_app()
+{
+    last_command="argocd_app"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("actions")
+    commands+=("create")
+    commands+=("delete")
+    commands+=("diff")
+    commands+=("edit")
+    commands+=("get")
+    commands+=("history")
+    commands+=("list")
+    commands+=("manifests")
+    commands+=("patch")
+    commands+=("patch-resource")
+    commands+=("rollback")
+    commands+=("set")
+    commands+=("sync")
+    commands+=("terminate-op")
+    commands+=("unset")
+    commands+=("wait")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cert_add-ssh()
+{
+    last_command="argocd_cert_add-ssh"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--batch")
+    local_nonpersistent_flags+=("--batch")
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cert_add-tls()
+{
+    last_command="argocd_cert_add-tls"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cert_list()
+{
+    last_command="argocd_cert_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cert-type=")
+    two_word_flags+=("--cert-type")
+    local_nonpersistent_flags+=("--cert-type=")
+    flags+=("--hostname-pattern=")
+    two_word_flags+=("--hostname-pattern")
+    local_nonpersistent_flags+=("--hostname-pattern=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--sort=")
+    two_word_flags+=("--sort")
+    local_nonpersistent_flags+=("--sort=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cert_rm()
+{
+    last_command="argocd_cert_rm"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--cert-sub-type=")
+    two_word_flags+=("--cert-sub-type")
+    local_nonpersistent_flags+=("--cert-sub-type=")
+    flags+=("--cert-type=")
+    two_word_flags+=("--cert-type")
+    local_nonpersistent_flags+=("--cert-type=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cert()
+{
+    last_command="argocd_cert"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add-ssh")
+    commands+=("add-tls")
+    commands+=("list")
+    commands+=("rm")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cluster_add()
+{
+    last_command="argocd_cluster_add"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--aws-cluster-name=")
+    two_word_flags+=("--aws-cluster-name")
+    local_nonpersistent_flags+=("--aws-cluster-name=")
+    flags+=("--aws-role-arn=")
+    two_word_flags+=("--aws-role-arn")
+    local_nonpersistent_flags+=("--aws-role-arn=")
+    flags+=("--in-cluster")
+    local_nonpersistent_flags+=("--in-cluster")
+    flags+=("--kubeconfig=")
+    two_word_flags+=("--kubeconfig")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--service-account=")
+    two_word_flags+=("--service-account")
+    local_nonpersistent_flags+=("--service-account=")
+    flags+=("--system-namespace=")
+    two_word_flags+=("--system-namespace")
+    local_nonpersistent_flags+=("--system-namespace=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cluster_get()
+{
+    last_command="argocd_cluster_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cluster_list()
+{
+    last_command="argocd_cluster_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cluster_rm()
+{
+    last_command="argocd_cluster_rm"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cluster_rotate-auth()
+{
+    last_command="argocd_cluster_rotate-auth"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_cluster()
+{
+    last_command="argocd_cluster"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add")
+    commands+=("get")
+    commands+=("list")
+    commands+=("rm")
+    commands+=("rotate-auth")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_completion()
+{
+    last_command="argocd_completion"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_context()
+{
+    last_command="argocd_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--delete")
+    local_nonpersistent_flags+=("--delete")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_login()
+{
+    last_command="argocd_login"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--name=")
+    two_word_flags+=("--name")
+    local_nonpersistent_flags+=("--name=")
+    flags+=("--password=")
+    two_word_flags+=("--password")
+    local_nonpersistent_flags+=("--password=")
+    flags+=("--sso")
+    local_nonpersistent_flags+=("--sso")
+    flags+=("--sso-port=")
+    two_word_flags+=("--sso-port")
+    local_nonpersistent_flags+=("--sso-port=")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_logout()
+{
+    last_command="argocd_logout"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_add-destination()
+{
+    last_command="argocd_proj_add-destination"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_add-source()
+{
+    last_command="argocd_proj_add-source"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_allow-cluster-resource()
+{
+    last_command="argocd_proj_allow-cluster-resource"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_allow-namespace-resource()
+{
+    last_command="argocd_proj_allow-namespace-resource"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--list=")
+    two_word_flags+=("--list")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--list=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_create()
+{
+    last_command="argocd_proj_create"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--dest=")
+    two_word_flags+=("--dest")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--dest=")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    flags_with_completion+=("--file")
+    flags_completion+=("__argocd_handle_filename_extension_flag json|yaml|yml")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__argocd_handle_filename_extension_flag json|yaml|yml")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--orphaned-resources")
+    local_nonpersistent_flags+=("--orphaned-resources")
+    flags+=("--orphaned-resources-warn")
+    local_nonpersistent_flags+=("--orphaned-resources-warn")
+    flags+=("--src=")
+    two_word_flags+=("--src")
+    two_word_flags+=("-s")
+    local_nonpersistent_flags+=("--src=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_delete()
+{
+    last_command="argocd_proj_delete"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_deny-cluster-resource()
+{
+    last_command="argocd_proj_deny-cluster-resource"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_deny-namespace-resource()
+{
+    last_command="argocd_proj_deny-namespace-resource"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--list=")
+    two_word_flags+=("--list")
+    two_word_flags+=("-l")
+    local_nonpersistent_flags+=("--list=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_edit()
+{
+    last_command="argocd_proj_edit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_get()
+{
+    last_command="argocd_proj_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_list()
+{
+    last_command="argocd_proj_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_remove-destination()
+{
+    last_command="argocd_proj_remove-destination"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_remove-source()
+{
+    last_command="argocd_proj_remove-source"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_add-group()
+{
+    last_command="argocd_proj_role_add-group"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_add-policy()
+{
+    last_command="argocd_proj_role_add-policy"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--action=")
+    two_word_flags+=("--action")
+    two_word_flags+=("-a")
+    local_nonpersistent_flags+=("--action=")
+    flags+=("--object=")
+    two_word_flags+=("--object")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--object=")
+    flags+=("--permission=")
+    two_word_flags+=("--permission")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--permission=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_create()
+{
+    last_command="argocd_proj_role_create"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_create-token()
+{
+    last_command="argocd_proj_role_create-token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--expires-in=")
+    two_word_flags+=("--expires-in")
+    two_word_flags+=("-e")
+    local_nonpersistent_flags+=("--expires-in=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_delete()
+{
+    last_command="argocd_proj_role_delete"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_delete-token()
+{
+    last_command="argocd_proj_role_delete-token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_get()
+{
+    last_command="argocd_proj_role_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_list()
+{
+    last_command="argocd_proj_role_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_remove-group()
+{
+    last_command="argocd_proj_role_remove-group"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role_remove-policy()
+{
+    last_command="argocd_proj_role_remove-policy"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--action=")
+    two_word_flags+=("--action")
+    two_word_flags+=("-a")
+    local_nonpersistent_flags+=("--action=")
+    flags+=("--object=")
+    two_word_flags+=("--object")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--object=")
+    flags+=("--permission=")
+    two_word_flags+=("--permission")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--permission=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_role()
+{
+    last_command="argocd_proj_role"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add-group")
+    commands+=("add-policy")
+    commands+=("create")
+    commands+=("create-token")
+    commands+=("delete")
+    commands+=("delete-token")
+    commands+=("get")
+    commands+=("list")
+    commands+=("remove-group")
+    commands+=("remove-policy")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_set()
+{
+    last_command="argocd_proj_set"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--dest=")
+    two_word_flags+=("--dest")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--dest=")
+    flags+=("--orphaned-resources")
+    local_nonpersistent_flags+=("--orphaned-resources")
+    flags+=("--orphaned-resources-warn")
+    local_nonpersistent_flags+=("--orphaned-resources-warn")
+    flags+=("--src=")
+    two_word_flags+=("--src")
+    two_word_flags+=("-s")
+    local_nonpersistent_flags+=("--src=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows_add()
+{
+    last_command="argocd_proj_windows_add"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--applications=")
+    two_word_flags+=("--applications")
+    local_nonpersistent_flags+=("--applications=")
+    flags+=("--clusters=")
+    two_word_flags+=("--clusters")
+    local_nonpersistent_flags+=("--clusters=")
+    flags+=("--duration=")
+    two_word_flags+=("--duration")
+    local_nonpersistent_flags+=("--duration=")
+    flags+=("--kind=")
+    two_word_flags+=("--kind")
+    two_word_flags+=("-k")
+    local_nonpersistent_flags+=("--kind=")
+    flags+=("--manual-sync")
+    local_nonpersistent_flags+=("--manual-sync")
+    flags+=("--namespaces=")
+    two_word_flags+=("--namespaces")
+    local_nonpersistent_flags+=("--namespaces=")
+    flags+=("--schedule=")
+    two_word_flags+=("--schedule")
+    local_nonpersistent_flags+=("--schedule=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows_delete()
+{
+    last_command="argocd_proj_windows_delete"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows_disable-manual-sync()
+{
+    last_command="argocd_proj_windows_disable-manual-sync"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows_enable-manual-sync()
+{
+    last_command="argocd_proj_windows_enable-manual-sync"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows_list()
+{
+    last_command="argocd_proj_windows_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows_update()
+{
+    last_command="argocd_proj_windows_update"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--applications=")
+    two_word_flags+=("--applications")
+    local_nonpersistent_flags+=("--applications=")
+    flags+=("--clusters=")
+    two_word_flags+=("--clusters")
+    local_nonpersistent_flags+=("--clusters=")
+    flags+=("--duration=")
+    two_word_flags+=("--duration")
+    local_nonpersistent_flags+=("--duration=")
+    flags+=("--namespaces=")
+    two_word_flags+=("--namespaces")
+    local_nonpersistent_flags+=("--namespaces=")
+    flags+=("--schedule=")
+    two_word_flags+=("--schedule")
+    local_nonpersistent_flags+=("--schedule=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj_windows()
+{
+    last_command="argocd_proj_windows"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add")
+    commands+=("delete")
+    commands+=("disable-manual-sync")
+    commands+=("enable-manual-sync")
+    commands+=("list")
+    commands+=("update")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_proj()
+{
+    last_command="argocd_proj"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add-destination")
+    commands+=("add-source")
+    commands+=("allow-cluster-resource")
+    commands+=("allow-namespace-resource")
+    commands+=("create")
+    commands+=("delete")
+    commands+=("deny-cluster-resource")
+    commands+=("deny-namespace-resource")
+    commands+=("edit")
+    commands+=("get")
+    commands+=("list")
+    commands+=("remove-destination")
+    commands+=("remove-source")
+    commands+=("role")
+    commands+=("set")
+    commands+=("windows")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_relogin()
+{
+    last_command="argocd_relogin"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--password=")
+    two_word_flags+=("--password")
+    local_nonpersistent_flags+=("--password=")
+    flags+=("--sso-port=")
+    two_word_flags+=("--sso-port")
+    local_nonpersistent_flags+=("--sso-port=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repo_add()
+{
+    last_command="argocd_repo_add"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--enable-lfs")
+    local_nonpersistent_flags+=("--enable-lfs")
+    flags+=("--insecure-ignore-host-key")
+    local_nonpersistent_flags+=("--insecure-ignore-host-key")
+    flags+=("--insecure-skip-server-verification")
+    local_nonpersistent_flags+=("--insecure-skip-server-verification")
+    flags+=("--name=")
+    two_word_flags+=("--name")
+    local_nonpersistent_flags+=("--name=")
+    flags+=("--password=")
+    two_word_flags+=("--password")
+    local_nonpersistent_flags+=("--password=")
+    flags+=("--ssh-private-key-path=")
+    two_word_flags+=("--ssh-private-key-path")
+    local_nonpersistent_flags+=("--ssh-private-key-path=")
+    flags+=("--tls-client-cert-key-path=")
+    two_word_flags+=("--tls-client-cert-key-path")
+    local_nonpersistent_flags+=("--tls-client-cert-key-path=")
+    flags+=("--tls-client-cert-path=")
+    two_word_flags+=("--tls-client-cert-path")
+    local_nonpersistent_flags+=("--tls-client-cert-path=")
+    flags+=("--type=")
+    two_word_flags+=("--type")
+    local_nonpersistent_flags+=("--type=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repo_get()
+{
+    last_command="argocd_repo_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--refresh=")
+    two_word_flags+=("--refresh")
+    local_nonpersistent_flags+=("--refresh=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repo_list()
+{
+    last_command="argocd_repo_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--refresh=")
+    two_word_flags+=("--refresh")
+    local_nonpersistent_flags+=("--refresh=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repo_rm()
+{
+    last_command="argocd_repo_rm"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repo()
+{
+    last_command="argocd_repo"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add")
+    commands+=("get")
+    commands+=("list")
+    commands+=("rm")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repocreds_add()
+{
+    last_command="argocd_repocreds_add"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--password=")
+    two_word_flags+=("--password")
+    local_nonpersistent_flags+=("--password=")
+    flags+=("--ssh-private-key-path=")
+    two_word_flags+=("--ssh-private-key-path")
+    local_nonpersistent_flags+=("--ssh-private-key-path=")
+    flags+=("--tls-client-cert-key-path=")
+    two_word_flags+=("--tls-client-cert-key-path")
+    local_nonpersistent_flags+=("--tls-client-cert-key-path=")
+    flags+=("--tls-client-cert-path=")
+    two_word_flags+=("--tls-client-cert-path")
+    local_nonpersistent_flags+=("--tls-client-cert-path=")
+    flags+=("--upsert")
+    local_nonpersistent_flags+=("--upsert")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repocreds_list()
+{
+    last_command="argocd_repocreds_list"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repocreds_rm()
+{
+    last_command="argocd_repocreds_rm"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_repocreds()
+{
+    last_command="argocd_repocreds"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("add")
+    commands+=("list")
+    commands+=("rm")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_version()
+{
+    last_command="argocd_version"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--client")
+    local_nonpersistent_flags+=("--client")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--short")
+    local_nonpersistent_flags+=("--short")
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_argocd_root_command()
+{
+    last_command="argocd"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("account")
+    commands+=("app")
+    commands+=("cert")
+    commands+=("cluster")
+    commands+=("completion")
+    commands+=("context")
+    if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+        command_aliases+=("ctx")
+        aliashash["ctx"]="context"
+    fi
+    commands+=("login")
+    commands+=("logout")
+    commands+=("proj")
+    commands+=("relogin")
+    commands+=("repo")
+    commands+=("repocreds")
+    commands+=("version")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-token=")
+    two_word_flags+=("--auth-token")
+    flags+=("--config=")
+    two_word_flags+=("--config")
+    flags+=("--grpc-web")
+    flags+=("--grpc-web-root-path=")
+    two_word_flags+=("--grpc-web-root-path")
+    flags+=("--header=")
+    two_word_flags+=("--header")
+    two_word_flags+=("-H")
+    flags+=("--insecure")
+    flags+=("--logformat=")
+    two_word_flags+=("--logformat")
+    flags+=("--loglevel=")
+    two_word_flags+=("--loglevel")
+    flags+=("--plaintext")
+    flags+=("--port-forward")
+    flags+=("--port-forward-namespace=")
+    two_word_flags+=("--port-forward-namespace")
+    flags+=("--server=")
+    two_word_flags+=("--server")
+    flags+=("--server-crt=")
+    two_word_flags+=("--server-crt")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+__start_argocd()
+{
+    local cur prev words cword
+    declare -A flaghash 2>/dev/null || :
+    declare -A aliashash 2>/dev/null || :
+    if declare -F _init_completion >/dev/null 2>&1; then
+        _init_completion -s || return
+    else
+        __argocd_init_completion -n "=" || return
+    fi
+
+    local c=0
+    local flags=()
+    local two_word_flags=()
+    local local_nonpersistent_flags=()
+    local flags_with_completion=()
+    local flags_completion=()
+    local commands=("argocd")
+    local must_have_one_flag=()
+    local must_have_one_noun=()
+    local last_command
+    local nouns=()
+
+    __argocd_handle_word
+}
+
+if [[ $(type -t compopt) = "builtin" ]]; then
+    complete -o default -F __start_argocd argocd
+else
+    complete -o default -o nospace -F __start_argocd argocd
+fi
+
+# ex: ts=4 sw=4 et filetype=sh
