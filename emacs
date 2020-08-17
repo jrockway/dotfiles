@@ -62,15 +62,21 @@
   (when (< emacs-major-version 24)
     ;; for important compatibility libraries like cl-lib
     (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
+
 (package-initialize)
 
 (use-package lsp
   :config
   (define-key lsp-mode-map (kbd "M-DEL") #'lsp-describe-thing-at-point))
+
 (use-package lsp-ui
   :config
   (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
   (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
+
+(use-package company
+  :config
+  (define-key company-mode-map [remap indent-for-tab-command] #'company-indent-or-complete-common))
 
 (defface my-window-number-face '((t :foreground "red")) "")
 
@@ -83,14 +89,14 @@
                 'face 'my-window-number-face))
   (window-number-meta-mode 1))
 
-
-(defun setup-golang-style ()
-  (set-fill-column 100)
-  (add-hook 'before-save-hook #'gofmt-before-save nil t))
 (use-package go-mode
   :config
-  (add-hook 'go-mode-hook #'setup-golang-style)
-  (add-hook 'go-mode-hook #'lsp-deferred))
+  (progn
+    (add-hook 'go-mode-hook (lambda ()
+                              (set-fill-column 100)
+                              (add-hook 'before-save-hook #'lsp-format-buffer t t)
+                              (add-hook 'before-save-hook #'lsp-organize-imports t t)))
+    (add-hook 'go-mode-hook #'lsp-deferred)))
 
 (defun setup-tide-mode ()
   (tide-setup)
@@ -118,8 +124,8 @@
 (use-package prettier-js
   :config
   (add-hook 'typescript-mode-hook #'prettier-js-mode)
-  (add-hook 'web-mode-hook #'prettier-js-mode)
   (add-hook 'yaml-mode-hook #'prettier-js-mode)
+  ;(add-hook 'web-mode-hook #'prettier-js-mode)
   (add-hook 'vue-mode-hook #'prettier-js-mode)
   (add-hook 'markdown-mode-hook #'prettier-js-mode))
 
@@ -195,7 +201,7 @@
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-h l") (lambda () (interactive) (info "Elisp")))
 (global-set-key (kbd "C-h o") 'find-library)
-(global-set-key (kbd "C-x t") (lambda () (interactive) (ansi-term "/bin/bash")))
+(global-set-key (kbd "C-x t") #'tmux-here)
 (global-set-key (kbd "s-(") (lambda () (interactive) (other-window -1)))
 (global-set-key (kbd "s-)") (lambda () (interactive) (other-window 1)))
 (global-set-key (kbd "C-(") (lambda () (interactive) (other-window -1)))
@@ -212,6 +218,7 @@
 (global-set-key (kbd "M-=") 'company-complete)
 (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
 (global-set-key (kbd "<mouse-5>") 'scroll-up-line)
+(global-set-key (kbd "C-j") 'newline)
 
 (define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
 
@@ -263,15 +270,10 @@
  '(c-electric-pound-behavior nil)
  '(case-fold-search t)
  '(column-number-mode t)
- '(company-backends
-   (quote
-    (company-lsp company-elisp company-dabbrev-code company-dabbrev)))
  '(company-frontends
    (quote
     (company-pseudo-tooltip-frontend company-echo-metadata-frontend company-preview-if-just-one-frontend)))
- '(company-go-show-annotation t)
  '(company-idle-delay nil)
- '(company-show-numbers t)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face (quote bold))
@@ -308,8 +310,9 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
- '(electric-indent-mode nil)
+ '(electric-indent-mode t)
  '(electric-pair-mode t)
+ '(electric-pair-skip-self nil)
  '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
  '(eproject-completing-read-function (quote eproject--ido-completing-read))
  '(eshell-after-prompt-hook nil)
@@ -328,6 +331,8 @@
  '(fill-column 100)
  '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
  '(flycheck-display-errors-delay 0)
+ '(flycheck-keymap-prefix "f")
+ '(flycheck-mode-line-prefix "Fl")
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
  '(flyspell-mark-duplications-flag nil)
@@ -336,7 +341,6 @@
  '(global-company-mode t)
  '(global-prettify-symbols-mode t)
  '(godoc-at-point-function (quote godoc-gogetdoc))
- '(gofmt-command "goimports")
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
  '(haskell-literate-default (quote latex))
@@ -411,19 +415,29 @@
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
  '(lsp-auto-guess-root nil)
- '(lsp-debounce-full-sync-notifications t)
+ '(lsp-completion-show-kind nil)
+ '(lsp-debounce-full-sync-notifications nil)
+ '(lsp-diagnostic-clean-after-change nil)
+ '(lsp-diagnostics-flycheck-default-level (quote info))
+ '(lsp-diagnostics-provider :flycheck)
+ '(lsp-document-sync-method nil)
  '(lsp-eldoc-enable-hover nil)
  '(lsp-eldoc-enable-signature-help nil)
+ '(lsp-eldoc-render-all nil)
  '(lsp-enable-links nil)
  '(lsp-enable-symbol-highlighting nil)
- '(lsp-file-watch-threshold 5000)
- '(lsp-gopls-hover-kind "FullDocumentation")
- '(lsp-gopls-use-placeholders nil)
+ '(lsp-file-watch-threshold 15000)
+ '(lsp-go-hover-kind "FullDocumentation")
+ '(lsp-go-link-target "pkg.go.dev")
+ '(lsp-go-use-placeholders nil)
+ '(lsp-gopls-use-placeholders t)
+ '(lsp-headerline-breadcrumb-enable t)
  '(lsp-idle-delay 0.05)
  '(lsp-keep-workspace-alive nil)
+ '(lsp-modeline-diagnostics-scope :file)
  '(lsp-prefer-flymake nil)
  '(lsp-restart (quote auto-restart))
- '(lsp-signature-render-documentation nil)
+ '(lsp-signature-render-documentation t)
  '(lsp-ui-doc-alignment (quote window))
  '(lsp-ui-doc-enable nil)
  '(lsp-ui-doc-include-signature t)
@@ -464,7 +478,7 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-ui company-lsp lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+    (lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(read-buffer-completion-ignore-case t)
