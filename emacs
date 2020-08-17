@@ -270,9 +270,7 @@
  '(c-electric-pound-behavior nil)
  '(case-fold-search t)
  '(column-number-mode t)
- '(company-frontends
-   (quote
-    (company-pseudo-tooltip-frontend company-echo-metadata-frontend company-preview-if-just-one-frontend)))
+ '(company-backends (quote (company-capf)))
  '(company-idle-delay nil)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
