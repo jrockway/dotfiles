@@ -1,0 +1,7429 @@
+# bash completion for pachctl                              -*- shell-script -*-
+
+__pachctl_debug()
+{
+    if [[ -n ${BASH_COMP_DEBUG_FILE} ]]; then
+        echo "$*" >> "${BASH_COMP_DEBUG_FILE}"
+    fi
+}
+
+# Homebrew on Macs have version 1.3 of bash-completion which doesn't include
+# _init_completion. This is a very minimal version of that function.
+__pachctl_init_completion()
+{
+    COMPREPLY=()
+    _get_comp_words_by_ref "$@" cur prev words cword
+}
+
+__pachctl_index_of_word()
+{
+    local w word=$1
+    shift
+    index=0
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+        index=$((index+1))
+    done
+    index=-1
+}
+
+__pachctl_contains_word()
+{
+    local w word=$1; shift
+    for w in "$@"; do
+        [[ $w = "$word" ]] && return
+    done
+    return 1
+}
+
+__pachctl_handle_reply()
+{
+    __pachctl_debug "${FUNCNAME[0]}"
+    case $cur in
+        -*)
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                compopt -o nospace
+            fi
+            local allflags
+            if [ ${#must_have_one_flag[@]} -ne 0 ]; then
+                allflags=("${must_have_one_flag[@]}")
+            else
+                allflags=("${flags[*]} ${two_word_flags[*]}")
+            fi
+            while IFS='' read -r c; do
+                COMPREPLY+=("$c")
+            done < <(compgen -W "${allflags[*]}" -- "$cur")
+            if [[ $(type -t compopt) = "builtin" ]]; then
+                [[ "${COMPREPLY[0]}" == *= ]] || compopt +o nospace
+            fi
+
+            # complete after --flag=abc
+            if [[ $cur == *=* ]]; then
+                if [[ $(type -t compopt) = "builtin" ]]; then
+                    compopt +o nospace
+                fi
+
+                local index flag
+                flag="${cur%=*}"
+                __pachctl_index_of_word "${flag}" "${flags_with_completion[@]}"
+                COMPREPLY=()
+                if [[ ${index} -ge 0 ]]; then
+                    PREFIX=""
+                    cur="${cur#*=}"
+                    ${flags_completion[${index}]}
+                    if [ -n "${ZSH_VERSION}" ]; then
+                        # zsh completion needs --flag= prefix
+                        eval "COMPREPLY=( \"\${COMPREPLY[@]/#/${flag}=}\" )"
+                    fi
+                fi
+            fi
+            return 0;
+            ;;
+    esac
+
+    # check if we are handling a flag with special work handling
+    local index
+    __pachctl_index_of_word "${prev}" "${flags_with_completion[@]}"
+    if [[ ${index} -ge 0 ]]; then
+        ${flags_completion[${index}]}
+        return
+    fi
+
+    # we are parsing a flag and don't have a special handler, no completion
+    if [[ ${cur} != "${words[cword]}" ]]; then
+        return
+    fi
+
+    local completions
+    completions=("${commands[@]}")
+    if [[ ${#must_have_one_noun[@]} -ne 0 ]]; then
+        completions=("${must_have_one_noun[@]}")
+    fi
+    if [[ ${#must_have_one_flag[@]} -ne 0 ]]; then
+        completions+=("${must_have_one_flag[@]}")
+    fi
+    while IFS='' read -r c; do
+        COMPREPLY+=("$c")
+    done < <(compgen -W "${completions[*]}" -- "$cur")
+
+    if [[ ${#COMPREPLY[@]} -eq 0 && ${#noun_aliases[@]} -gt 0 && ${#must_have_one_noun[@]} -ne 0 ]]; then
+        while IFS='' read -r c; do
+            COMPREPLY+=("$c")
+        done < <(compgen -W "${noun_aliases[*]}" -- "$cur")
+    fi
+
+    if [[ ${#COMPREPLY[@]} -eq 0 ]]; then
+		if declare -F __pachctl_custom_func >/dev/null; then
+			# try command name qualified custom func
+			__pachctl_custom_func
+		else
+			# otherwise fall back to unqualified for compatibility
+			declare -F __custom_func >/dev/null && __custom_func
+		fi
+    fi
+
+    # available in bash-completion >= 2, not always present on macOS
+    if declare -F __ltrim_colon_completions >/dev/null; then
+        __ltrim_colon_completions "$cur"
+    fi
+
+    # If there is only 1 completion and it is a flag with an = it will be completed
+    # but we don't want a space after the =
+    if [[ "${#COMPREPLY[@]}" -eq "1" ]] && [[ $(type -t compopt) = "builtin" ]] && [[ "${COMPREPLY[0]}" == --*= ]]; then
+       compopt -o nospace
+    fi
+}
+
+# The arguments should be in the form "ext1|ext2|extn"
+__pachctl_handle_filename_extension_flag()
+{
+    local ext="$1"
+    _filedir "@(${ext})"
+}
+
+__pachctl_handle_subdirs_in_dir_flag()
+{
+    local dir="$1"
+    pushd "${dir}" >/dev/null 2>&1 && _filedir -d && popd >/dev/null 2>&1 || return
+}
+
+__pachctl_handle_flag()
+{
+    __pachctl_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    # if a command required a flag, and we found it, unset must_have_one_flag()
+    local flagname=${words[c]}
+    local flagvalue
+    # if the word contained an =
+    if [[ ${words[c]} == *"="* ]]; then
+        flagvalue=${flagname#*=} # take in as flagvalue after the =
+        flagname=${flagname%=*} # strip everything after the =
+        flagname="${flagname}=" # but put the = back
+    fi
+    __pachctl_debug "${FUNCNAME[0]}: looking for ${flagname}"
+    if __pachctl_contains_word "${flagname}" "${must_have_one_flag[@]}"; then
+        must_have_one_flag=()
+    fi
+
+    # if you set a flag which only applies to this command, don't show subcommands
+    if __pachctl_contains_word "${flagname}" "${local_nonpersistent_flags[@]}"; then
+      commands=()
+    fi
+
+    # keep flag value with flagname as flaghash
+    # flaghash variable is an associative array which is only supported in bash > 3.
+    if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+        if [ -n "${flagvalue}" ] ; then
+            flaghash[${flagname}]=${flagvalue}
+        elif [ -n "${words[ $((c+1)) ]}" ] ; then
+            flaghash[${flagname}]=${words[ $((c+1)) ]}
+        else
+            flaghash[${flagname}]="true" # pad "true" for bool flag
+        fi
+    fi
+
+    # skip the argument to a two word flag
+    if [[ ${words[c]} != *"="* ]] && __pachctl_contains_word "${words[c]}" "${two_word_flags[@]}"; then
+			  __pachctl_debug "${FUNCNAME[0]}: found a flag ${words[c]}, skip the next argument"
+        c=$((c+1))
+        # if we are looking for a flags value, don't show commands
+        if [[ $c -eq $cword ]]; then
+            commands=()
+        fi
+    fi
+
+    c=$((c+1))
+
+}
+
+__pachctl_handle_noun()
+{
+    __pachctl_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    if __pachctl_contains_word "${words[c]}" "${must_have_one_noun[@]}"; then
+        must_have_one_noun=()
+    elif __pachctl_contains_word "${words[c]}" "${noun_aliases[@]}"; then
+        must_have_one_noun=()
+    fi
+
+    nouns+=("${words[c]}")
+    c=$((c+1))
+}
+
+__pachctl_handle_command()
+{
+    __pachctl_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+
+    local next_command
+    if [[ -n ${last_command} ]]; then
+        next_command="_${last_command}_${words[c]//:/__}"
+    else
+        if [[ $c -eq 0 ]]; then
+            next_command="_pachctl_root_command"
+        else
+            next_command="_${words[c]//:/__}"
+        fi
+    fi
+    c=$((c+1))
+    __pachctl_debug "${FUNCNAME[0]}: looking for ${next_command}"
+    declare -F "$next_command" >/dev/null && $next_command
+}
+
+__pachctl_handle_word()
+{
+    if [[ $c -ge $cword ]]; then
+        __pachctl_handle_reply
+        return
+    fi
+    __pachctl_debug "${FUNCNAME[0]}: c is $c words[c] is ${words[c]}"
+    if [[ "${words[c]}" == -* ]]; then
+        __pachctl_handle_flag
+    elif __pachctl_contains_word "${words[c]}" "${commands[@]}"; then
+        __pachctl_handle_command
+    elif [[ $c -eq 0 ]]; then
+        __pachctl_handle_command
+    elif __pachctl_contains_word "${words[c]}" "${command_aliases[@]}"; then
+        # aliashash variable is an associative array which is only supported in bash > 3.
+        if [[ -z "${BASH_VERSION}" || "${BASH_VERSINFO[0]}" -gt 3 ]]; then
+            words[c]=${aliashash[${words[c]}]}
+            __pachctl_handle_command
+        else
+            __pachctl_handle_noun
+        fi
+    else
+        __pachctl_handle_noun
+    fi
+    __pachctl_handle_word
+}
+
+
+__pachctl_get_object() {
+	if pachctl_output=$(eval pachctl $1 2>/dev/null); then
+		local out=($(echo "${pachctl_output}" | awk -v c=$2 'NR > 1 {print $c}'))
+		COMPREPLY+=($(compgen -P "${__pachctl_prefix}" -S "${__pachctl_suffix}" -W "${out[*]}" "$cur"))
+	fi
+}
+
+__pachctl_get_repo() {
+	__pachctl_get_object "list repo" 1
+}
+
+# $1: repo name
+__pachctl_get_commit() {
+	if [[ -z $1 ]]; then
+		return
+	fi
+	__pachctl_get_object "list commit $1" 2
+	__pachctl_get_object "list branch $1" 1
+}
+
+# Performs completion of the standard format <repo>@<branch-or-commit>
+__pachctl_get_repo_commit() {
+	if [[ ${cur} != *@* ]]; then
+		compopt -o nospace
+		local __pachctl_suffix="@"
+		__pachctl_get_repo
+	else
+		local repo=$(__parse_repo ${cur})
+		local cur=$(__parse_commit ${cur})
+		local __pachctl_prefix="${repo}@"
+		__pachctl_get_commit ${repo}
+	fi
+}
+
+# Performs completion of the standard format <repo>@<branch> (will not match commits)
+__pachctl_get_repo_branch() {
+	if [[ ${cur} != *@* ]]; then
+		compopt -o nospace
+		local __pachctl_suffix="@"
+		__pachctl_get_repo
+	else
+		local repo=$(__parse_repo ${cur})
+		local cur=$(__parse_commit ${cur})
+		local __pachctl_prefix="${repo}@"
+		__pachctl_get_branch ${repo}
+	fi
+}
+
+# Performs completion of the standard format <repo>@<branch-or-commit>:<path>
+__pachctl_get_repo_commit_path() {
+	# completion treats ':' as its own argument and an argument-break
+	if [[ ${#nouns[@]} -ge 1 ]] && [[ ${cur} == : ]]; then
+		local repo=$(__parse_repo ${nouns[-1]})
+		local commit=$(__parse_commit ${nouns[-1]})
+		local cur=
+		__pachctl_get_path ${repo} ${commit}
+	elif [[ ${#nouns[@]} -ge 2 ]] && [[ ${nouns[-1]} == : ]]; then
+		local repo=$(__parse_repo ${nouns[-2]})
+		local commit=$(__parse_commit ${nouns[-2]})
+		__pachctl_get_path ${repo} ${commit}
+	elif [[ ${cur} != *@* ]]; then
+		__pachctl_get_repo_commit
+	else
+		compopt -o nospace
+		local __pachctl_suffix=":"
+		__pachctl_get_repo_commit
+	fi
+}
+
+# $1: repo name
+# $2: branch name or commit id
+__pachctl_get_path() {
+	if [[ -z $1 ]] || [[ -z $2 ]]; then
+		return
+	fi
+
+	__pachctl_get_object "glob file \"$1@$2:${cur}**\"" 2
+}
+
+# $1: repo name
+__pachctl_get_branch() {
+	if [[ -z $1 ]]; then
+		return
+	fi
+	__pachctl_get_object "list branch $1" 1
+}
+
+__pachctl_get_job() {
+	__pachctl_get_object "list job" 1
+}
+
+__pachctl_get_pipeline() {
+	__pachctl_get_object "list pipeline" 1
+}
+
+__pachctl_get_datum() {
+	__pachctl_get_object "list datum $2" 1
+}
+
+# Parses repo from the format <repo>@<branch-or-commit>
+__parse_repo() {
+	echo $1 | cut -f 1 -d "@"
+}
+
+# Parses commit from the format <repo>@<branch-or-commit>
+__parse_commit() {
+	echo $1 | cut -f 2 -d "@" -s
+}
+
+__pachctl_auth_scope() {
+	local out=(none reader writer owner)
+	COMPREPLY+=($(compgen -W "${out[*]}" "$cur"))
+}
+
+# $*: an integer corresponding to a positional argument index (zero-based)
+# Checks if the argument being completed is a positional argument at one of the
+# specified indices.
+__is_active_arg() {
+	for predicate in $*; do
+		if [[ $predicate == ${#nouns[@]} ]]; then
+			return 0
+		fi
+	done
+	return 1
+}
+
+__custom_func() {
+	case ${last_command} in
+		pachctl_auth_check)
+		  if __is_active_arg 0; then
+				__pachctl_auth_scope
+			elif __is_active_arg 1; then
+				__pachctl_get_repo
+			fi
+			;;
+		pachctl_auth_get)
+			if __is_active_arg 0 1; then
+				__pachctl_get_repo
+			fi
+			;;
+		pachctl_auth_set)
+		  if __is_active_arg 1; then
+			  __pachctl_auth_scope
+			elif __is_active_arg 2; then
+				__pachctl_get_repo
+			fi
+			;;
+		pachctl_update_repo | pachctl_inspect_repo | pachctl_delete_repo | pachctl_list_branch | pachctl_list_commit)
+			if __is_active_arg 0; then
+				__pachctl_get_repo
+			fi
+			;;
+		pachctl_delete_branch | pachctl_subscribe_commit)
+			if __is_active_arg 0; then
+				__pachctl_get_repo_branch
+			fi
+			;;
+		pachctl_finish_commit | pachctl_inspect_commit | pachctl_delete_commit | pachctl_create_branch | pachctl_start_commit)
+			if __is_active_arg 0; then
+				__pachctl_get_repo_commit
+			fi
+			;;
+		pachctl_get_file | pachctl_inspect_file | pachctl_list_file | pachctl_delete_file | pachctl_glob_file | pachctl_put_file)
+			# completion splits the ':' character into its own argument
+			if __is_active_arg 0 1 2; then
+				__pachctl_get_repo_commit_path
+			fi
+			;;
+		pachctl_copy_file | pachctl_diff_file)
+			__pachctl_get_repo_commit_path
+			;;
+		pachctl_inspect_job | pachctl_delete_job | pachctl_stop_job | pachctl_list_datum | pachctl_restart_datum)
+			if __is_active_arg 0; then
+				__pachctl_get_job
+			fi
+			;;
+		pachctl_inspect_datum)
+			if __is_active_arg 0; then
+				__pachctl_get_job
+			elif __is_active_arg 1; then
+				__pachctl_get_datum ${nouns[0]}
+			fi
+			;;
+		pachctl_inspect_pipeline | pachctl_delete_pipeline | pachctl_start_pipeline | pachctl_stop_pipeline | pachctl_extract_pipeline | pachctl_edit_pipeline)
+			if __is_active_arg 0; then
+				__pachctl_get_pipeline
+			fi
+			;;
+		pachctl_flush_job | pachctl_flush_commit)
+			__pachctl_get_repo_commit
+			;;
+		# Deprecated v1.8 commands - remove later
+		pachctl_update-repo | pachctl_inspect-repo | pachctl_delete-repo | pachctl_list-branch | pachctl_list-commit)
+			if __is_active_arg 0; then
+				__pachctl_get_repo
+			fi
+			;;
+		pachctl_delete-branch | pachctl_subscribe-commit)
+			if __is_active_arg 0; then
+				__pachctl_get_repo
+			elif __is_active_arg 1; then
+				__pachctl_get_branch ${nouns[0]}
+			fi
+			;;
+		pachctl_finish-commit | pachctl_inspect-commit | pachctl_delete-commit | pachctl_create-branch | pachctl_start-commit)
+			if __is_active_arg 0; then
+				__pachctl_get_repo
+			elif __is_active_arg 1; then
+				__pachctl_get_commit ${nouns[0]}
+			fi
+			;;
+		pachctl_get-file | pachctl_inspect-file | pachctl_list-file | pachctl_delete-file | pachctl_glob-file | pachctl_put-file)
+			if __is_active_arg 0; then
+				__pachctl_get_repo
+			elif __is_active_arg 1; then
+				__pachctl_get_commit ${nouns[0]}
+			elif __is_active_arg 2; then
+			  __pachctl_get_path ${nouns[0]} ${nouns[1]}
+			fi
+			;;
+		pachctl_copy-file | pachctl_diff-file)
+			if __is_active_arg 0 3; then
+				__pachctl_get_repo
+			elif __is_active_arg 1 4; then
+				__pachctl_get_commit ${nouns[0]}
+			elif __is_active_arg 2 5; then
+			  __pachctl_get_path ${nouns[0]} ${nouns[1]}
+			fi
+			;;
+		pachctl_inspect-job | pachctl_delete-job | pachctl_stop-job | pachctl_list-datum | pachctl_restart-datum)
+			if __is_active_arg 0; then
+				__pachctl_get_job
+			fi
+			;;
+		pachctl_inspect-datum)
+			if __is_active_arg 0; then
+				__pachctl_get_job
+			elif __is_active_arg 1; then
+				__pachctl_get_datum ${nouns[0]}
+			fi
+			;;
+		pachctl_inspect-pipeline | pachctl_delete-pipeline | pachctl_start-pipeline | pachctl_stop-pipeline | pachctl_extract-pipeline | pachctl_edit-pipeline)
+			if __is_active_arg 0; then
+				__pachctl_get_pipeline
+			fi
+			;;
+		pachctl_flush-job | pachctl_flush-commit)
+			__pachctl_get_repo_slash_commit
+			;;
+		*)
+			;;
+	esac
+}
+_pachctl_auth_activate()
+{
+    last_command="pachctl_auth_activate"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--initial-admin=")
+    two_word_flags+=("--initial-admin")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_check()
+{
+    last_command="pachctl_auth_check"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_deactivate()
+{
+    last_command="pachctl_auth_deactivate"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_get()
+{
+    last_command="pachctl_auth_get"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_get-auth-token()
+{
+    last_command="pachctl_auth_get-auth-token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--quiet")
+    flags+=("-q")
+    flags+=("--ttl=")
+    two_word_flags+=("--ttl")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_get-config()
+{
+    last_command="pachctl_auth_get-config"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output-format=")
+    two_word_flags+=("--output-format")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output-format=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_get-otp()
+{
+    last_command="pachctl_auth_get-otp"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--ttl=")
+    two_word_flags+=("--ttl")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_list-admins()
+{
+    last_command="pachctl_auth_list-admins"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_login()
+{
+    last_command="pachctl_auth_login"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--one-time-password")
+    flags+=("-o")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_logout()
+{
+    last_command="pachctl_auth_logout"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_modify-admins()
+{
+    last_command="pachctl_auth_modify-admins"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--add=")
+    two_word_flags+=("--add")
+    flags+=("--remove=")
+    two_word_flags+=("--remove")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_set()
+{
+    last_command="pachctl_auth_set"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_set-config()
+{
+    last_command="pachctl_auth_set-config"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_use-auth-token()
+{
+    last_command="pachctl_auth_use-auth-token"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth_whoami()
+{
+    last_command="pachctl_auth_whoami"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_auth()
+{
+    last_command="pachctl_auth"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("activate")
+    commands+=("check")
+    commands+=("deactivate")
+    commands+=("get")
+    commands+=("get-auth-token")
+    commands+=("get-config")
+    commands+=("get-otp")
+    commands+=("list-admins")
+    commands+=("login")
+    commands+=("logout")
+    commands+=("modify-admins")
+    commands+=("set")
+    commands+=("set-config")
+    commands+=("use-auth-token")
+    commands+=("whoami")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_completion_bash()
+{
+    last_command="pachctl_completion_bash"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--help")
+    flags+=("-h")
+    local_nonpersistent_flags+=("--help")
+    flags+=("--install")
+    local_nonpersistent_flags+=("--install")
+    flags+=("--path=")
+    two_word_flags+=("--path")
+    local_nonpersistent_flags+=("--path=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_completion_zsh()
+{
+    last_command="pachctl_completion_zsh"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--install")
+    local_nonpersistent_flags+=("--install")
+    flags+=("--path=")
+    two_word_flags+=("--path")
+    local_nonpersistent_flags+=("--path=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_completion()
+{
+    last_command="pachctl_completion"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("bash")
+    commands+=("zsh")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_delete_context()
+{
+    last_command="pachctl_config_delete_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_delete()
+{
+    last_command="pachctl_config_delete"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("context")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_get_active-context()
+{
+    last_command="pachctl_config_get_active-context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_get_context()
+{
+    last_command="pachctl_config_get_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_get_metrics()
+{
+    last_command="pachctl_config_get_metrics"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_get()
+{
+    last_command="pachctl_config_get"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("active-context")
+    commands+=("context")
+    commands+=("metrics")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_list_context()
+{
+    last_command="pachctl_config_list_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_list()
+{
+    last_command="pachctl_config_list"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("context")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_set_active-context()
+{
+    last_command="pachctl_config_set_active-context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_set_context()
+{
+    last_command="pachctl_config_set_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--kubernetes=")
+    two_word_flags+=("--kubernetes")
+    two_word_flags+=("-k")
+    local_nonpersistent_flags+=("--kubernetes=")
+    flags+=("--overwrite")
+    local_nonpersistent_flags+=("--overwrite")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_set_metrics()
+{
+    last_command="pachctl_config_set_metrics"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_set()
+{
+    last_command="pachctl_config_set"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("active-context")
+    commands+=("context")
+    commands+=("metrics")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_update_context()
+{
+    last_command="pachctl_config_update_context"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--auth-info=")
+    two_word_flags+=("--auth-info")
+    local_nonpersistent_flags+=("--auth-info=")
+    flags+=("--cluster-name=")
+    two_word_flags+=("--cluster-name")
+    local_nonpersistent_flags+=("--cluster-name=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--pachd-address=")
+    two_word_flags+=("--pachd-address")
+    local_nonpersistent_flags+=("--pachd-address=")
+    flags+=("--remove-cluster-deployment-id")
+    local_nonpersistent_flags+=("--remove-cluster-deployment-id")
+    flags+=("--server-cas=")
+    two_word_flags+=("--server-cas")
+    local_nonpersistent_flags+=("--server-cas=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config_update()
+{
+    last_command="pachctl_config_update"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("context")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_config()
+{
+    last_command="pachctl_config"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("delete")
+    commands+=("get")
+    commands+=("list")
+    commands+=("set")
+    commands+=("update")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_copy_file()
+{
+    last_command="pachctl_copy_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--overwrite")
+    flags+=("-o")
+    local_nonpersistent_flags+=("--overwrite")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_copy()
+{
+    last_command="pachctl_copy"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("file")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_copy-file()
+{
+    last_command="pachctl_copy-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--overwrite")
+    flags+=("-o")
+    local_nonpersistent_flags+=("--overwrite")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create_branch()
+{
+    last_command="pachctl_create_branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--head=")
+    two_word_flags+=("--head")
+    flags_with_completion+=("--head")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--head=")
+    flags+=("--provenance=")
+    two_word_flags+=("--provenance")
+    flags_with_completion+=("--provenance")
+    flags_completion+=("__pachctl_get_repo_commit")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_repo_commit")
+    local_nonpersistent_flags+=("--provenance=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create_pipeline()
+{
+    last_command="pachctl_create_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--build")
+    flags+=("-b")
+    local_nonpersistent_flags+=("--build")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--push-images")
+    flags+=("-p")
+    local_nonpersistent_flags+=("--push-images")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    two_word_flags+=("-r")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create_repo()
+{
+    last_command="pachctl_create_repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create_secret()
+{
+    last_command="pachctl_create_secret"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create()
+{
+    last_command="pachctl_create"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("branch")
+    commands+=("pipeline")
+    commands+=("repo")
+    commands+=("secret")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create-branch()
+{
+    last_command="pachctl_create-branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--head=")
+    two_word_flags+=("--head")
+    local_nonpersistent_flags+=("--head=")
+    flags+=("--provenance=")
+    two_word_flags+=("--provenance")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--provenance=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create-pipeline()
+{
+    last_command="pachctl_create-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--build")
+    flags+=("-b")
+    local_nonpersistent_flags+=("--build")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--push-images")
+    flags+=("-p")
+    local_nonpersistent_flags+=("--push-images")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    two_word_flags+=("-r")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_create-repo()
+{
+    last_command="pachctl_create-repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug_binary()
+{
+    last_command="pachctl_debug_binary"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--pachd")
+    local_nonpersistent_flags+=("--pachd")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--worker=")
+    two_word_flags+=("--worker")
+    two_word_flags+=("-w")
+    local_nonpersistent_flags+=("--worker=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug_dump()
+{
+    last_command="pachctl_debug_dump"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--pachd")
+    local_nonpersistent_flags+=("--pachd")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--worker=")
+    two_word_flags+=("--worker")
+    two_word_flags+=("-w")
+    local_nonpersistent_flags+=("--worker=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug_profile()
+{
+    last_command="pachctl_debug_profile"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--duration=")
+    two_word_flags+=("--duration")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--duration=")
+    flags+=("--pachd")
+    local_nonpersistent_flags+=("--pachd")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--worker=")
+    two_word_flags+=("--worker")
+    two_word_flags+=("-w")
+    local_nonpersistent_flags+=("--worker=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug()
+{
+    last_command="pachctl_debug"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("binary")
+    commands+=("dump")
+    commands+=("profile")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug-binary()
+{
+    last_command="pachctl_debug-binary"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--pachd")
+    local_nonpersistent_flags+=("--pachd")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--worker=")
+    two_word_flags+=("--worker")
+    two_word_flags+=("-w")
+    local_nonpersistent_flags+=("--worker=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug-dump()
+{
+    last_command="pachctl_debug-dump"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--pachd")
+    local_nonpersistent_flags+=("--pachd")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--worker=")
+    two_word_flags+=("--worker")
+    two_word_flags+=("-w")
+    local_nonpersistent_flags+=("--worker=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_debug-profile()
+{
+    last_command="pachctl_debug-profile"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--duration=")
+    two_word_flags+=("--duration")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--duration=")
+    flags+=("--pachd")
+    local_nonpersistent_flags+=("--pachd")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--worker=")
+    two_word_flags+=("--worker")
+    two_word_flags+=("-w")
+    local_nonpersistent_flags+=("--worker=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_all()
+{
+    last_command="pachctl_delete_all"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_branch()
+{
+    last_command="pachctl_delete_branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--force")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_commit()
+{
+    last_command="pachctl_delete_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_file()
+{
+    last_command="pachctl_delete_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_job()
+{
+    last_command="pachctl_delete_job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_pipeline()
+{
+    last_command="pachctl_delete_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--force")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--keep-repo")
+    local_nonpersistent_flags+=("--keep-repo")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_repo()
+{
+    last_command="pachctl_delete_repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--force")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_secret()
+{
+    last_command="pachctl_delete_secret"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete_transaction()
+{
+    last_command="pachctl_delete_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete()
+{
+    last_command="pachctl_delete"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("all")
+    commands+=("branch")
+    commands+=("commit")
+    commands+=("file")
+    commands+=("job")
+    commands+=("pipeline")
+    commands+=("repo")
+    commands+=("secret")
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-all()
+{
+    last_command="pachctl_delete-all"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-branch()
+{
+    last_command="pachctl_delete-branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--force")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-commit()
+{
+    last_command="pachctl_delete-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-file()
+{
+    last_command="pachctl_delete-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-job()
+{
+    last_command="pachctl_delete-job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-pipeline()
+{
+    last_command="pachctl_delete-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--force")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--keep-repo")
+    local_nonpersistent_flags+=("--keep-repo")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_delete-repo()
+{
+    last_command="pachctl_delete-repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--force")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--force")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_amazon()
+{
+    last_command="pachctl_deploy_amazon"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cloudfront-distribution=")
+    two_word_flags+=("--cloudfront-distribution")
+    local_nonpersistent_flags+=("--cloudfront-distribution=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--context=")
+    two_word_flags+=("--context")
+    two_word_flags+=("-c")
+    local_nonpersistent_flags+=("--context=")
+    flags+=("--create-context")
+    local_nonpersistent_flags+=("--create-context")
+    flags+=("--credentials=")
+    two_word_flags+=("--credentials")
+    local_nonpersistent_flags+=("--credentials=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--disable-ssl")
+    local_nonpersistent_flags+=("--disable-ssl")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--iam-role=")
+    two_word_flags+=("--iam-role")
+    local_nonpersistent_flags+=("--iam-role=")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--max-upload-parts=")
+    two_word_flags+=("--max-upload-parts")
+    local_nonpersistent_flags+=("--max-upload-parts=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--no-verify-ssl")
+    local_nonpersistent_flags+=("--no-verify-ssl")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--part-size=")
+    two_word_flags+=("--part-size")
+    local_nonpersistent_flags+=("--part-size=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--retries=")
+    two_word_flags+=("--retries")
+    local_nonpersistent_flags+=("--retries=")
+    flags+=("--reverse")
+    local_nonpersistent_flags+=("--reverse")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-acl=")
+    two_word_flags+=("--upload-acl")
+    local_nonpersistent_flags+=("--upload-acl=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--vault=")
+    two_word_flags+=("--vault")
+    local_nonpersistent_flags+=("--vault=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_custom()
+{
+    last_command="pachctl_deploy_custom"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--context=")
+    two_word_flags+=("--context")
+    two_word_flags+=("-c")
+    local_nonpersistent_flags+=("--context=")
+    flags+=("--create-context")
+    local_nonpersistent_flags+=("--create-context")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--disable-ssl")
+    local_nonpersistent_flags+=("--disable-ssl")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--isS3V2")
+    local_nonpersistent_flags+=("--isS3V2")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--max-upload-parts=")
+    two_word_flags+=("--max-upload-parts")
+    local_nonpersistent_flags+=("--max-upload-parts=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--no-verify-ssl")
+    local_nonpersistent_flags+=("--no-verify-ssl")
+    flags+=("--object-store=")
+    two_word_flags+=("--object-store")
+    local_nonpersistent_flags+=("--object-store=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--part-size=")
+    two_word_flags+=("--part-size")
+    local_nonpersistent_flags+=("--part-size=")
+    flags+=("--persistent-disk=")
+    two_word_flags+=("--persistent-disk")
+    local_nonpersistent_flags+=("--persistent-disk=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--retries=")
+    two_word_flags+=("--retries")
+    local_nonpersistent_flags+=("--retries=")
+    flags+=("--reverse")
+    local_nonpersistent_flags+=("--reverse")
+    flags+=("--secure")
+    flags+=("-s")
+    local_nonpersistent_flags+=("--secure")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-acl=")
+    two_word_flags+=("--upload-acl")
+    local_nonpersistent_flags+=("--upload-acl=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_export-images()
+{
+    last_command="pachctl_deploy_export-images"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_google()
+{
+    last_command="pachctl_deploy_google"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--context=")
+    two_word_flags+=("--context")
+    two_word_flags+=("-c")
+    local_nonpersistent_flags+=("--context=")
+    flags+=("--create-context")
+    local_nonpersistent_flags+=("--create-context")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_ide()
+{
+    last_command="pachctl_deploy_ide"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--hub-image=")
+    two_word_flags+=("--hub-image")
+    local_nonpersistent_flags+=("--hub-image=")
+    flags+=("--jupyterhub-chart-version=")
+    two_word_flags+=("--jupyterhub-chart-version")
+    local_nonpersistent_flags+=("--jupyterhub-chart-version=")
+    flags+=("--lb-tls-email=")
+    two_word_flags+=("--lb-tls-email")
+    local_nonpersistent_flags+=("--lb-tls-email=")
+    flags+=("--lb-tls-host=")
+    two_word_flags+=("--lb-tls-host")
+    local_nonpersistent_flags+=("--lb-tls-host=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--user-image=")
+    two_word_flags+=("--user-image")
+    local_nonpersistent_flags+=("--user-image=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_import-images()
+{
+    last_command="pachctl_deploy_import-images"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_list-images()
+{
+    last_command="pachctl_deploy_list-images"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_local()
+{
+    last_command="pachctl_deploy_local"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--context=")
+    two_word_flags+=("--context")
+    two_word_flags+=("-c")
+    local_nonpersistent_flags+=("--context=")
+    flags+=("--create-context")
+    local_nonpersistent_flags+=("--create-context")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dev")
+    flags+=("-d")
+    local_nonpersistent_flags+=("--dev")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--host-path=")
+    two_word_flags+=("--host-path")
+    local_nonpersistent_flags+=("--host-path=")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_microsoft()
+{
+    last_command="pachctl_deploy_microsoft"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--context=")
+    two_word_flags+=("--context")
+    two_word_flags+=("-c")
+    local_nonpersistent_flags+=("--context=")
+    flags+=("--create-context")
+    local_nonpersistent_flags+=("--create-context")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_storage_amazon()
+{
+    last_command="pachctl_deploy_storage_amazon"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--disable-ssl")
+    local_nonpersistent_flags+=("--disable-ssl")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--max-upload-parts=")
+    two_word_flags+=("--max-upload-parts")
+    local_nonpersistent_flags+=("--max-upload-parts=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--no-verify-ssl")
+    local_nonpersistent_flags+=("--no-verify-ssl")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--part-size=")
+    two_word_flags+=("--part-size")
+    local_nonpersistent_flags+=("--part-size=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--retries=")
+    two_word_flags+=("--retries")
+    local_nonpersistent_flags+=("--retries=")
+    flags+=("--reverse")
+    local_nonpersistent_flags+=("--reverse")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-acl=")
+    two_word_flags+=("--upload-acl")
+    local_nonpersistent_flags+=("--upload-acl=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_storage_aws()
+{
+    last_command="pachctl_deploy_storage_aws"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--disable-ssl")
+    local_nonpersistent_flags+=("--disable-ssl")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--max-upload-parts=")
+    two_word_flags+=("--max-upload-parts")
+    local_nonpersistent_flags+=("--max-upload-parts=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--no-verify-ssl")
+    local_nonpersistent_flags+=("--no-verify-ssl")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--part-size=")
+    two_word_flags+=("--part-size")
+    local_nonpersistent_flags+=("--part-size=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--retries=")
+    two_word_flags+=("--retries")
+    local_nonpersistent_flags+=("--retries=")
+    flags+=("--reverse")
+    local_nonpersistent_flags+=("--reverse")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-acl=")
+    two_word_flags+=("--upload-acl")
+    local_nonpersistent_flags+=("--upload-acl=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_storage_azure()
+{
+    last_command="pachctl_deploy_storage_azure"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_storage_google()
+{
+    last_command="pachctl_deploy_storage_google"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_storage_microsoft()
+{
+    last_command="pachctl_deploy_storage_microsoft"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block-cache-size=")
+    two_word_flags+=("--block-cache-size")
+    local_nonpersistent_flags+=("--block-cache-size=")
+    flags+=("--cluster-deployment-id=")
+    two_word_flags+=("--cluster-deployment-id")
+    local_nonpersistent_flags+=("--cluster-deployment-id=")
+    flags+=("--dash-image=")
+    two_word_flags+=("--dash-image")
+    local_nonpersistent_flags+=("--dash-image=")
+    flags+=("--dashboard-only")
+    local_nonpersistent_flags+=("--dashboard-only")
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--dynamic-etcd-nodes=")
+    two_word_flags+=("--dynamic-etcd-nodes")
+    local_nonpersistent_flags+=("--dynamic-etcd-nodes=")
+    flags+=("--etcd-cpu-request=")
+    two_word_flags+=("--etcd-cpu-request")
+    local_nonpersistent_flags+=("--etcd-cpu-request=")
+    flags+=("--etcd-memory-request=")
+    two_word_flags+=("--etcd-memory-request")
+    local_nonpersistent_flags+=("--etcd-memory-request=")
+    flags+=("--etcd-storage-class=")
+    two_word_flags+=("--etcd-storage-class")
+    local_nonpersistent_flags+=("--etcd-storage-class=")
+    flags+=("--expose-object-api")
+    local_nonpersistent_flags+=("--expose-object-api")
+    flags+=("--image-pull-secret=")
+    two_word_flags+=("--image-pull-secret")
+    local_nonpersistent_flags+=("--image-pull-secret=")
+    flags+=("--local-roles")
+    local_nonpersistent_flags+=("--local-roles")
+    flags+=("--log-level=")
+    two_word_flags+=("--log-level")
+    local_nonpersistent_flags+=("--log-level=")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--new-storage-layer")
+    local_nonpersistent_flags+=("--new-storage-layer")
+    flags+=("--no-dashboard")
+    local_nonpersistent_flags+=("--no-dashboard")
+    flags+=("--no-expose-docker-socket")
+    local_nonpersistent_flags+=("--no-expose-docker-socket")
+    flags+=("--no-guaranteed")
+    local_nonpersistent_flags+=("--no-guaranteed")
+    flags+=("--no-rbac")
+    local_nonpersistent_flags+=("--no-rbac")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pachd-cpu-request=")
+    two_word_flags+=("--pachd-cpu-request")
+    local_nonpersistent_flags+=("--pachd-cpu-request=")
+    flags+=("--pachd-memory-request=")
+    two_word_flags+=("--pachd-memory-request")
+    local_nonpersistent_flags+=("--pachd-memory-request=")
+    flags+=("--put-file-concurrency-limit=")
+    two_word_flags+=("--put-file-concurrency-limit")
+    local_nonpersistent_flags+=("--put-file-concurrency-limit=")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--require-critical-servers-only")
+    local_nonpersistent_flags+=("--require-critical-servers-only")
+    flags+=("--shards=")
+    two_word_flags+=("--shards")
+    local_nonpersistent_flags+=("--shards=")
+    flags+=("--static-etcd-volume=")
+    two_word_flags+=("--static-etcd-volume")
+    local_nonpersistent_flags+=("--static-etcd-volume=")
+    flags+=("--tls=")
+    two_word_flags+=("--tls")
+    local_nonpersistent_flags+=("--tls=")
+    flags+=("--upload-concurrency-limit=")
+    two_word_flags+=("--upload-concurrency-limit")
+    local_nonpersistent_flags+=("--upload-concurrency-limit=")
+    flags+=("--worker-service-account=")
+    two_word_flags+=("--worker-service-account")
+    local_nonpersistent_flags+=("--worker-service-account=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy_storage()
+{
+    last_command="pachctl_deploy_storage"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("amazon")
+    commands+=("aws")
+    commands+=("azure")
+    commands+=("google")
+    commands+=("microsoft")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_deploy()
+{
+    last_command="pachctl_deploy"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("amazon")
+    commands+=("custom")
+    commands+=("export-images")
+    commands+=("google")
+    commands+=("ide")
+    commands+=("import-images")
+    commands+=("list-images")
+    commands+=("local")
+    commands+=("microsoft")
+    commands+=("storage")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_diff_file()
+{
+    last_command="pachctl_diff_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--diff-command=")
+    two_word_flags+=("--diff-command")
+    local_nonpersistent_flags+=("--diff-command=")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--name-only")
+    local_nonpersistent_flags+=("--name-only")
+    flags+=("--no-pager")
+    local_nonpersistent_flags+=("--no-pager")
+    flags+=("--shallow")
+    flags+=("-s")
+    local_nonpersistent_flags+=("--shallow")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_diff()
+{
+    last_command="pachctl_diff"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("file")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_diff-file()
+{
+    last_command="pachctl_diff-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--diff-command=")
+    two_word_flags+=("--diff-command")
+    local_nonpersistent_flags+=("--diff-command=")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--name-only")
+    local_nonpersistent_flags+=("--name-only")
+    flags+=("--no-pager")
+    local_nonpersistent_flags+=("--no-pager")
+    flags+=("--shallow")
+    flags+=("-s")
+    local_nonpersistent_flags+=("--shallow")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_edit_pipeline()
+{
+    last_command="pachctl_edit_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--editor=")
+    two_word_flags+=("--editor")
+    local_nonpersistent_flags+=("--editor=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--reprocess")
+    local_nonpersistent_flags+=("--reprocess")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_edit()
+{
+    last_command="pachctl_edit"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("pipeline")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_edit-pipeline()
+{
+    last_command="pachctl_edit-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--editor=")
+    two_word_flags+=("--editor")
+    local_nonpersistent_flags+=("--editor=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--reprocess")
+    local_nonpersistent_flags+=("--reprocess")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_enterprise_activate()
+{
+    last_command="pachctl_enterprise_activate"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--expires=")
+    two_word_flags+=("--expires")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_enterprise_get-state()
+{
+    last_command="pachctl_enterprise_get-state"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_enterprise()
+{
+    last_command="pachctl_enterprise"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("activate")
+    commands+=("get-state")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_exit()
+{
+    last_command="pachctl_exit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_extract_pipeline()
+{
+    last_command="pachctl_extract_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_extract()
+{
+    last_command="pachctl_extract"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("pipeline")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-objects")
+    local_nonpersistent_flags+=("--no-objects")
+    flags+=("--url=")
+    two_word_flags+=("--url")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--url=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_extract-pipeline()
+{
+    last_command="pachctl_extract-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_finish_commit()
+{
+    last_command="pachctl_finish_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--message=")
+    two_word_flags+=("--message")
+    two_word_flags+=("-m")
+    local_nonpersistent_flags+=("--message=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_finish_transaction()
+{
+    last_command="pachctl_finish_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_finish()
+{
+    last_command="pachctl_finish"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("commit")
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_finish-commit()
+{
+    last_command="pachctl_finish-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--message=")
+    two_word_flags+=("--message")
+    two_word_flags+=("-m")
+    local_nonpersistent_flags+=("--message=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_flush_commit()
+{
+    last_command="pachctl_flush_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--repos=")
+    two_word_flags+=("--repos")
+    flags_with_completion+=("--repos")
+    flags_completion+=("__pachctl_get_repo")
+    two_word_flags+=("-r")
+    flags_with_completion+=("-r")
+    flags_completion+=("__pachctl_get_repo")
+    local_nonpersistent_flags+=("--repos=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_flush_job()
+{
+    last_command="pachctl_flush_job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    flags_with_completion+=("--pipeline")
+    flags_completion+=("__pachctl_get_pipeline")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_flush()
+{
+    last_command="pachctl_flush"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("commit")
+    commands+=("job")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_flush-commit()
+{
+    last_command="pachctl_flush-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--repos=")
+    two_word_flags+=("--repos")
+    flags_with_completion+=("--repos")
+    flags_completion+=("__pachctl_get_repo")
+    two_word_flags+=("-r")
+    flags_with_completion+=("-r")
+    flags_completion+=("__pachctl_get_repo")
+    local_nonpersistent_flags+=("--repos=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_flush-job()
+{
+    last_command="pachctl_flush-job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    flags_with_completion+=("--pipeline")
+    flags_completion+=("__pachctl_get_pipeline")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_fsck()
+{
+    last_command="pachctl_fsck"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--fix")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--fix")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_garbage-collect()
+{
+    last_command="pachctl_garbage-collect"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--memory=")
+    two_word_flags+=("--memory")
+    two_word_flags+=("-m")
+    local_nonpersistent_flags+=("--memory=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get_file()
+{
+    last_command="pachctl_get_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--parallelism=")
+    two_word_flags+=("--parallelism")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parallelism=")
+    flags+=("--recursive")
+    flags+=("-r")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get_object()
+{
+    last_command="pachctl_get_object"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get_tag()
+{
+    last_command="pachctl_get_tag"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get()
+{
+    last_command="pachctl_get"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("file")
+    commands+=("object")
+    commands+=("tag")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get-file()
+{
+    last_command="pachctl_get-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--parallelism=")
+    two_word_flags+=("--parallelism")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parallelism=")
+    flags+=("--recursive")
+    flags+=("-r")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get-logs()
+{
+    last_command="pachctl_get-logs"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--datum=")
+    two_word_flags+=("--datum")
+    local_nonpersistent_flags+=("--datum=")
+    flags+=("--follow")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--follow")
+    flags+=("--inputs=")
+    two_word_flags+=("--inputs")
+    local_nonpersistent_flags+=("--inputs=")
+    flags+=("--job=")
+    two_word_flags+=("--job")
+    flags_with_completion+=("--job")
+    flags_completion+=("__pachctl_get_job")
+    two_word_flags+=("-j")
+    flags_with_completion+=("-j")
+    flags_completion+=("__pachctl_get_job")
+    local_nonpersistent_flags+=("--job=")
+    flags+=("--master")
+    local_nonpersistent_flags+=("--master")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    flags_with_completion+=("--pipeline")
+    flags_completion+=("__pachctl_get_pipeline")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--tail=")
+    two_word_flags+=("--tail")
+    two_word_flags+=("-t")
+    local_nonpersistent_flags+=("--tail=")
+    flags+=("--worker")
+    local_nonpersistent_flags+=("--worker")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get-object()
+{
+    last_command="pachctl_get-object"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_get-tag()
+{
+    last_command="pachctl_get-tag"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_glob_file()
+{
+    last_command="pachctl_glob_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_glob()
+{
+    last_command="pachctl_glob"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("file")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_glob-file()
+{
+    last_command="pachctl_glob-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_branch()
+{
+    last_command="pachctl_inspect_branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_cluster()
+{
+    last_command="pachctl_inspect_cluster"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_commit()
+{
+    last_command="pachctl_inspect_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_datum()
+{
+    last_command="pachctl_inspect_datum"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_file()
+{
+    last_command="pachctl_inspect_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_job()
+{
+    last_command="pachctl_inspect_job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block")
+    flags+=("-b")
+    local_nonpersistent_flags+=("--block")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_pipeline()
+{
+    last_command="pachctl_inspect_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_repo()
+{
+    last_command="pachctl_inspect_repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_secret()
+{
+    last_command="pachctl_inspect_secret"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect_transaction()
+{
+    last_command="pachctl_inspect_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect()
+{
+    last_command="pachctl_inspect"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("branch")
+    commands+=("cluster")
+    commands+=("commit")
+    commands+=("datum")
+    commands+=("file")
+    commands+=("job")
+    commands+=("pipeline")
+    commands+=("repo")
+    commands+=("secret")
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-cluster()
+{
+    last_command="pachctl_inspect-cluster"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-commit()
+{
+    last_command="pachctl_inspect-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-datum()
+{
+    last_command="pachctl_inspect-datum"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-file()
+{
+    last_command="pachctl_inspect-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-job()
+{
+    last_command="pachctl_inspect-job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--block")
+    flags+=("-b")
+    local_nonpersistent_flags+=("--block")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-pipeline()
+{
+    last_command="pachctl_inspect-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_inspect-repo()
+{
+    last_command="pachctl_inspect-repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_branch()
+{
+    last_command="pachctl_list_branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_commit()
+{
+    last_command="pachctl_list_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    flags_with_completion+=("--from")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--number=")
+    two_word_flags+=("--number")
+    two_word_flags+=("-n")
+    local_nonpersistent_flags+=("--number=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_datum()
+{
+    last_command="pachctl_list_datum"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--page=")
+    two_word_flags+=("--page")
+    local_nonpersistent_flags+=("--page=")
+    flags+=("--pageSize=")
+    two_word_flags+=("--pageSize")
+    local_nonpersistent_flags+=("--pageSize=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_file()
+{
+    last_command="pachctl_list_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--history=")
+    two_word_flags+=("--history")
+    local_nonpersistent_flags+=("--history=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_job()
+{
+    last_command="pachctl_list_job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--history=")
+    two_word_flags+=("--history")
+    local_nonpersistent_flags+=("--history=")
+    flags+=("--input=")
+    two_word_flags+=("--input")
+    flags_with_completion+=("--input")
+    flags_completion+=("__pachctl_get_repo_commit")
+    two_word_flags+=("-i")
+    flags_with_completion+=("-i")
+    flags_completion+=("__pachctl_get_repo_commit")
+    local_nonpersistent_flags+=("--input=")
+    flags+=("--no-pager")
+    local_nonpersistent_flags+=("--no-pager")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    flags_with_completion+=("--output")
+    flags_completion+=("__pachctl_get_repo_commit")
+    two_word_flags+=("-o")
+    flags_with_completion+=("-o")
+    flags_completion+=("__pachctl_get_repo_commit")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    flags_with_completion+=("--pipeline")
+    flags_completion+=("__pachctl_get_pipeline")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_pipeline()
+{
+    last_command="pachctl_list_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--history=")
+    two_word_flags+=("--history")
+    local_nonpersistent_flags+=("--history=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--spec")
+    flags+=("-s")
+    local_nonpersistent_flags+=("--spec")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_repo()
+{
+    last_command="pachctl_list_repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_secret()
+{
+    last_command="pachctl_list_secret"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list_transaction()
+{
+    last_command="pachctl_list_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list()
+{
+    last_command="pachctl_list"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("branch")
+    commands+=("commit")
+    commands+=("datum")
+    commands+=("file")
+    commands+=("job")
+    commands+=("pipeline")
+    commands+=("repo")
+    commands+=("secret")
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-branch()
+{
+    last_command="pachctl_list-branch"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-commit()
+{
+    last_command="pachctl_list-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    flags_with_completion+=("--from")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    two_word_flags+=("-f")
+    flags_with_completion+=("-f")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--number=")
+    two_word_flags+=("--number")
+    two_word_flags+=("-n")
+    local_nonpersistent_flags+=("--number=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-datum()
+{
+    last_command="pachctl_list-datum"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--page=")
+    two_word_flags+=("--page")
+    local_nonpersistent_flags+=("--page=")
+    flags+=("--pageSize=")
+    two_word_flags+=("--pageSize")
+    local_nonpersistent_flags+=("--pageSize=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-file()
+{
+    last_command="pachctl_list-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--history=")
+    two_word_flags+=("--history")
+    local_nonpersistent_flags+=("--history=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-job()
+{
+    last_command="pachctl_list-job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--input=")
+    two_word_flags+=("--input")
+    two_word_flags+=("-i")
+    local_nonpersistent_flags+=("--input=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-pipeline()
+{
+    last_command="pachctl_list-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--history=")
+    two_word_flags+=("--history")
+    local_nonpersistent_flags+=("--history=")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--spec")
+    flags+=("-s")
+    local_nonpersistent_flags+=("--spec")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_list-repo()
+{
+    last_command="pachctl_list-repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_logs()
+{
+    last_command="pachctl_logs"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--datum=")
+    two_word_flags+=("--datum")
+    local_nonpersistent_flags+=("--datum=")
+    flags+=("--follow")
+    flags+=("-f")
+    local_nonpersistent_flags+=("--follow")
+    flags+=("--inputs=")
+    two_word_flags+=("--inputs")
+    local_nonpersistent_flags+=("--inputs=")
+    flags+=("--job=")
+    two_word_flags+=("--job")
+    flags_with_completion+=("--job")
+    flags_completion+=("__pachctl_get_job")
+    two_word_flags+=("-j")
+    flags_with_completion+=("-j")
+    flags_completion+=("__pachctl_get_job")
+    local_nonpersistent_flags+=("--job=")
+    flags+=("--master")
+    local_nonpersistent_flags+=("--master")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    flags_with_completion+=("--pipeline")
+    flags_completion+=("__pachctl_get_pipeline")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--tail=")
+    two_word_flags+=("--tail")
+    two_word_flags+=("-t")
+    local_nonpersistent_flags+=("--tail=")
+    flags+=("--worker")
+    local_nonpersistent_flags+=("--worker")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_mount()
+{
+    last_command="pachctl_mount"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--debug")
+    flags+=("-d")
+    local_nonpersistent_flags+=("--debug")
+    flags+=("--repos=")
+    two_word_flags+=("--repos")
+    flags_with_completion+=("--repos")
+    flags_completion+=("__pachctl_get_repo_branch")
+    two_word_flags+=("-r")
+    flags_with_completion+=("-r")
+    flags_completion+=("__pachctl_get_repo_branch")
+    local_nonpersistent_flags+=("--repos=")
+    flags+=("--write")
+    flags+=("-w")
+    local_nonpersistent_flags+=("--write")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_port-forward()
+{
+    last_command="pachctl_port-forward"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--oidc-port=")
+    two_word_flags+=("--oidc-port")
+    local_nonpersistent_flags+=("--oidc-port=")
+    flags+=("--pfs-port=")
+    two_word_flags+=("--pfs-port")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--pfs-port=")
+    flags+=("--port=")
+    two_word_flags+=("--port")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--port=")
+    flags+=("--proxy-port=")
+    two_word_flags+=("--proxy-port")
+    two_word_flags+=("-x")
+    local_nonpersistent_flags+=("--proxy-port=")
+    flags+=("--remote-port=")
+    two_word_flags+=("--remote-port")
+    local_nonpersistent_flags+=("--remote-port=")
+    flags+=("--s3gateway-port=")
+    two_word_flags+=("--s3gateway-port")
+    two_word_flags+=("-s")
+    local_nonpersistent_flags+=("--s3gateway-port=")
+    flags+=("--saml-port=")
+    two_word_flags+=("--saml-port")
+    local_nonpersistent_flags+=("--saml-port=")
+    flags+=("--ui-port=")
+    two_word_flags+=("--ui-port")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--ui-port=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_put_file()
+{
+    last_command="pachctl_put_file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--commit")
+    flags+=("-c")
+    local_nonpersistent_flags+=("--commit")
+    flags+=("--compress")
+    local_nonpersistent_flags+=("--compress")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--header-records=")
+    two_word_flags+=("--header-records")
+    local_nonpersistent_flags+=("--header-records=")
+    flags+=("--input-file=")
+    two_word_flags+=("--input-file")
+    two_word_flags+=("-i")
+    local_nonpersistent_flags+=("--input-file=")
+    flags+=("--overwrite")
+    flags+=("-o")
+    local_nonpersistent_flags+=("--overwrite")
+    flags+=("--parallelism=")
+    two_word_flags+=("--parallelism")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parallelism=")
+    flags+=("--recursive")
+    flags+=("-r")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--split=")
+    two_word_flags+=("--split")
+    local_nonpersistent_flags+=("--split=")
+    flags+=("--target-file-bytes=")
+    two_word_flags+=("--target-file-bytes")
+    local_nonpersistent_flags+=("--target-file-bytes=")
+    flags+=("--target-file-datums=")
+    two_word_flags+=("--target-file-datums")
+    local_nonpersistent_flags+=("--target-file-datums=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_put()
+{
+    last_command="pachctl_put"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("file")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_put-file()
+{
+    last_command="pachctl_put-file"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--commit")
+    flags+=("-c")
+    local_nonpersistent_flags+=("--commit")
+    flags+=("--compress")
+    local_nonpersistent_flags+=("--compress")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--header-records=")
+    two_word_flags+=("--header-records")
+    local_nonpersistent_flags+=("--header-records=")
+    flags+=("--input-file=")
+    two_word_flags+=("--input-file")
+    two_word_flags+=("-i")
+    local_nonpersistent_flags+=("--input-file=")
+    flags+=("--overwrite")
+    flags+=("-o")
+    local_nonpersistent_flags+=("--overwrite")
+    flags+=("--parallelism=")
+    two_word_flags+=("--parallelism")
+    two_word_flags+=("-p")
+    local_nonpersistent_flags+=("--parallelism=")
+    flags+=("--recursive")
+    flags+=("-r")
+    local_nonpersistent_flags+=("--recursive")
+    flags+=("--split=")
+    two_word_flags+=("--split")
+    local_nonpersistent_flags+=("--split=")
+    flags+=("--target-file-bytes=")
+    two_word_flags+=("--target-file-bytes")
+    local_nonpersistent_flags+=("--target-file-bytes=")
+    flags+=("--target-file-datums=")
+    two_word_flags+=("--target-file-datums")
+    local_nonpersistent_flags+=("--target-file-datums=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_restart_datum()
+{
+    last_command="pachctl_restart_datum"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_restart()
+{
+    last_command="pachctl_restart"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("datum")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_restart-datum()
+{
+    last_command="pachctl_restart-datum"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_restore()
+{
+    last_command="pachctl_restore"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--url=")
+    two_word_flags+=("--url")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--url=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_resume_transaction()
+{
+    last_command="pachctl_resume_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_resume()
+{
+    last_command="pachctl_resume"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_run_cron()
+{
+    last_command="pachctl_run_cron"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_run_pipeline()
+{
+    last_command="pachctl_run_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--job=")
+    two_word_flags+=("--job")
+    local_nonpersistent_flags+=("--job=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_run()
+{
+    last_command="pachctl_run"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("cron")
+    commands+=("pipeline")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_shell()
+{
+    last_command="pachctl_shell"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--max-completions=")
+    two_word_flags+=("--max-completions")
+    local_nonpersistent_flags+=("--max-completions=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_start_commit()
+{
+    last_command="pachctl_start_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--message=")
+    two_word_flags+=("--message")
+    two_word_flags+=("-m")
+    local_nonpersistent_flags+=("--message=")
+    flags+=("--parent=")
+    two_word_flags+=("--parent")
+    flags_with_completion+=("--parent")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--parent=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_start_pipeline()
+{
+    last_command="pachctl_start_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_start_transaction()
+{
+    last_command="pachctl_start_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_start()
+{
+    last_command="pachctl_start"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("commit")
+    commands+=("pipeline")
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_start-commit()
+{
+    last_command="pachctl_start-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--message=")
+    two_word_flags+=("--message")
+    two_word_flags+=("-m")
+    local_nonpersistent_flags+=("--message=")
+    flags+=("--parent=")
+    two_word_flags+=("--parent")
+    flags_with_completion+=("--parent")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    two_word_flags+=("-p")
+    flags_with_completion+=("-p")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--parent=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_start-pipeline()
+{
+    last_command="pachctl_start-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_stop_job()
+{
+    last_command="pachctl_stop_job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_stop_pipeline()
+{
+    last_command="pachctl_stop_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_stop_transaction()
+{
+    last_command="pachctl_stop_transaction"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_stop()
+{
+    last_command="pachctl_stop"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("job")
+    commands+=("pipeline")
+    commands+=("transaction")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_stop-job()
+{
+    last_command="pachctl_stop-job"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_stop-pipeline()
+{
+    last_command="pachctl_stop-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_subscribe_commit()
+{
+    last_command="pachctl_subscribe_commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    flags_with_completion+=("--from")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--new")
+    local_nonpersistent_flags+=("--new")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_subscribe()
+{
+    last_command="pachctl_subscribe"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("commit")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_subscribe-commit()
+{
+    last_command="pachctl_subscribe-commit"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--from=")
+    two_word_flags+=("--from")
+    flags_with_completion+=("--from")
+    flags_completion+=("__pachctl_get_commit $(__parse_repo ${nouns[0]})")
+    local_nonpersistent_flags+=("--from=")
+    flags+=("--full-timestamps")
+    local_nonpersistent_flags+=("--full-timestamps")
+    flags+=("--new")
+    local_nonpersistent_flags+=("--new")
+    flags+=("--pipeline=")
+    two_word_flags+=("--pipeline")
+    local_nonpersistent_flags+=("--pipeline=")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_undeploy()
+{
+    last_command="pachctl_undeploy"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("-a")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--ide")
+    local_nonpersistent_flags+=("--ide")
+    flags+=("--metadata")
+    local_nonpersistent_flags+=("--metadata")
+    flags+=("--namespace=")
+    two_word_flags+=("--namespace")
+    local_nonpersistent_flags+=("--namespace=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_unmount()
+{
+    last_command="pachctl_unmount"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--all")
+    flags+=("-a")
+    local_nonpersistent_flags+=("--all")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_update_pipeline()
+{
+    last_command="pachctl_update_pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--build")
+    flags+=("-b")
+    local_nonpersistent_flags+=("--build")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--push-images")
+    flags+=("-p")
+    local_nonpersistent_flags+=("--push-images")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    two_word_flags+=("-r")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--reprocess")
+    local_nonpersistent_flags+=("--reprocess")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_update_repo()
+{
+    last_command="pachctl_update_repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_update()
+{
+    last_command="pachctl_update"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("pipeline")
+    commands+=("repo")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_update-dash()
+{
+    last_command="pachctl_update-dash"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--dry-run")
+    local_nonpersistent_flags+=("--dry-run")
+    flags+=("--output=")
+    two_word_flags+=("--output")
+    two_word_flags+=("-o")
+    local_nonpersistent_flags+=("--output=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_update-pipeline()
+{
+    last_command="pachctl_update-pipeline"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--build")
+    flags+=("-b")
+    local_nonpersistent_flags+=("--build")
+    flags+=("--file=")
+    two_word_flags+=("--file")
+    two_word_flags+=("-f")
+    local_nonpersistent_flags+=("--file=")
+    flags+=("--push-images")
+    flags+=("-p")
+    local_nonpersistent_flags+=("--push-images")
+    flags+=("--registry=")
+    two_word_flags+=("--registry")
+    two_word_flags+=("-r")
+    local_nonpersistent_flags+=("--registry=")
+    flags+=("--reprocess")
+    local_nonpersistent_flags+=("--reprocess")
+    flags+=("--username=")
+    two_word_flags+=("--username")
+    two_word_flags+=("-u")
+    local_nonpersistent_flags+=("--username=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_update-repo()
+{
+    last_command="pachctl_update-repo"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--description=")
+    two_word_flags+=("--description")
+    two_word_flags+=("-d")
+    local_nonpersistent_flags+=("--description=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_version()
+{
+    last_command="pachctl_version"
+
+    command_aliases=()
+
+    commands=()
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--client-only")
+    local_nonpersistent_flags+=("--client-only")
+    flags+=("--raw")
+    local_nonpersistent_flags+=("--raw")
+    flags+=("--timeout=")
+    two_word_flags+=("--timeout")
+    local_nonpersistent_flags+=("--timeout=")
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+_pachctl_root_command()
+{
+    last_command="pachctl"
+
+    command_aliases=()
+
+    commands=()
+    commands+=("auth")
+    commands+=("completion")
+    commands+=("config")
+    commands+=("copy")
+    commands+=("copy-file")
+    commands+=("create")
+    commands+=("create-branch")
+    commands+=("create-pipeline")
+    commands+=("create-repo")
+    commands+=("debug")
+    commands+=("debug-binary")
+    commands+=("debug-dump")
+    commands+=("debug-profile")
+    commands+=("delete")
+    commands+=("delete-all")
+    commands+=("delete-branch")
+    commands+=("delete-commit")
+    commands+=("delete-file")
+    commands+=("delete-job")
+    commands+=("delete-pipeline")
+    commands+=("delete-repo")
+    commands+=("deploy")
+    commands+=("diff")
+    commands+=("diff-file")
+    commands+=("edit")
+    commands+=("edit-pipeline")
+    commands+=("enterprise")
+    commands+=("exit")
+    commands+=("extract")
+    commands+=("extract-pipeline")
+    commands+=("finish")
+    commands+=("finish-commit")
+    commands+=("flush")
+    commands+=("flush-commit")
+    commands+=("flush-job")
+    commands+=("fsck")
+    commands+=("garbage-collect")
+    commands+=("get")
+    commands+=("get-file")
+    commands+=("get-logs")
+    commands+=("get-object")
+    commands+=("get-tag")
+    commands+=("glob")
+    commands+=("glob-file")
+    commands+=("inspect")
+    commands+=("inspect-cluster")
+    commands+=("inspect-commit")
+    commands+=("inspect-datum")
+    commands+=("inspect-file")
+    commands+=("inspect-job")
+    commands+=("inspect-pipeline")
+    commands+=("inspect-repo")
+    commands+=("list")
+    commands+=("list-branch")
+    commands+=("list-commit")
+    commands+=("list-datum")
+    commands+=("list-file")
+    commands+=("list-job")
+    commands+=("list-pipeline")
+    commands+=("list-repo")
+    commands+=("logs")
+    commands+=("mount")
+    commands+=("port-forward")
+    commands+=("put")
+    commands+=("put-file")
+    commands+=("restart")
+    commands+=("restart-datum")
+    commands+=("restore")
+    commands+=("resume")
+    commands+=("run")
+    commands+=("shell")
+    commands+=("start")
+    commands+=("start-commit")
+    commands+=("start-pipeline")
+    commands+=("stop")
+    commands+=("stop-job")
+    commands+=("stop-pipeline")
+    commands+=("subscribe")
+    commands+=("subscribe-commit")
+    commands+=("undeploy")
+    commands+=("unmount")
+    commands+=("update")
+    commands+=("update-dash")
+    commands+=("update-pipeline")
+    commands+=("update-repo")
+    commands+=("version")
+
+    flags=()
+    two_word_flags=()
+    local_nonpersistent_flags=()
+    flags_with_completion=()
+    flags_completion=()
+
+    flags+=("--no-color")
+    flags+=("--verbose")
+    flags+=("-v")
+
+    must_have_one_flag=()
+    must_have_one_noun=()
+    noun_aliases=()
+}
+
+__start_pachctl()
+{
+    local cur prev words cword
+    declare -A flaghash 2>/dev/null || :
+    declare -A aliashash 2>/dev/null || :
+    if declare -F _init_completion >/dev/null 2>&1; then
+        _init_completion -s || return
+    else
+        __pachctl_init_completion -n "=" || return
+    fi
+
+    local c=0
+    local flags=()
+    local two_word_flags=()
+    local local_nonpersistent_flags=()
+    local flags_with_completion=()
+    local flags_completion=()
+    local commands=("pachctl")
+    local must_have_one_flag=()
+    local must_have_one_noun=()
+    local last_command
+    local nouns=()
+
+    __pachctl_handle_word
+}
+
+if [[ $(type -t compopt) = "builtin" ]]; then
+    complete -o default -F __start_pachctl pachctl
+else
+    complete -o default -o nospace -F __start_pachctl pachctl
+fi
+
+# ex: ts=4 sw=4 et filetype=sh
