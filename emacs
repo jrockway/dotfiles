@@ -31,6 +31,7 @@
                          ("\\.t$" . cperl-mode)
                          ("\\.hs$" . haskell-mode)
                          ("\\.html$" . web-mode)
+                         ("\\.svelte$" . web-mode)
                          ("\\.ino$" . c++-mode))
                        auto-mode-alist))
 
@@ -105,7 +106,8 @@
   (company-mode t))
 (use-package tide
   :config
-  (add-hook 'typescript-mode-hook #'setup-tide-mode))
+  (add-hook 'typescript-mode-hook #'setup-tide-mode)
+  (add-hook 'typescript-mode-hook #'lsp-deferred))
 
 (defun setup-vue-mode ()
   (turn-off-flyspell))
@@ -113,7 +115,9 @@
   :config
   (add-hook 'vue-mode-hook #'setup-vue-mode))
 
-(use-package web-mode)
+(use-package web-mode
+  :config
+  (add-hook 'web-mode-hook #'lsp-deferred))
 
 (use-package yaml-mode)
 
@@ -125,9 +129,10 @@
   :config
   (add-hook 'typescript-mode-hook #'prettier-js-mode)
   (add-hook 'yaml-mode-hook #'prettier-js-mode)
-  ;(add-hook 'web-mode-hook #'prettier-js-mode)
   (add-hook 'vue-mode-hook #'prettier-js-mode)
-  (add-hook 'markdown-mode-hook #'prettier-js-mode))
+  (add-hook 'markdown-mode-hook #'prettier-js-mode)
+  (add-hook 'js-mode-hook #'prettier-js-mode)
+  (add-hook 'web-mode-hook #'prettier-js-mode))
 
 (use-package clang-format)
 
@@ -414,7 +419,7 @@
  '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
  '(lsp-auto-guess-root nil)
  '(lsp-completion-show-kind nil)
- '(lsp-debounce-full-sync-notifications nil)
+ '(lsp-debounce-full-sync-notifications t)
  '(lsp-diagnostic-clean-after-change nil)
  '(lsp-diagnostics-flycheck-default-level (quote info))
  '(lsp-diagnostics-provider :flycheck)
@@ -429,9 +434,10 @@
  '(lsp-go-link-target "pkg.go.dev")
  '(lsp-go-use-placeholders nil)
  '(lsp-gopls-use-placeholders t)
- '(lsp-headerline-breadcrumb-enable t)
+ '(lsp-headerline-breadcrumb-enable nil)
  '(lsp-idle-delay 0.05)
  '(lsp-keep-workspace-alive nil)
+ '(lsp-log-io t)
  '(lsp-modeline-diagnostics-scope :file)
  '(lsp-prefer-flymake nil)
  '(lsp-restart (quote auto-restart))
@@ -476,9 +482,11 @@
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
    (quote
-    (lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+    (magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
+ '(prettier-js-args (quote ("prettier")))
+ '(prettier-js-command "npx")
  '(read-buffer-completion-ignore-case t)
  '(read-file-name-completion-ignore-case t)
  '(save-place-mode t nil (saveplace))
