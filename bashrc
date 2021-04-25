@@ -84,8 +84,9 @@ if [ -f /etc/bash_completion ]; then
     for i in $HOME/.dotfiles/completion/*; do source $i; done
 fi
 
-alias json="npx prettier --stdin --stdin-filepath foo.json"
-alias cover="go test ./... -p 1 -covermode=count -coverprofile cover.out && go tool cover -html cover.out; rm -f cover.out"
+alias cover="go test -coverprofile=cover.out"
+alias coverall="go test -coverprofile=cover.out ./... -coverpkg=./..."
+alias coverreport="go tool cover -html cover.out -o cover.html && serveme cover.html; rm -f cover.html cover.out"
 alias kctx=kubectx
 alias kns=kubens
 alias fl="fly -t jrock"
@@ -98,3 +99,5 @@ complete -F _completion_goflags jlog
 
 export LOKI_ADDR="https://loki.jrock.us"
 export FLUX_FORWARD_NAMESPACE=flux
+export XCURSOR_SIZE=16
+export SSH_AUTH_SOCK=$(find /tmp -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)

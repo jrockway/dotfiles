@@ -18,6 +18,8 @@
   (require 'editing-extras)
   (require 'text-extras))
 
+(setq read-process-output-max (* 4 1024 1024))
+
 ;;; modes i want on by default
 (ido-mode 1)
 (winner-mode 1)
@@ -32,6 +34,9 @@
                          ("\\.hs$" . haskell-mode)
                          ("\\.html$" . web-mode)
                          ("\\.svelte$" . web-mode)
+                         ("\\.tsx$" . web-mode)
+                         ("\\.js$" . typescript-mode)
+                         ("\\.graphqls" . graphql-mode)
                          ("\\.ino$" . c++-mode))
                        auto-mode-alist))
 
@@ -54,17 +59,9 @@
 
 ;;; load packages
 (require 'package)
-(let* ((no-ssl (and (memq system-type '(windows-nt ms-dos))
-                    (not (gnutls-available-p))))
-       (proto (if no-ssl "http" "https")))
-  ;; comment/uncomment these two lines to enable/disable melpa and melpa stable as desired
-  (add-to-list 'package-archives (cons "melpa" (concat proto "://melpa.org/packages/")) t)
-  ;;(add-to-list 'package-archives (cons "melpa-stable" (concat proto "://stable.melpa.org/packages/")) t)
-  (when (< emacs-major-version 24)
-    ;; for important compatibility libraries like cl-lib
-    (add-to-list 'package-archives (cons "gnu" (concat proto "://elpa.gnu.org/packages/")))))
-
+(add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
+
 
 (use-package lsp
   :config
@@ -99,16 +96,6 @@
                               (add-hook 'before-save-hook #'lsp-organize-imports t t)))
     (add-hook 'go-mode-hook #'lsp-deferred)))
 
-(defun setup-tide-mode ()
-  (tide-setup)
-  (setq flycheck-check-syntax-automatically '(save mode-enabled))
-  (flycheck-mode t)
-  (company-mode t))
-(use-package tide
-  :config
-  (add-hook 'typescript-mode-hook #'setup-tide-mode)
-  (add-hook 'typescript-mode-hook #'lsp-deferred))
-
 (defun setup-vue-mode ()
   (turn-off-flyspell))
 (use-package vue-mode
@@ -124,6 +111,10 @@
 (use-package highlight-indentation
   :config
   (add-hook 'yaml-mode-hook #'highlight-indentation-mode))
+
+(use-package typescript-mode
+  :config
+  (add-hook 'typescript-mode-hook #'lsp-deferred))
 
 (use-package prettier-js
   :config
@@ -147,6 +138,12 @@
   :config
   (setq yas-snippet-dirs '("~/elisp/snippets/"))
   (yas-global-mode t))
+
+(use-package god-mode
+  :config
+  (global-set-key (kbd "<insertchar>") #'god-local-mode)
+  (define-key god-local-mode-map (kbd "z") #'repeat)
+  (define-key god-local-mode-map (kbd "i") #'god-local-mode))
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
@@ -197,7 +194,8 @@
 (define-key read-expression-map (kbd "TAB") #'completion-at-point)
 (global-set-key (kbd "S-<insert>") #'yank-primary)
 (global-set-key (kbd "C-x C-b") 'ibuffer)
-(global-set-key "\C-xg" 'rgrep)
+(define-key search-map "d" 'deadgrep)
+(global-set-key "\C-xm" 'execute-extended-command)
 (global-set-key "\C-x\C-m" 'execute-extended-command)
 (global-set-key "\C-w" 'backward-kill-word)
 (global-set-key "\C-x\C-k" 'kill-region)
@@ -262,30 +260,32 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(Man-notify-method (quote pushy))
+ '(Man-notify-method 'pushy)
  '(auto-save-default nil)
- '(browse-url-browser-function (quote browse-url-generic))
+ '(browse-url-browser-function 'browse-url-generic)
  '(browse-url-generic-program "google-chrome")
  '(c-default-style
-   (quote
-    ((c-mode . "python")
+   '((c-mode . "python")
      (java-mode . "java")
      (awk-mode . "awk")
-     (other . "gnu"))))
+     (other . "gnu")))
  '(c-electric-pound-behavior nil)
  '(case-fold-search t)
  '(column-number-mode t)
- '(company-backends (quote (company-capf)))
+ '(company-backends '(company-capf))
+ '(company-frontends '(company-pseudo-tooltip-frontend))
  '(company-idle-delay nil)
+ '(company-selection-wrap-around t)
+ '(company-show-numbers ''t)
+ '(company-tooltip-limit 20)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
- '(compilation-message-face (quote bold))
+ '(compilation-message-face 'bold)
  '(compilation-read-command nil)
  '(compilation-scroll-output t)
  '(compile-auto-highlight 10)
  '(completion-ignored-extensions
-   (quote
-    (".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi")))
+   '(".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi"))
  '(confirm-nonexistent-file-or-buffer nil)
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
@@ -298,13 +298,13 @@
  '(cperl-indent-parens-as-block t)
  '(cperl-indent-region-fix-constructs nil)
  '(cperl-indent-subs-specially nil)
- '(cperl-invalid-face (quote default))
+ '(cperl-invalid-face 'default)
  '(cperl-lazy-help-time 0)
  '(cperl-merge-trailing-else nil)
  '(cperl-tab-always-indent t)
  '(cperl-under-as-char nil)
  '(create-lockfiles nil)
- '(css-tab-mode (quote indent))
+ '(css-tab-mode 'indent)
  '(current-language-environment "UTF-8")
  '(custom-buffer-done-kill t)
  '(custom-magic-show-button t)
@@ -314,10 +314,12 @@
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
  '(electric-indent-mode t)
+ '(electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
  '(electric-pair-mode t)
+ '(electric-pair-preserve-balance nil)
  '(electric-pair-skip-self nil)
- '(emacs-lisp-mode-hook (quote (turn-on-eldoc-mode)))
- '(eproject-completing-read-function (quote eproject--ido-completing-read))
+ '(emacs-lisp-mode-hook '(turn-on-eldoc-mode))
+ '(eproject-completing-read-function 'eproject--ido-completing-read)
  '(eshell-after-prompt-hook nil)
  '(eshell-prompt-function
    (lambda nil
@@ -332,7 +334,7 @@
                  " # " " $ "))))
  '(espresso-auto-indent-flag nil)
  '(fill-column 100)
- '(flowtimer-start-hook (quote (flowtimer-disable-rcirc-tracking)))
+ '(flowtimer-start-hook '(flowtimer-disable-rcirc-tracking))
  '(flycheck-display-errors-delay 0)
  '(flycheck-keymap-prefix "f")
  '(flycheck-mode-line-prefix "Fl")
@@ -341,23 +343,21 @@
  '(flyspell-mark-duplications-flag nil)
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
+ '(gc-cons-threshold 200000000)
  '(global-company-mode t)
  '(global-prettify-symbols-mode t)
- '(godoc-at-point-function (quote godoc-gogetdoc))
+ '(godoc-at-point-function 'godoc-gogetdoc)
  '(haskell-font-lock-symbols t)
  '(haskell-indentation-cycle-warn nil)
- '(haskell-literate-default (quote latex))
+ '(haskell-literate-default 'latex)
  '(haskell-mode-hook
-   (quote
-    (turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index)))
+   '(turn-on-haskell-indentation turn-on-haskell-doc-mode imenu-add-menubar-index))
  '(help-window-select t)
  '(hippie-expand-try-functions-list
-   (quote
-    (try-complete-file-name-partially try-complete-file-name try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-expand-line)))
+   '(try-complete-file-name-partially try-complete-file-name try-expand-all-abbrevs try-expand-dabbrev try-expand-dabbrev-all-buffers try-expand-dabbrev-from-kill try-complete-lisp-symbol-partially try-complete-lisp-symbol try-expand-line))
  '(ibuffer-expert t)
  '(ibuffer-fontification-alist
-   (quote
-    ((10 buffer-read-only font-lock-constant-face)
+   '((10 buffer-read-only font-lock-constant-face)
      (15
       (and buffer-file-name
            (string-match ibuffer-compressed-file-name-regexp buffer-file-name))
@@ -376,20 +376,16 @@
       (memq major-mode ibuffer-help-buffer-modes)
       font-lock-comment-face)
      (35
-      (eq major-mode
-          (quote dired-mode))
+      (eq major-mode 'dired-mode)
       font-lock-function-name-face)
      (1
-      (eq major-mode
-          (quote cperl-mode))
+      (eq major-mode 'cperl-mode)
       cperl-hash-face)
      (1
-      (eq major-mode
-          (quote rcirc-mode))
-      rcirc-server))))
+      (eq major-mode 'rcirc-mode)
+      rcirc-server)))
  '(ibuffer-formats
-   (quote
-    ((mark modified read-only " "
+   '((mark modified read-only " "
            (name 18 18 :left :elide)
            " "
            (size 9 -1 :right)
@@ -400,92 +396,102 @@
            " " filename-and-process)
      (mark " "
            (name 16 -1)
-           " " filename))))
+           " " filename)))
  '(ibuffer-git-column-length 8)
- '(ido-cannot-complete-command (quote ido-next-match))
+ '(ido-cannot-complete-command 'ido-next-match)
  '(ido-completion-buffer "nil")
  '(ido-enable-regexp t)
  '(ido-everywhere nil)
- '(ido-mode (quote buffer) nil (ido))
+ '(ido-mode 'buffer nil (ido))
  '(ido-show-dot-for-dired t)
- '(ielm-mode-hook (quote (turn-on-eldoc-mode)))
+ '(ielm-mode-hook '(turn-on-eldoc-mode))
  '(indent-tabs-mode nil)
- '(indicate-buffer-boundaries (quote left))
+ '(indicate-buffer-boundaries 'left)
  '(indicate-empty-lines nil)
  '(inhibit-startup-screen t)
  '(initial-scratch-message nil)
  '(kill-read-only-ok t)
  '(line-move-visual nil)
- '(lisp-interaction-mode-hook (quote (turn-on-eldoc-mode)))
+ '(lisp-interaction-mode-hook '(turn-on-eldoc-mode))
  '(lsp-auto-guess-root nil)
  '(lsp-completion-show-kind nil)
  '(lsp-debounce-full-sync-notifications t)
- '(lsp-diagnostic-clean-after-change nil)
- '(lsp-diagnostics-flycheck-default-level (quote info))
+ '(lsp-diagnostics-flycheck-default-level 'info)
  '(lsp-diagnostics-provider :flycheck)
- '(lsp-document-sync-method nil)
  '(lsp-eldoc-enable-hover nil)
  '(lsp-eldoc-enable-signature-help nil)
  '(lsp-eldoc-render-all nil)
  '(lsp-enable-links nil)
+ '(lsp-enable-snippet t)
  '(lsp-enable-symbol-highlighting nil)
  '(lsp-file-watch-threshold 15000)
+ '(lsp-go-codelens nil)
+ '(lsp-go-codelenses nil)
+ '(lsp-go-env
+   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=glfw")))
  '(lsp-go-hover-kind "FullDocumentation")
  '(lsp-go-link-target "pkg.go.dev")
- '(lsp-go-use-placeholders nil)
+ '(lsp-go-links-in-hover nil)
+ '(lsp-go-use-placeholders t)
  '(lsp-gopls-use-placeholders t)
  '(lsp-headerline-breadcrumb-enable nil)
- '(lsp-idle-delay 0.05)
+ '(lsp-idle-delay 0.25)
  '(lsp-keep-workspace-alive nil)
- '(lsp-log-io t)
+ '(lsp-keymap-prefix "M-p")
+ '(lsp-log-io nil)
+ '(lsp-modeline-code-actions-enable nil)
  '(lsp-modeline-diagnostics-scope :file)
  '(lsp-prefer-flymake nil)
- '(lsp-restart (quote auto-restart))
+ '(lsp-restart 'auto-restart)
+ '(lsp-semantic-tokens-enable t)
  '(lsp-signature-render-documentation t)
- '(lsp-ui-doc-alignment (quote window))
+ '(lsp-ui-doc-alignment 'window)
+ '(lsp-ui-doc-delay 0.01)
  '(lsp-ui-doc-enable nil)
+ '(lsp-ui-doc-header t)
  '(lsp-ui-doc-include-signature t)
  '(lsp-ui-doc-max-width 30)
+ '(lsp-ui-doc-position 'bottom)
  '(lsp-ui-doc-use-childframe nil)
  '(lsp-ui-flycheck-enable t)
  '(lsp-ui-imenu-enable nil)
  '(lsp-ui-peek-enable t)
+ '(lsp-ui-sideline-actions-kind-regex ".*")
+ '(lsp-ui-sideline-delay 0.01)
  '(lsp-ui-sideline-enable nil)
  '(lsp-ui-sideline-ignore-duplicate t)
- '(lsp-ui-sideline-show-code-actions nil)
+ '(lsp-ui-sideline-show-code-actions t)
+ '(lsp-ui-sideline-show-hover t)
  '(lsp-ui-sideline-show-symbol nil)
+ '(lsp-ui-sideline-wait-for-all-symbols nil)
  '(lsp-yaml-schemas
-   (quote #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data
-                        ())))
+   '#s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ()))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
  '(menu-bar-mode nil nil (menu-bar))
  '(message-citation-line-format "* On %a, %b %d %Y, %N wrote:")
- '(message-citation-line-function (quote message-insert-formatted-citation-line))
- '(message-dont-reply-to-names (quote ("jon@jrock.us")))
+ '(message-citation-line-function 'message-insert-formatted-citation-line)
+ '(message-dont-reply-to-names '("jon@jrock.us"))
  '(message-kill-buffer-on-exit t)
- '(message-mail-alias-type (quote ecomplete))
+ '(message-mail-alias-type 'ecomplete)
  '(minibuffer-prompt-properties
-   (quote
-    (read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt)))
+   '(read-only t point-entered minibuffer-avoid-prompt face minibuffer-prompt))
  '(mode-line-format
-   (quote
-    ("%e" mode-line-front-space mode-line-mule-info mode-line-client mode-line-modified mode-line-remote " "
+   '("%e" mode-line-front-space mode-line-mule-info mode-line-client mode-line-modified mode-line-remote " "
      (:eval
       (window-number-string))
      " " mode-line-buffer-identification " " mode-line-position
      (vc-mode vc-mode)
-     "  " mode-line-modes mode-line-misc-info)))
+     "  " mode-line-modes mode-line-misc-info))
  '(mouse-avoidance-mode nil nil (avoid))
  '(mouse-yank-at-point t)
- '(occur-mode-hook (quote (turn-on-font-lock next-error-follow-minor-mode)))
+ '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   (quote
-    (magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode tide with-editor yasnippet vue-mode php-mode company)))
+   '(god-mode flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
- '(prettier-js-args (quote ("prettier")))
+ '(prettier-js-args '("prettier"))
  '(prettier-js-command "npx")
  '(read-buffer-completion-ignore-case t)
  '(read-file-name-completion-ignore-case t)
@@ -493,19 +499,25 @@
  '(savehist-mode t)
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
- '(sql-product (quote mysql))
+ '(sql-product 'postgres)
  '(sql-sqlite-program "sqlite3")
  '(term-scroll-to-bottom-on-output t)
- '(tex-default-mode (quote latex-mode))
+ '(tex-default-mode 'latex-mode)
  '(tool-bar-mode nil nil (tool-bar))
  '(tooltip-use-echo-area t)
  '(transient-mark-mode nil)
  '(truncate-partial-width-windows nil)
- '(uniquify-buffer-name-style (quote forward) nil (uniquify))
+ '(typescript-auto-indent-flag nil)
+ '(typescript-indent-level 2)
+ '(uniquify-buffer-name-style 'forward nil (uniquify))
  '(user-mail-address "jon@jrock.us")
  '(vc-follow-symlinks t)
- '(vc-handled-backends (quote (git)))
+ '(vc-handled-backends '(git))
  '(view-inhibit-help-message t)
+ '(web-mode-code-indent-offset 4)
+ '(web-mode-part-padding 4)
+ '(web-mode-script-padding 4)
+ '(web-mode-style-padding 4)
  '(woman-use-own-frame nil)
  '(xterm-mouse-mode t)
  '(yaml-indent-offset 4))
@@ -515,20 +527,20 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:background "black" :foreground "grey90" :weight normal :height 140 :family "Iosevka"))))
+ '(default ((t (:background "black" :foreground "grey90" :slant normal :weight normal :height 135 :family "Iosevka Term"))))
  '(cursor ((t (:background "turquoise" :inverse-video t))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(flycheck-error ((t (:foreground "color-225" :underline t))))
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
- '(lsp-ui-sideline-global ((t (:background "midnight blue"))))
+ '(lsp-ui-sideline-global ((t nil)))
  '(markdown-code-face ((t (:foreground "dodgerblue"))))
  '(mmm-default-submode-face ((t nil)))
- '(mode-line ((t (:background "grey20" :foreground "white" :box (:line-width 1 :color "grey30")))))
+ '(mode-line ((t (:background "grey30" :foreground "white" :box (:line-width 1 :color "grey30")))))
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
- '(mode-line-inactive ((default (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20"))) (nil nil)))
+ '(mode-line-inactive ((t (:inherit mode-line :background "grey10" :foreground "grey80" :box (:line-width 1 :color "grey20")))))
  '(window-number-face ((t (:foreground "red"))) t))
 
 (set-face-foreground 'default "grey90")
