@@ -313,11 +313,20 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
- '(electric-indent-mode t)
- '(electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
+ '(electric-pair-inhibit-predicate
+   '(lambda
+      (c)
+      (if
+          (or
+           (char-equal c 34)
+           (char-equal c 39)
+           (char-equal c 96))
+          t
+        (electric-pair-default-inhibit c))))
  '(electric-pair-mode t)
- '(electric-pair-preserve-balance nil)
- '(electric-pair-skip-self nil)
+ '(electric-pair-pairs nil)
+ '(electric-pair-skip-whitespace-chars '(32 9 10))
+ '(electric-pair-text-pairs nil)
  '(emacs-lisp-mode-hook '(turn-on-eldoc-mode))
  '(eproject-completing-read-function 'eproject--ido-completing-read)
  '(eshell-after-prompt-hook nil)
@@ -427,8 +436,6 @@
  '(lsp-file-watch-threshold 15000)
  '(lsp-go-codelens nil)
  '(lsp-go-codelenses nil)
- '(lsp-go-env
-   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=glfw")))
  '(lsp-go-hover-kind "FullDocumentation")
  '(lsp-go-link-target "pkg.go.dev")
  '(lsp-go-links-in-hover nil)
@@ -488,7 +495,7 @@
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(god-mode flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
+   '(minizinc-mode go-playground god-mode flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
@@ -499,6 +506,8 @@
  '(savehist-mode t)
  '(scroll-bar-mode nil)
  '(show-paren-mode t)
+ '(smartparens-global-strict-mode t)
+ '(sp-hybrid-kill-excessive-whitespace 'kill)
  '(sql-product 'postgres)
  '(sql-sqlite-program "sqlite3")
  '(term-scroll-to-bottom-on-output t)
@@ -508,7 +517,7 @@
  '(transient-mark-mode nil)
  '(truncate-partial-width-windows nil)
  '(typescript-auto-indent-flag nil)
- '(typescript-indent-level 2)
+ '(typescript-indent-level 4)
  '(uniquify-buffer-name-style 'forward nil (uniquify))
  '(user-mail-address "jon@jrock.us")
  '(vc-follow-symlinks t)
