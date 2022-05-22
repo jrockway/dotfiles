@@ -20,6 +20,11 @@ $HOME/.dotfiles/bin:\
 
 export PATH
 
+if [ -x /opt/homebrew/bin/brew ]; then
+   eval "$(/opt/homebrew/bin/brew shellenv)"
+   export SHELL=`which bash`
+fi
+
 export PROMPT_COMMAND="history -a"
 
 SSH_STATUS=""
@@ -84,6 +89,7 @@ if [ -f /etc/bash_completion ]; then
     source /etc/bash_completion;
     for i in $HOME/.dotfiles/completion/*; do source $i; done
 fi
+[[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
 
 alias cover="go test -coverprofile=cover.out -covermode=atomic"
 alias coverall="go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./..."
