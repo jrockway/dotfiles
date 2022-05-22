@@ -65,7 +65,8 @@
 
 (use-package lsp
   :config
-  (define-key lsp-mode-map (kbd "M-DEL") #'lsp-describe-thing-at-point))
+  (define-key lsp-mode-map (kbd "M-DEL") #'lsp-describe-thing-at-point)
+  (define-key lsp-mode-map (kbd "M-*") #'lsp-find-references))
 
 (use-package lsp-ui
   :config
@@ -95,6 +96,10 @@
                               (add-hook 'before-save-hook #'lsp-format-buffer t t)
                               (add-hook 'before-save-hook #'lsp-organize-imports t t)))
     (add-hook 'go-mode-hook #'lsp-deferred)))
+
+;; (use-package jsonnet-mode
+;;   :config (add-hook 'jsonnet-mode-hook (lambda ()
+;;                                          (add-hook 'before-save-hook #'jsonnet-reformat-buffer))))
 
 (defun setup-vue-mode ()
   (turn-off-flyspell))
@@ -313,6 +318,7 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
+ '(electric-pair-delete-adjacent-pairs nil)
  '(electric-pair-inhibit-predicate
    '(lambda
       (c)
@@ -325,6 +331,8 @@
         (electric-pair-default-inhibit c))))
  '(electric-pair-mode t)
  '(electric-pair-pairs nil)
+ '(electric-pair-preserve-balance nil)
+ '(electric-pair-skip-self nil)
  '(electric-pair-skip-whitespace-chars '(32 9 10))
  '(electric-pair-text-pairs nil)
  '(emacs-lisp-mode-hook '(turn-on-eldoc-mode))
@@ -436,10 +444,12 @@
  '(lsp-file-watch-threshold 15000)
  '(lsp-go-codelens nil)
  '(lsp-go-codelenses nil)
+ '(lsp-go-env
+   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=livek8s")))
  '(lsp-go-hover-kind "FullDocumentation")
  '(lsp-go-link-target "pkg.go.dev")
  '(lsp-go-links-in-hover nil)
- '(lsp-go-use-placeholders t)
+ '(lsp-go-use-placeholders nil)
  '(lsp-gopls-use-placeholders t)
  '(lsp-headerline-breadcrumb-enable nil)
  '(lsp-idle-delay 0.25)
@@ -529,7 +539,9 @@
  '(web-mode-style-padding 4)
  '(woman-use-own-frame nil)
  '(xterm-mouse-mode t)
- '(yaml-indent-offset 4))
+ '(yaml-backspace-function 'backward-delete-char)
+ '(yaml-block-literal-search-lines 1000)
+ '(yaml-indent-offset 2))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.

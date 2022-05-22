@@ -5,6 +5,7 @@ PATH=\
 $HOME/bin:\
 $HOME/go/bin:\
 /usr/local/go/bin:\
+$HOME/.fly/bin:\
 $HOME/.cargo/bin:\
 $HOME/tmp/node/bin/:\
 $HOME/.npm-packages/bin:\
@@ -84,8 +85,8 @@ if [ -f /etc/bash_completion ]; then
     for i in $HOME/.dotfiles/completion/*; do source $i; done
 fi
 
-alias cover="go test -coverprofile=cover.out"
-alias coverall="go test -coverprofile=cover.out ./... -coverpkg=./..."
+alias cover="go test -coverprofile=cover.out -covermode=atomic"
+alias coverall="go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./..."
 alias coverreport="go tool cover -html cover.out -o cover.html && serveme cover.html; rm -f cover.html cover.out"
 alias kctx=kubectx
 alias kns=kubens
