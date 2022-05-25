@@ -25,6 +25,10 @@ if [ -x /opt/homebrew/bin/brew ]; then
    export SHELL=`which bash`
 fi
 
+if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+fi
+
 export PROMPT_COMMAND="history -a"
 
 SSH_STATUS=""
