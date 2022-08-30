@@ -66,7 +66,9 @@
 (use-package lsp
   :config
   (define-key lsp-mode-map (kbd "M-DEL") #'lsp-describe-thing-at-point)
-  (define-key lsp-mode-map (kbd "M-*") #'lsp-find-references))
+  (define-key lsp-mode-map (kbd "M-*") #'lsp-find-references)
+  (lsp-register-custom-settings
+   '(("gopls.staticcheck" t t))))
 
 (use-package lsp-ui
   :config
@@ -96,6 +98,8 @@
                               (add-hook 'before-save-hook #'lsp-format-buffer t t)
                               (add-hook 'before-save-hook #'lsp-organize-imports t t)))
     (add-hook 'go-mode-hook #'lsp-deferred)))
+
+(use-package bazel-mode)
 
 ;; (use-package jsonnet-mode
 ;;   :config (add-hook 'jsonnet-mode-hook (lambda ()
@@ -267,6 +271,7 @@
  ;; If there is more than one, they won't work right.
  '(Man-notify-method 'pushy)
  '(auto-save-default nil)
+ '(bazel-buildifier-before-save t)
  '(browse-url-browser-function 'browse-url-generic)
  '(browse-url-generic-program "google-chrome")
  '(c-default-style
@@ -281,7 +286,7 @@
  '(company-frontends '(company-pseudo-tooltip-frontend))
  '(company-idle-delay nil)
  '(company-selection-wrap-around t)
- '(company-show-numbers ''t)
+ '(company-show-quick-access ''t)
  '(company-tooltip-limit 20)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
@@ -318,21 +323,8 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
- '(electric-pair-delete-adjacent-pairs nil)
- '(electric-pair-inhibit-predicate
-   '(lambda
-      (c)
-      (if
-          (or
-           (char-equal c 34)
-           (char-equal c 39)
-           (char-equal c 96))
-          t
-        (electric-pair-default-inhibit c))))
  '(electric-pair-mode t)
  '(electric-pair-pairs nil)
- '(electric-pair-preserve-balance nil)
- '(electric-pair-skip-self nil)
  '(electric-pair-skip-whitespace-chars '(32 9 10))
  '(electric-pair-text-pairs nil)
  '(emacs-lisp-mode-hook '(turn-on-eldoc-mode))
@@ -441,11 +433,15 @@
  '(lsp-enable-links nil)
  '(lsp-enable-snippet t)
  '(lsp-enable-symbol-highlighting nil)
+ '(lsp-file-watch-ignored-directories
+   '("[/\\\\]\\.git\\'" "[/\\\\]\\.github\\'" "[/\\\\]\\.circleci\\'" "[/\\\\]\\.hg\\'" "[/\\\\]\\.bzr\\'" "[/\\\\]_darcs\\'" "[/\\\\]\\.svn\\'" "[/\\\\]_FOSSIL_\\'" "[/\\\\]\\.idea\\'" "[/\\\\]\\.ensime_cache\\'" "[/\\\\]\\.eunit\\'" "[/\\\\]node_modules" "[/\\\\]\\.yarn\\'" "[/\\\\]\\.fslckout\\'" "[/\\\\]\\.tox\\'" "[/\\\\]dist\\'" "[/\\\\]dist-newstyle\\'" "[/\\\\]\\.stack-work\\'" "[/\\\\]\\.bloop\\'" "[/\\\\]\\.metals\\'" "[/\\\\]target\\'" "[/\\\\]\\.ccls-cache\\'" "[/\\\\]\\.vscode\\'" "[/\\\\]\\.venv\\'" "[/\\\\]\\.mypy_cache\\'" "[/\\\\]\\.deps\\'" "[/\\\\]build-aux\\'" "[/\\\\]autom4te.cache\\'" "[/\\\\]\\.reference\\'" "[/\\\\]\\.lsp\\'" "[/\\\\]\\.clj-kondo\\'" "[/\\\\]\\.shadow-cljs\\'" "[/\\\\]\\.babel_cache\\'" "[/\\\\]\\.cpcache\\'" "[/\\\\]\\checkouts\\'" "[/\\\\]\\.m2\\'" "[/\\\\]bin/Debug\\'" "[/\\\\]obj\\'" "[/\\\\]_opam\\'" "[/\\\\]_build\\'" "[/\\\\]\\.elixir_ls\\'" "[/\\\\]\\.direnv\\'" "[/\\\\]bazel-"))
  '(lsp-file-watch-threshold 15000)
  '(lsp-go-codelens nil)
  '(lsp-go-codelenses nil)
+ '(lsp-go-directory-filters
+   ["-bazel-bin" "-bazel-out" "-bazel-testlogs" "-bazel-bazel-poc"])
  '(lsp-go-env
-   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=livek8s")))
+   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=k8s")))
  '(lsp-go-hover-kind "FullDocumentation")
  '(lsp-go-link-target "pkg.go.dev")
  '(lsp-go-links-in-hover nil)
@@ -459,6 +455,7 @@
  '(lsp-modeline-code-actions-enable nil)
  '(lsp-modeline-diagnostics-scope :file)
  '(lsp-prefer-flymake nil)
+ '(lsp-response-timeout 60)
  '(lsp-restart 'auto-restart)
  '(lsp-semantic-tokens-enable t)
  '(lsp-signature-render-documentation t)
@@ -505,7 +502,7 @@
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(minizinc-mode go-playground god-mode flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
+   '(consult-dir consult bazel find-file-in-repository find-file-in-project minizinc-mode go-playground god-mode flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
@@ -548,13 +545,13 @@
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t (:background "black" :foreground "grey90" :slant normal :weight normal :height 135 :family "Iosevka Term"))))
+ '(default ((t nil)))
  '(company-echo-common ((t (:foreground "grey70"))))
- '(company-scrollbar-bg ((t (:background "purple4"))))
- '(company-scrollbar-fg ((t (:background "purple"))))
  '(company-tooltip ((t (:background "midnightblue" :foreground "white"))))
  '(company-tooltip-annotation ((t (:foreground "darkturquoise" :slant italic))))
  '(company-tooltip-common ((t (:foreground "deepskyblue2"))))
+ '(company-tooltip-scrollbar-thumb ((t (:background "purple"))))
+ '(company-tooltip-scrollbar-track ((t (:background "purple4"))))
  '(company-tooltip-selection ((t (:background "purple4" :weight ultra-bold))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(flycheck-error ((t (:foreground "pink" :underline (:color foreground-color :style wave)))))
@@ -563,13 +560,14 @@
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
+ '(lsp-lsp-flycheck-info-unnecessary-face ((t (:slant italic))) t)
  '(lsp-ui-sideline-global ((t nil)))
  '(markdown-code-face ((t (:foreground "dodgerblue"))))
  '(mmm-default-submode-face ((t nil)))
- '(mode-line ((t (:background "grey30" :foreground "white" :box (:line-width 1 :color "grey30")))))
+ '(mode-line ((t (:background "gray14" :foreground "white" :box (:line-width 1 :color "grey30")))))
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
- '(mode-line-inactive ((t (:inherit mode-line :background "grey10" :foreground "grey80" :box (:line-width 1 :color "grey20")))))
+ '(mode-line-inactive ((t (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20")))))
  '(window-number-face ((t (:foreground "red"))) t))
 
 (set-face-foreground 'default "grey90")
