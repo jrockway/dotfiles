@@ -2,12 +2,11 @@
 
 # path
 PATH=\
+$HOME/pach/install:\
 $HOME/bin:\
 $HOME/go/bin:\
-/usr/local/go/bin:\
 $HOME/.fly/bin:\
 $HOME/.cargo/bin:\
-$HOME/tmp/node/bin/:\
 $HOME/.npm-packages/bin:\
 $HOME/.krew/bin:\
 /snap/bin:\
@@ -23,11 +22,20 @@ export PATH
 if [ -x /opt/homebrew/bin/brew ]; then
    eval "$(/opt/homebrew/bin/brew shellenv)"
    export SHELL=`which bash`
+   if [ '!' -z ${TMUX+x} ]; then
+       export TERMINFO=/opt/homebrew/Cellar/ncurses/6.3/share/terminfo/74/tmux-direct
+   fi
 fi
 
 if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
     eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+    export NVM_DIR="$HOME/.nvm"
+    [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"
+    [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"
 fi
+
+# Use /usr/local/go instead of homebrew's.
+PATH=/usr/local/go/bin:$PATH
 
 export PROMPT_COMMAND="history -a"
 
@@ -112,3 +120,10 @@ export LOKI_ADDR="https://loki.jrock.us"
 export FLUX_FORWARD_NAMESPACE=flux
 export XCURSOR_SIZE=16
 export SSH_AUTH_SOCK=$(find /tmp -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
+
+if [ -e $HOME/pach/install/enterprise-key-values.yaml ]; then
+    export ENT_ACT_CODE=$(yaml2json < $HOME/pach/install/enterprise-key-values.yaml  | jq .pachd.enterpriseLicenseKey -r)
+fi
+
+alias pctx="pachctl config set active-context"
+alias pachctl="PAGER=bat pachctl"
