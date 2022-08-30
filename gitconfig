@@ -1,7 +1,7 @@
 [user]
 	name = Jonathan Rockway
 	email = 2367+jrockway@users.noreply.github.com
-
+        signingKey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzHWlVleTVOz5w2aqhriwcxKMPw30MeujGARucZn4Qs
 [alias]
 	st = status
 	di = diff
@@ -39,3 +39,11 @@
 	helper = cache
 [init]
 	defaultBranch = main
+[gpg]
+	format = ssh
+[commit]
+	gpgsign = true
+[tag]
+	gpgsign = true
+[gpg "ssh"]
+	allowedSignersFile = /home/jrockway/.config/git/allowed_ssh_signers
