@@ -9,6 +9,7 @@
 	dic = diff --cached
 	co = checkout
 	ci = commit
+        cp = cherry-pick
 	br = branch
         bb = branch
 	sta = stash
