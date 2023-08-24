@@ -105,7 +105,7 @@ fi
 
 alias cover="go test -coverprofile=cover.out -covermode=atomic"
 alias coverall="go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./..."
-alias coverreport="go tool cover -html cover.out -o cover.html && serveme cover.html; rm -f cover.html cover.out"
+alias coverreport="go tool cover -html cover.out -o cover.html && serveme cover.html"
 alias kctx=kubectx
 alias kns=kubens
 alias fl="fly -t jrock"
