@@ -9,6 +9,8 @@
   (add-to-list 'load-path "~/elisp/eproject/lang")
   (add-to-list 'load-path "~/elisp/eslide")
   (add-to-list 'load-path "~/elisp/ibuffer-git")
+  (add-to-list 'load-path "~/elisp/devil")
+  (require 'devil)
   (require 'eproject)
   (require 'eproject-compile)
   (require 'eproject-extras)
@@ -23,6 +25,7 @@
 ;;; modes i want on by default
 (ido-mode 1)
 (winner-mode 1)
+(global-devil-mode)
 
 ;;; override stupid defaults
 (defalias 'yes-or-no-p 'y-or-n-p)
@@ -62,6 +65,8 @@
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
 (package-initialize)
 
+(use-package quelpa)
+(use-package quelpa-use-package)
 
 (use-package lsp
   :config
@@ -148,11 +153,11 @@
   (setq yas-snippet-dirs '("~/elisp/snippets/"))
   (yas-global-mode t))
 
-(use-package god-mode
-  :config
-  (global-set-key (kbd "<insertchar>") #'god-local-mode)
-  (define-key god-local-mode-map (kbd "z") #'repeat)
-  (define-key god-local-mode-map (kbd "i") #'god-local-mode))
+(use-package copilot
+  :quelpa (copilot :fetcher github
+                   :repo "zerolfx/copilot.el"
+                   :branch "main"
+                   :files ("dist" "*.el")))
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
@@ -323,6 +328,7 @@
  '(display-hourglass nil)
  '(eldoc-echo-area-use-multiline-p nil)
  '(eldoc-minor-mode-string nil)
+ '(electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
  '(electric-pair-mode t)
  '(electric-pair-pairs nil)
  '(electric-pair-skip-whitespace-chars '(32 9 10))
@@ -441,7 +447,7 @@
  '(lsp-go-directory-filters
    ["-bazel-bin" "-bazel-out" "-bazel-testlogs" "-bazel-bazel-poc"])
  '(lsp-go-env
-   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=k8s")))
+   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=k8s,unit_test")))
  '(lsp-go-hover-kind "FullDocumentation")
  '(lsp-go-link-target "pkg.go.dev")
  '(lsp-go-links-in-hover nil)
@@ -502,7 +508,7 @@
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(consult-dir consult bazel find-file-in-repository find-file-in-project minizinc-mode go-playground god-mode flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
+   '(copilot editorconfig quelpa-use-package quelpa tree-sitter-ispell tree-sitter-langs consult-dir consult bazel find-file-in-repository find-file-in-project minizinc-mode go-playground flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
@@ -535,6 +541,10 @@
  '(web-mode-script-padding 4)
  '(web-mode-style-padding 4)
  '(woman-use-own-frame nil)
+ '(xref-after-jump-hook '(recenter))
+ '(xref-after-return-hook nil)
+ '(xref-auto-jump-to-first-definition 'show)
+ '(xref-auto-jump-to-first-xref 'show)
  '(xterm-mouse-mode t)
  '(yaml-backspace-function 'backward-delete-char)
  '(yaml-block-literal-search-lines 1000)
@@ -568,7 +578,8 @@
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
  '(mode-line-inactive ((t (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20")))))
- '(window-number-face ((t (:foreground "red"))) t))
+ '(window-number-face ((t (:foreground "red"))) t)
+ '(xref-file-header ((t (:foreground "green")))))
 
 (set-face-foreground 'default "grey90")
 (set-face-background 'default "black")
