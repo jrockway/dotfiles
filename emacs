@@ -20,6 +20,8 @@
   (require 'editing-extras)
   (require 'text-extras))
 
+(require 'project)
+
 (setq read-process-output-max (* 4 1024 1024))
 
 ;;; modes i want on by default
@@ -60,6 +62,19 @@
   "Make the directory containing the visited file."
   (make-directory (file-name-directory (buffer-file-name)) t))
 
+(with-eval-after-load 'xt-mouse
+  (defun xterm-mouse--tracking-sequence (suffix)
+    "Return a control sequence to enable or disable mouse tracking.
+SUFFIX is the last character of each escape sequence (?h to
+enable, ?l to disable)."
+    (mapcar
+     (lambda (code) (format "\e[?%d%c" code suffix))
+     ;; This removes 1003, which disables mouse movement events.
+     `(1000 ,@(when xterm-mouse-utf-8 '(1005)) 1006)))
+
+  (defun xterm-mouse-tracking-enable-sequence () (apply #'concat (xterm-mouse--tracking-sequence ?h))))
+
+
 ;;; load packages
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -67,18 +82,6 @@
 
 (use-package quelpa)
 (use-package quelpa-use-package)
-
-(use-package lsp
-  :config
-  (define-key lsp-mode-map (kbd "M-DEL") #'lsp-describe-thing-at-point)
-  (define-key lsp-mode-map (kbd "M-*") #'lsp-find-references)
-  (lsp-register-custom-settings
-   '(("gopls.staticcheck" t t))))
-
-(use-package lsp-ui
-  :config
-  (define-key lsp-ui-mode-map [remap xref-find-definitions] #'lsp-ui-peek-find-definitions)
-  (define-key lsp-ui-mode-map [remap xref-find-references] #'lsp-ui-peek-find-references))
 
 (use-package company
   :config
@@ -95,14 +98,33 @@
                 'face 'my-window-number-face))
   (window-number-meta-mode 1))
 
+
+(defun project-find-go-module (dir)
+  (when-let ((root (locate-dominating-file dir "go.mod")))
+    (cons 'go-module root)))
+
+(cl-defmethod project-root ((project (head go-module)))
+  (cdr project))
+
+(add-hook 'project-find-functions #'project-find-go-module)
+
+(setq-default eglot-workspace-configuration
+              '(:gopls (:staticcheck t :usePlaceholders t :buildFlags ["-tags=k8s,unit_test"] :hints (:constantValues t) :diagnosticsDelay "250ms" :linksInHover :json-false)))
+
+(defun my-eglot-organize-imports () (interactive)
+	 (eglot-code-actions nil nil "source.organizeImports" t))
+
 (use-package go-mode
   :config
   (progn
     (add-hook 'go-mode-hook (lambda ()
                               (set-fill-column 100)
-                              (add-hook 'before-save-hook #'lsp-format-buffer t t)
-                              (add-hook 'before-save-hook #'lsp-organize-imports t t)))
-    (add-hook 'go-mode-hook #'lsp-deferred)))
+                              (turn-on-eldoc-mode)
+                              (eglot-ensure)
+                              (make-variable-buffer-local 'eldoc-documentation-functions)
+                              (setq eldoc-documentation-functions '(flymake-eldoc-function eglot-signature-eldoc-function eglot-hover-eldoc-function))
+                              (add-hook 'before-save-hook #'eglot-format t t)
+                              (add-hook 'before-save-hook 'my-eglot-organize-imports nil t)))))
 
 (use-package bazel-mode)
 
@@ -116,9 +138,7 @@
   :config
   (add-hook 'vue-mode-hook #'setup-vue-mode))
 
-(use-package web-mode
-  :config
-  (add-hook 'web-mode-hook #'lsp-deferred))
+(use-package web-mode)
 
 (use-package yaml-mode)
 
@@ -126,9 +146,7 @@
   :config
   (add-hook 'yaml-mode-hook #'highlight-indentation-mode))
 
-(use-package typescript-mode
-  :config
-  (add-hook 'typescript-mode-hook #'lsp-deferred))
+(use-package typescript-mode)
 
 (use-package prettier-js
   :config
@@ -201,6 +219,7 @@
 ;; set
 (setq-default cc-electric-flag nil)
 (setq-default c-electric-flag nil)
+(setq-default completion-ignore-case t)
 
 (define-key text-mode-map "\C-cu" 'insert-same-number-of-chars-as-line-above)
 (define-key text-mode-map "\C-ccw" 'ispell-complete-word)
@@ -217,27 +236,21 @@
 (global-set-key (kbd "C-x C-g") 'abort-recursive-edit)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
 (global-set-key (kbd "C-h l") (lambda () (interactive) (info "Elisp")))
-(global-set-key (kbd "C-h o") 'find-library)
 (global-set-key (kbd "C-x t") #'tmux-here)
 (global-set-key (kbd "s-(") (lambda () (interactive) (other-window -1)))
 (global-set-key (kbd "s-)") (lambda () (interactive) (other-window 1)))
 (global-set-key (kbd "C-(") (lambda () (interactive) (other-window -1)))
 (global-set-key (kbd "C-)") (lambda () (interactive) (other-window 1)))
 (global-set-key (kbd "s-U") (lambda () (interactive) (other-window -1) (delete-window)))
-(global-set-key (kbd "s-i") 'other-window)
 (global-set-key (kbd "M-r") 'comment-region)
 (global-set-key (kbd "C-M-r") 'uncomment-region)
 (global-set-key (kbd "M-i") 'indent-region)
-(global-set-key (kbd "M-;") 'replace-string)
-(global-set-key (kbd "C-M-;") 'replace-regexp)
-(global-set-key (kbd "C-;") 'align-regexp)
+(global-set-key (kbd "M-;") 'replace-regexp)
 (global-set-key (kbd "C-c C-k") 'compile)
-(global-set-key (kbd "M-=") 'company-complete)
+(global-set-key (kbd "M-=") 'xref-find-references)
 (global-set-key (kbd "<mouse-4>") 'scroll-down-line)
 (global-set-key (kbd "<mouse-5>") 'scroll-up-line)
 (global-set-key (kbd "C-j") 'newline)
-
-(define-key eproject-mode-map (kbd "C-c x") 'eproject-eshell-cd-here)
 
 ;; use hippie instead of dabbrev
 (global-set-key (kbd "M-/") 'hippie-expand)
@@ -301,6 +314,7 @@
  '(compile-auto-highlight 10)
  '(completion-ignored-extensions
    '(".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi"))
+ '(completion-styles '(basic partial-completion flex emacs22))
  '(confirm-nonexistent-file-or-buffer nil)
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
@@ -326,7 +340,10 @@
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
  '(display-hourglass nil)
- '(eldoc-echo-area-use-multiline-p nil)
+ '(eglot-ignored-server-capabilities '(:documentHighlightProvider))
+ '(eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
+ '(eldoc-echo-area-use-multiline-p 10)
+ '(eldoc-idle-delay 0)
  '(eldoc-minor-mode-string nil)
  '(electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
  '(electric-pair-mode t)
@@ -338,9 +355,7 @@
  '(eshell-after-prompt-hook nil)
  '(eshell-prompt-function
    (lambda nil
-     (format "
-%s
-%s"
+     (format "\12%s\12%s"
              (eshell/pwd)
              (if
                  (=
@@ -351,7 +366,7 @@
  '(fill-column 100)
  '(flowtimer-start-hook '(flowtimer-disable-rcirc-tracking))
  '(flycheck-display-errors-delay 0)
- '(flycheck-keymap-prefix "f")
+ '(flycheck-keymap-prefix "\3f")
  '(flycheck-mode-line-prefix "Fl")
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
@@ -428,64 +443,6 @@
  '(kill-read-only-ok t)
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook '(turn-on-eldoc-mode))
- '(lsp-auto-guess-root nil)
- '(lsp-completion-show-kind nil)
- '(lsp-debounce-full-sync-notifications t)
- '(lsp-diagnostics-flycheck-default-level 'info)
- '(lsp-diagnostics-provider :flycheck)
- '(lsp-eldoc-enable-hover nil)
- '(lsp-eldoc-enable-signature-help nil)
- '(lsp-eldoc-render-all nil)
- '(lsp-enable-links nil)
- '(lsp-enable-snippet t)
- '(lsp-enable-symbol-highlighting nil)
- '(lsp-file-watch-ignored-directories
-   '("[/\\\\]\\.git\\'" "[/\\\\]\\.github\\'" "[/\\\\]\\.circleci\\'" "[/\\\\]\\.hg\\'" "[/\\\\]\\.bzr\\'" "[/\\\\]_darcs\\'" "[/\\\\]\\.svn\\'" "[/\\\\]_FOSSIL_\\'" "[/\\\\]\\.idea\\'" "[/\\\\]\\.ensime_cache\\'" "[/\\\\]\\.eunit\\'" "[/\\\\]node_modules" "[/\\\\]\\.yarn\\'" "[/\\\\]\\.fslckout\\'" "[/\\\\]\\.tox\\'" "[/\\\\]dist\\'" "[/\\\\]dist-newstyle\\'" "[/\\\\]\\.stack-work\\'" "[/\\\\]\\.bloop\\'" "[/\\\\]\\.metals\\'" "[/\\\\]target\\'" "[/\\\\]\\.ccls-cache\\'" "[/\\\\]\\.vscode\\'" "[/\\\\]\\.venv\\'" "[/\\\\]\\.mypy_cache\\'" "[/\\\\]\\.deps\\'" "[/\\\\]build-aux\\'" "[/\\\\]autom4te.cache\\'" "[/\\\\]\\.reference\\'" "[/\\\\]\\.lsp\\'" "[/\\\\]\\.clj-kondo\\'" "[/\\\\]\\.shadow-cljs\\'" "[/\\\\]\\.babel_cache\\'" "[/\\\\]\\.cpcache\\'" "[/\\\\]\\checkouts\\'" "[/\\\\]\\.m2\\'" "[/\\\\]bin/Debug\\'" "[/\\\\]obj\\'" "[/\\\\]_opam\\'" "[/\\\\]_build\\'" "[/\\\\]\\.elixir_ls\\'" "[/\\\\]\\.direnv\\'" "[/\\\\]bazel-"))
- '(lsp-file-watch-threshold 15000)
- '(lsp-go-codelens nil)
- '(lsp-go-codelenses nil)
- '(lsp-go-directory-filters
-   ["-bazel-bin" "-bazel-out" "-bazel-testlogs" "-bazel-bazel-poc"])
- '(lsp-go-env
-   #s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ("GOFLAGS" "-tags=k8s,unit_test")))
- '(lsp-go-hover-kind "FullDocumentation")
- '(lsp-go-link-target "pkg.go.dev")
- '(lsp-go-links-in-hover nil)
- '(lsp-go-use-placeholders nil)
- '(lsp-gopls-use-placeholders t)
- '(lsp-headerline-breadcrumb-enable nil)
- '(lsp-idle-delay 0.25)
- '(lsp-keep-workspace-alive nil)
- '(lsp-keymap-prefix "M-p")
- '(lsp-log-io nil)
- '(lsp-modeline-code-actions-enable nil)
- '(lsp-modeline-diagnostics-scope :file)
- '(lsp-prefer-flymake nil)
- '(lsp-response-timeout 60)
- '(lsp-restart 'auto-restart)
- '(lsp-semantic-tokens-enable t)
- '(lsp-signature-render-documentation t)
- '(lsp-ui-doc-alignment 'window)
- '(lsp-ui-doc-delay 0.01)
- '(lsp-ui-doc-enable nil)
- '(lsp-ui-doc-header t)
- '(lsp-ui-doc-include-signature t)
- '(lsp-ui-doc-max-width 30)
- '(lsp-ui-doc-position 'bottom)
- '(lsp-ui-doc-use-childframe nil)
- '(lsp-ui-flycheck-enable t)
- '(lsp-ui-imenu-enable nil)
- '(lsp-ui-peek-enable t)
- '(lsp-ui-sideline-actions-kind-regex ".*")
- '(lsp-ui-sideline-delay 0.01)
- '(lsp-ui-sideline-enable nil)
- '(lsp-ui-sideline-ignore-duplicate t)
- '(lsp-ui-sideline-show-code-actions t)
- '(lsp-ui-sideline-show-hover t)
- '(lsp-ui-sideline-show-symbol nil)
- '(lsp-ui-sideline-wait-for-all-symbols nil)
- '(lsp-yaml-schemas
-   '#s(hash-table size 65 test eql rehash-size 1.5 rehash-threshold 0.8125 data ()))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
  '(menu-bar-mode nil nil (menu-bar))
@@ -508,7 +465,7 @@
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(copilot editorconfig quelpa-use-package quelpa tree-sitter-ispell tree-sitter-langs consult-dir consult bazel find-file-in-repository find-file-in-project minizinc-mode go-playground flycheck typescript-mode graphql-mode magit lsp-ui deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode lsp-mode clang-format groovy-mode dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet vue-mode php-mode company))
+   '(copilot editorconfig quelpa-use-package quelpa tree-sitter-ispell tree-sitter-langs consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
@@ -543,9 +500,10 @@
  '(woman-use-own-frame nil)
  '(xref-after-jump-hook '(recenter))
  '(xref-after-return-hook nil)
- '(xref-auto-jump-to-first-definition 'show)
- '(xref-auto-jump-to-first-xref 'show)
+ '(xref-auto-jump-to-first-definition nil)
+ '(xref-auto-jump-to-first-xref nil)
  '(xterm-mouse-mode t)
+ '(xterm-set-window-title t)
  '(yaml-backspace-function 'backward-delete-char)
  '(yaml-block-literal-search-lines 1000)
  '(yaml-indent-offset 2))
@@ -563,15 +521,15 @@
  '(company-tooltip-scrollbar-thumb ((t (:background "purple"))))
  '(company-tooltip-scrollbar-track ((t (:background "purple4"))))
  '(company-tooltip-selection ((t (:background "purple4" :weight ultra-bold))))
+ '(eglot-inlay-hint-face ((t (:foreground "grey20" :slant italic))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(flycheck-error ((t (:foreground "pink" :underline (:color foreground-color :style wave)))))
+ '(flymake-error ((t (:foreground "pink" :underline (:color foreground-color :style wave :position nil)))))
  '(font-lock-comment-face ((t (:foreground "chocolate1" :slant italic))))
  '(font-lock-keyword-face ((t (:foreground "Cyan1" :weight bold))))
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
  '(ido-first-match ((t (:foreground "green"))))
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
- '(lsp-lsp-flycheck-info-unnecessary-face ((t (:slant italic))) t)
- '(lsp-ui-sideline-global ((t nil)))
  '(markdown-code-face ((t (:foreground "dodgerblue"))))
  '(mmm-default-submode-face ((t nil)))
  '(mode-line ((t (:background "gray14" :foreground "white" :box (:line-width 1 :color "grey30")))))
