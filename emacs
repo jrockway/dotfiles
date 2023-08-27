@@ -470,7 +470,7 @@ enable, ?l to disable)."
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(copilot editorconfig quelpa-use-package quelpa tree-sitter-ispell tree-sitter-langs consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet company))
+   '(copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
