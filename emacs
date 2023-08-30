@@ -1,5 +1,21 @@
 (require 'cl)
 
+;;; auto-mode-alist
+(setq auto-mode-alist (append
+                       '(("Dockerfile" . dockerfile-mode)
+                         ("\\.t$" . cperl-mode)
+                         ("\\.hs$" . haskell-mode)
+                         ("\\.html$" . web-mode)
+                         ("\\.svelte$" . web-mode)
+                         ("\\.tsx$" . web-mode)
+                         ("\\.js$" . typescript-mode)
+                         ("\\.graphqls" . graphql-mode)
+                         ("\\.ino$" . c++-mode)
+                         ("\\.json$" . json-ts-mode)
+                         ("\\.yaml$" . yaml-ts-mode)
+                         ("\\.yml$" . yaml-ts-mode))
+                       auto-mode-alist))
+
 (when (file-exists-p "~/elisp" )
   ;; load extra modes from ~/elisp
   (add-to-list 'load-path "~/elisp")
@@ -18,7 +34,9 @@
   (require 'eslide)
   (require 'ibuffer-git)
   (require 'editing-extras)
-  (require 'text-extras))
+  (require 'text-extras)
+  (require 'treesit)
+  (setq treesit-extra-load-path '("~/elisp/tree-sitter-modules/")))
 
 (require 'project)
 
@@ -31,19 +49,6 @@
 
 ;;; override stupid defaults
 (defalias 'yes-or-no-p 'y-or-n-p)
-
-;;; auto-mode-alist
-(setq auto-mode-alist (append
-                       '(("Dockerfile" . dockerfile-mode)
-                         ("\\.t$" . cperl-mode)
-                         ("\\.hs$" . haskell-mode)
-                         ("\\.html$" . web-mode)
-                         ("\\.svelte$" . web-mode)
-                         ("\\.tsx$" . web-mode)
-                         ("\\.js$" . typescript-mode)
-                         ("\\.graphqls" . graphql-mode)
-                         ("\\.ino$" . c++-mode))
-                       auto-mode-alist))
 
 ;;; hooks
 (add-hook 'before-save-hook 'delete-trailing-whitespace-nothere)
@@ -109,34 +114,26 @@ enable, ?l to disable)."
 (add-hook 'project-find-functions #'project-find-go-module)
 
 (setq-default eglot-workspace-configuration
-              '(:gopls (:staticcheck t :usePlaceholders t :buildFlags ["-tags=k8s,unit_test"] :hints (:constantValues t) :diagnosticsDelay "250ms" :linksInHover :json-false)))
+              '(:gopls
+                (:staticcheck t :usePlaceholders t :buildFlags ["-tags=k8s,unit_test"] :hints (:constantValues t) :diagnosticsDelay "250ms" :linksInHover :json-false)
+                :json (:schemas [(:fileMatch ["deno.json"] :url "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json")])))
 
 (defun my-eglot-organize-imports () (interactive)
-	 (eglot-code-actions nil nil "source.organizeImports" t))
+       (eglot-code-actions nil nil "source.organizeImports" t))
 
-(use-package go-mode
-  :config
-  (progn
-    (add-hook 'go-mode-hook (lambda ()
-                              (set-fill-column 100)
-                              (turn-on-eldoc-mode)
-                              (eglot-ensure)
-                              (make-variable-buffer-local 'eldoc-documentation-functions)
-                              (setq eldoc-documentation-functions '(flymake-eldoc-function eglot-signature-eldoc-function eglot-hover-eldoc-function))
-                              (add-hook 'before-save-hook #'eglot-format t t)
-                              (add-hook 'before-save-hook 'my-eglot-organize-imports nil t)))))
+(defun setup-go-mode (hook)
+  (add-hook hook (lambda ()
+                   (set-fill-column 100)
+                   (turn-on-eldoc-mode)
+                   (eglot-ensure)
+                   (make-variable-buffer-local 'eldoc-documentation-functions)
+                   (setq eldoc-documentation-functions '(flymake-eldoc-function eglot-signature-eldoc-function eglot-hover-eldoc-function))
+                   (add-hook 'before-save-hook 'my-eglot-organize-imports nil t)
+                   (add-hook 'before-save-hook #'eglot-format nil t))))
+(use-package go-mode :config (setup-go-mode 'go-mode-hook))
+(setup-go-mode 'go-ts-mode-hook)
 
-(use-package bazel-mode)
-
-;; (use-package jsonnet-mode
-;;   :config (add-hook 'jsonnet-mode-hook (lambda ()
-;;                                          (add-hook 'before-save-hook #'jsonnet-reformat-buffer))))
-
-(defun setup-vue-mode ()
-  (turn-off-flyspell))
-(use-package vue-mode
-  :config
-  (add-hook 'vue-mode-hook #'setup-vue-mode))
+(use-package bazel)
 
 (use-package web-mode)
 
@@ -150,12 +147,23 @@ enable, ?l to disable)."
 
 (use-package prettier-js
   :config
-  (add-hook 'typescript-mode-hook #'prettier-js-mode)
   (add-hook 'yaml-mode-hook #'prettier-js-mode)
-  (add-hook 'vue-mode-hook #'prettier-js-mode)
-  (add-hook 'markdown-mode-hook #'prettier-js-mode)
-  (add-hook 'js-mode-hook #'prettier-js-mode)
+  (add-hook 'yaml-ts-mode-hook #'prettier-js-mode)
   (add-hook 'web-mode-hook #'prettier-js-mode))
+
+(use-package jsonnet-mode)
+
+(use-package format-all
+  :config
+  (setq-default format-all-formatters
+                '(("JSON" . (deno))
+                  ("Markdown" . (deno))))
+  (add-hook 'markdown-mode-hook #'format-all-mode)
+  (add-hook 'js-mode-hook #'format-all-mode)
+  (add-hook 'typescript-mode-hook #'format-all-mode)
+  (add-hook 'json-ts-mode-hook #'format-all-mode)
+  (add-hook 'emacs-lisp-mode-hook #'format-all-mode)
+  (add-hook 'jsonnet-mode-hook #'format-all-mode))
 
 (use-package clang-format)
 
@@ -176,6 +184,11 @@ enable, ?l to disable)."
                    :repo "zerolfx/copilot.el"
                    :branch "main"
                    :files ("dist" "*.el")))
+
+(use-package markdown-mode)
+
+(add-hook 'js-json-mode-hook #'eglot-ensure)
+(add-hook 'json-ts-mode-hook #'eglot-ensure)
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
@@ -339,10 +352,11 @@ enable, ?l to disable)."
  '(custom-magic-show-button t)
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
+ '(display-buffer-base-action '(display-buffer-reuse-window))
  '(display-hourglass nil)
  '(eglot-autoshutdown t)
  '(eglot-confirm-server-initiated-edits nil)
- '(eglot-events-buffer-size 2000)
+ '(eglot-events-buffer-size 200000)
  '(eglot-extend-to-xref t)
  '(eglot-ignored-server-capabilities '(:documentHighlightProvider))
  '(eglot-menu-string "eg")
@@ -378,6 +392,7 @@ enable, ?l to disable)."
  '(flyspell-mark-duplications-flag nil)
  '(flyspell-mode-line-string " Spell")
  '(font-lock-global-modes t)
+ '(format-all-mode-lighter " fmt")
  '(gc-cons-threshold 200000000)
  '(global-company-mode t)
  '(global-prettify-symbols-mode t)
@@ -445,6 +460,9 @@ enable, ?l to disable)."
  '(indicate-empty-lines nil)
  '(inhibit-startup-screen t)
  '(initial-scratch-message nil)
+ '(js-enabled-frameworks '(javascript))
+ '(js-indent-first-init t)
+ '(js-indent-level 2)
  '(kill-read-only-ok t)
  '(line-move-visual nil)
  '(lisp-interaction-mode-hook '(turn-on-eldoc-mode))
@@ -470,7 +488,7 @@ enable, ?l to disable)."
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator bazel-mode go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet company))
+   '(format-all copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet company))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
