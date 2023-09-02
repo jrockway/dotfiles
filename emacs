@@ -79,7 +79,6 @@ enable, ?l to disable)."
 
   (defun xterm-mouse-tracking-enable-sequence () (apply #'concat (xterm-mouse--tracking-sequence ?h))))
 
-
 ;;; load packages
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -88,11 +87,27 @@ enable, ?l to disable)."
 (use-package quelpa)
 (use-package quelpa-use-package)
 
-(use-package company
-  :config
-  (define-key company-mode-map [remap indent-for-tab-command] #'company-indent-or-complete-common))
-
 (defface my-window-number-face '((t :foreground "red")) "")
+
+(use-package corfu :init (global-corfu-mode))
+(use-package corfu-terminal
+  :bind
+  (:map corfu-map
+        ("M-1" . digit-argument)
+        ("M-2" . digit-argument)
+        ("M-3" . digit-argument)
+        ("M-4" . digit-argument)
+        ("M-5" . digit-argument)
+        ("M-6" . digit-argument)
+        ("M-7" . digit-argument)
+        ("M-8" . digit-argument)
+        ("M-9" . digit-argument)
+        ("M-0" . digit-argument))
+  :config
+  (unless (display-graphic-p)
+    (corfu-terminal-mode +1)))
+
+(use-package rainbow-delimiters :config (add-hook 'prog-mode-hook #'rainbow-delimiters-mode-enable))
 
 (use-package window-number
   :config
@@ -102,7 +117,6 @@ enable, ?l to disable)."
     (propertize (number-to-string (window-number))
                 'face 'my-window-number-face))
   (window-number-meta-mode 1))
-
 
 (defun project-find-go-module (dir)
   (when-let ((root (locate-dominating-file dir "go.mod")))
@@ -115,14 +129,17 @@ enable, ?l to disable)."
 
 (setq-default eglot-workspace-configuration
               '(:gopls
-                (:staticcheck t :usePlaceholders t :buildFlags ["-tags=k8s,unit_test"] :hints (:constantValues t) :diagnosticsDelay "250ms" :linksInHover :json-false)
-                :json (:schemas [(:fileMatch ["deno.json"] :url "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json")])))
+                (:staticcheck t :analyses (:QF1008 :json-false) :usePlaceholders t :buildFlags ["-tags=k8s,unit_test"] :hints (:constantValues t) :diagnosticsDelay "250ms" :linksInHover :json-false)
+                :json
+                (:schemas [(:fileMatch ["deno.json"] :url "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json")
+                           (:fileMatch ["*.pipeline.json"] :url "https://raw.githubusercontent.com/pachyderm/pachyderm/master/src/internal/jsonschema/pps_v2/CreatePipelineRequest.schema.json")])))
 
 (defun my-eglot-organize-imports () (interactive)
        (eglot-code-actions nil nil "source.organizeImports" t))
 
 (defun setup-go-mode (hook)
   (add-hook hook (lambda ()
+                   (modify-syntax-entry ?_ "w" go-mode-syntax-table)
                    (set-fill-column 100)
                    (turn-on-eldoc-mode)
                    (eglot-ensure)
@@ -139,16 +156,19 @@ enable, ?l to disable)."
 
 (use-package yaml-mode)
 
+(require 'yaml-ts-mode)
+
+(define-key yaml-ts-mode-map (kbd "TAB") #'yaml-indent-line)
+
 (use-package highlight-indentation
   :config
-  (add-hook 'yaml-mode-hook #'highlight-indentation-mode))
+  (add-hook 'yaml-mode-hook #'highlight-indentation-mode)
+  (add-hook 'yaml-ts-mode-hook #'highlight-indentation-mode))
 
 (use-package typescript-mode)
 
 (use-package prettier-js
   :config
-  (add-hook 'yaml-mode-hook #'prettier-js-mode)
-  (add-hook 'yaml-ts-mode-hook #'prettier-js-mode)
   (add-hook 'web-mode-hook #'prettier-js-mode))
 
 (use-package jsonnet-mode)
@@ -157,27 +177,39 @@ enable, ?l to disable)."
   :config
   (setq-default format-all-formatters
                 '(("JSON" . (deno))
-                  ("Markdown" . (deno))))
-  (add-hook 'markdown-mode-hook #'format-all-mode)
-  (add-hook 'js-mode-hook #'format-all-mode)
-  (add-hook 'typescript-mode-hook #'format-all-mode)
-  (add-hook 'json-ts-mode-hook #'format-all-mode)
-  (add-hook 'emacs-lisp-mode-hook #'format-all-mode)
-  (add-hook 'jsonnet-mode-hook #'format-all-mode))
+                  ("Markdown" . (deno))
+                  ("TypeScript" . (deno))
+                  ("JavaScript" . (deno))
+                  ("YAML" . (prettier))
+                  ("Jsonnet" . (jsonnetfmt))
+                  ("Emacs Lisp" . (emacs-lisp))))
+  (add-hook 'prog-mode-hook #'format-all-mode)
+  (add-hook 'text-mode-hook #'format-all-mode))
 
 (use-package clang-format)
 
 (defun setup-protobuf-mode ()
-  (c-add-style "my-style" '((c-basic-offset . 4) (indent-tabs-mode . nil)) t)
+  (c-add-style "my-style" '((c-basic-offset . 2) (indent-tabs-mode . nil)) t)
   (add-hook 'before-save-hook #'clang-format-buffer nil t))
 (use-package protobuf-mode
   :config
   (add-hook 'protobuf-mode-hook #'setup-protobuf-mode))
 
+(defun my-yas-clear-snippet ()
+  (interactive)
+  (let ((snippet (car (yas-active-snippets))))
+    (when snippet
+      (let ((last-field (car (last (yas--snippet-fields (car (yas-active-snippets)))))))
+        (when last-field
+          (delete-region (point) (yas--field-end last-field))
+          (yas-abort-snippet snippet))))))
+
 (use-package yasnippet
   :config
   (setq yas-snippet-dirs '("~/elisp/snippets/"))
-  (yas-global-mode t))
+  (yas-global-mode t)
+  (define-key yas-keymap (kbd "C-k") #'my-yas-clear-snippet))
+
 
 (use-package copilot
   :quelpa (copilot :fetcher github
@@ -187,14 +219,21 @@ enable, ?l to disable)."
 
 (use-package markdown-mode)
 
+(use-package flymake :defer t :config
+  (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
+  (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error))
+
 (add-hook 'js-json-mode-hook #'eglot-ensure)
+(add-hook 'js-json-mode-hook #'rainbow-delimiters-mode-enable)
 (add-hook 'json-ts-mode-hook #'eglot-ensure)
+(add-hook 'json-ts-mode-hook #'rainbow-delimiters-mode-enable)
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
 (put 'narrow-to-page 'disabled nil)
 (put 'set-goal-column 'disabled t)
 (global-unset-key (kbd "C-x C-n"))
+(keymap-unset help-map "g")
 (put 'upcase-region 'disabled nil)
 (put 'narrow-to-region 'disabled nil)
 (put 'save-buffers-kill-terminal 'disabled nil)
@@ -313,12 +352,6 @@ enable, ?l to disable)."
  '(c-electric-pound-behavior nil)
  '(case-fold-search t)
  '(column-number-mode t)
- '(company-backends '(company-capf))
- '(company-frontends '(company-pseudo-tooltip-frontend))
- '(company-idle-delay nil)
- '(company-selection-wrap-around t)
- '(company-show-quick-access ''t)
- '(company-tooltip-limit 20)
  '(compilation-ask-about-save nil)
  '(compilation-disable-input t)
  '(compilation-message-face 'bold)
@@ -329,6 +362,9 @@ enable, ?l to disable)."
    '(".o" "~" ".bin" ".lbin" ".so" ".a" ".ln" ".blg" ".bbl" ".elc" ".lof" ".glo" ".idx" ".lot" ".svn/" ".hg/" ".git/" ".bzr/" "CVS/" "_darcs/" "_MTN/" ".fmt" ".tfm" ".class" ".fas" ".lib" ".mem" ".x86f" ".sparcf" ".fasl" ".ufsl" ".fsl" ".dxl" ".pfsl" ".dfsl" ".p64fsl" ".d64fsl" ".dx64fsl" ".lo" ".la" ".gmo" ".mo" ".toc" ".aux" ".cp" ".fn" ".ky" ".pg" ".tp" ".cps" ".fns" ".kys" ".pgs" ".tps" ".vrs" ".pyc" ".pyo" "inc/" "blib/" ".hi"))
  '(completion-styles '(basic partial-completion flex emacs22))
  '(confirm-nonexistent-file-or-buffer nil)
+ '(corfu-echo-delay '(0 . 0))
+ '(corfu-indexed-mode t)
+ '(corfu-indexed-start 1)
  '(cperl-auto-newline nil)
  '(cperl-close-paren-offset -4)
  '(cperl-continued-statement-offset 4)
@@ -352,7 +388,7 @@ enable, ?l to disable)."
  '(custom-magic-show-button t)
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
- '(display-buffer-base-action '(display-buffer-reuse-window))
+ '(display-buffer-base-action '(nil))
  '(display-hourglass nil)
  '(eglot-autoshutdown t)
  '(eglot-confirm-server-initiated-edits nil)
@@ -362,14 +398,14 @@ enable, ?l to disable)."
  '(eglot-menu-string "eg")
  '(eldoc-documentation-strategy 'eldoc-documentation-compose-eagerly)
  '(eldoc-echo-area-use-multiline-p 10)
- '(eldoc-idle-delay 0)
+ '(eldoc-idle-delay 0.05)
  '(eldoc-minor-mode-string nil)
  '(electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
  '(electric-pair-mode t)
  '(electric-pair-pairs nil)
  '(electric-pair-skip-whitespace-chars '(32 9 10))
  '(electric-pair-text-pairs nil)
- '(emacs-lisp-mode-hook '(turn-on-eldoc-mode))
+ '(emacs-lisp-mode-hook '(eldoc-mode format-all-mode))
  '(eproject-completing-read-function 'eproject--ido-completing-read)
  '(eshell-after-prompt-hook nil)
  '(eshell-prompt-function
@@ -394,7 +430,6 @@ enable, ?l to disable)."
  '(font-lock-global-modes t)
  '(format-all-mode-lighter " fmt")
  '(gc-cons-threshold 200000000)
- '(global-company-mode t)
  '(global-prettify-symbols-mode t)
  '(godoc-at-point-function 'godoc-gogetdoc)
  '(haskell-font-lock-symbols t)
@@ -488,11 +523,13 @@ enable, ?l to disable)."
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(format-all copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet company))
+   '(corfu-terminal rainbow-delimiters format-all copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
  '(prettier-js-command "npx")
+ '(rainbow-delimiters-max-face-count 5)
+ '(rainbow-delimiters-outermost-only-face-count 1)
  '(read-buffer-completion-ignore-case t)
  '(read-file-name-completion-ignore-case t)
  '(save-place-mode t nil (saveplace))
@@ -503,6 +540,7 @@ enable, ?l to disable)."
  '(sp-hybrid-kill-excessive-whitespace 'kill)
  '(sql-product 'postgres)
  '(sql-sqlite-program "sqlite3")
+ '(tab-always-indent 'complete)
  '(term-scroll-to-bottom-on-output t)
  '(tex-default-mode 'latex-mode)
  '(tool-bar-mode nil nil (tool-bar))
@@ -529,7 +567,8 @@ enable, ?l to disable)."
  '(xterm-set-window-title t)
  '(yaml-backspace-function 'backward-delete-char)
  '(yaml-block-literal-search-lines 1000)
- '(yaml-indent-offset 2))
+ '(yaml-indent-offset 2)
+ '(yas-verbosity 1 t))
 
 (custom-set-faces
  ;; custom-set-faces was added by Custom.
@@ -537,13 +576,6 @@ enable, ?l to disable)."
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
  '(default ((t nil)))
- '(company-echo-common ((t (:foreground "grey70"))))
- '(company-tooltip ((t (:background "midnightblue" :foreground "white"))))
- '(company-tooltip-annotation ((t (:foreground "darkturquoise" :slant italic))))
- '(company-tooltip-common ((t (:foreground "deepskyblue2"))))
- '(company-tooltip-scrollbar-thumb ((t (:background "purple"))))
- '(company-tooltip-scrollbar-track ((t (:background "purple4"))))
- '(company-tooltip-selection ((t (:background "purple4" :weight ultra-bold))))
  '(eglot-inlay-hint-face ((t (:foreground "grey20" :slant italic))))
  '(eglot-mode-line ((t (:inherit font-lock-constant-face))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
@@ -556,10 +588,21 @@ enable, ?l to disable)."
  '(ido-only-match ((t (:background "grey30" :foreground "green"))))
  '(markdown-code-face ((t (:foreground "dodgerblue"))))
  '(mmm-default-submode-face ((t nil)))
- '(mode-line ((t (:background "gray14" :foreground "white" :box (:line-width 1 :color "grey30")))))
+ '(mode-line ((t (:box (:line-width (1 . 1) :color "grey30") :foreground "white" :background "blue4"))))
  '(mode-line-buffer-id ((t (:foreground "green"))))
  '(mode-line-highlight ((((class color) (min-colors 88)) (:box (:line-width 1 :color "grey40")))))
- '(mode-line-inactive ((t (:inherit mode-line :background "black" :foreground "grey80" :box (:line-width 1 :color "grey20")))))
+ '(mode-line-inactive ((t (:box (:line-width (1 . 1) :color "grey20") :foreground "grey80" :background "grey20" :inherit mode-line))))
+ '(rainbow-delimiters-base-error-face ((t (:inherit rainbow-delimiters-base-face :foreground "red"))))
+ '(rainbow-delimiters-base-face ((t (:inherit nil))))
+ '(rainbow-delimiters-depth-1-face ((t (:inherit rainbow-delimiters-base-face))))
+ '(rainbow-delimiters-depth-2-face ((t (:inherit rainbow-delimiters-base-face :foreground "dodgerblue"))))
+ '(rainbow-delimiters-depth-3-face ((t (:inherit rainbow-delimiters-base-face :foreground "violet"))))
+ '(rainbow-delimiters-depth-4-face ((t (:inherit rainbow-delimiters-base-face :foreground "lawngreen"))))
+ '(rainbow-delimiters-depth-5-face ((t (:inherit rainbow-delimiters-base-face :foreground "orange"))))
+ '(rainbow-delimiters-depth-6-face ((t (:inherit rainbow-delimiters-base-face :foreground "violetred"))))
+ '(rainbow-delimiters-depth-7-face ((t (:inherit rainbow-delimiters-base-face :foreground "gold"))))
+ '(rainbow-delimiters-depth-8-face ((t (:inherit rainbow-delimiters-base-face :foreground "lawngreen"))))
+ '(rainbow-delimiters-depth-9-face ((t (:inherit rainbow-delimiters-base-face :foreground "mediumaquamarine"))))
  '(window-number-face ((t (:foreground "red"))) t)
  '(xref-file-header ((t (:foreground "green")))))
 
