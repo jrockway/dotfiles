@@ -104,8 +104,7 @@ enable, ?l to disable)."
         ("M-9" . digit-argument)
         ("M-0" . digit-argument))
   :config
-  (unless (display-graphic-p)
-    (corfu-terminal-mode +1)))
+  (corfu-terminal-mode +1))
 
 (use-package rainbow-delimiters :config (add-hook 'prog-mode-hook #'rainbow-delimiters-mode-enable))
 
@@ -150,7 +149,8 @@ enable, ?l to disable)."
 (use-package go-mode :config (setup-go-mode 'go-mode-hook))
 (setup-go-mode 'go-ts-mode-hook)
 
-(use-package bazel)
+(use-package bazel :config
+  (add-to-list 'auto-mode-alist '("\\.star$" . bazel-starlark-mode)))
 
 (use-package web-mode)
 
@@ -182,7 +182,8 @@ enable, ?l to disable)."
                   ("JavaScript" . (deno))
                   ("YAML" . (prettier))
                   ("Jsonnet" . (jsonnetfmt))
-                  ("Emacs Lisp" . (emacs-lisp))))
+                  ("Emacs Lisp" . (emacs-lisp))
+                  ("Bazel" . (buildifier))))
   (add-hook 'prog-mode-hook #'format-all-mode)
   (add-hook 'text-mode-hook #'format-all-mode))
 
@@ -199,8 +200,10 @@ enable, ?l to disable)."
   (interactive)
   (let ((snippet (car (yas-active-snippets))))
     (when snippet
-      (let ((last-field (car (last (yas--snippet-fields (car (yas-active-snippets)))))))
+      (let ((start (yas--field-start (yas-current-field)))
+            (last-field (car (last (yas--snippet-fields (car (yas-active-snippets)))))))
         (when last-field
+          (goto-char start)
           (delete-region (point) (yas--field-end last-field))
           (yas-abort-snippet snippet))))))
 
@@ -221,7 +224,10 @@ enable, ?l to disable)."
 
 (use-package flymake :defer t :config
   (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
-  (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error))
+  (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
+  (define-key flymake-mode-map (kbd "C-c p") 'flymake-show-project-diagnostics)
+  (define-key flymake-mode-map (kbd "C-c f") 'flymake-show-buffer-diagnostics)
+  (add-hook 'flymake-diagnostics-buffer-mode-hook (lambda (setq truncate-lines nil))))
 
 (add-hook 'js-json-mode-hook #'eglot-ensure)
 (add-hook 'js-json-mode-hook #'rainbow-delimiters-mode-enable)
@@ -287,7 +293,6 @@ enable, ?l to disable)."
 (global-set-key "\C-c\C-r" 'revert-buffer)
 (global-set-key (kbd "C-x C-g") 'abort-recursive-edit)
 (global-set-key (kbd "C-x k") 'kill-current-buffer)
-(global-set-key (kbd "C-h l") (lambda () (interactive) (info "Elisp")))
 (global-set-key (kbd "C-x t") #'tmux-here)
 (global-set-key (kbd "s-(") (lambda () (interactive) (other-window -1)))
 (global-set-key (kbd "s-)") (lambda () (interactive) (other-window 1)))
@@ -309,10 +314,14 @@ enable, ?l to disable)."
 
 ;; use C-h c for customize
 (global-unset-key (kbd "C-h c"))
+(global-unset-key (kbd "C-h g"))
 (global-set-key (kbd "C-h c a") #'customize-apropos)
 (global-set-key (kbd "C-h c v") #'customize-variable)
 (global-set-key (kbd "C-h c f") #'customize-face)
 (global-set-key (kbd "C-h c g") #'customize-group)
+
+;;; unbind most help
+(global-set-key (kbd "C-h l") (lambda () (interactive) (info "Elisp")))
 
 ;;; random functions
 
@@ -341,7 +350,7 @@ enable, ?l to disable)."
  ;; If there is more than one, they won't work right.
  '(Man-notify-method 'pushy)
  '(auto-save-default nil)
- '(bazel-buildifier-before-save t)
+ '(bazel-buildifier-before-save nil)
  '(browse-url-browser-function 'browse-url-generic)
  '(browse-url-generic-program "google-chrome")
  '(c-default-style
@@ -403,7 +412,7 @@ enable, ?l to disable)."
  '(electric-pair-inhibit-predicate 'electric-pair-conservative-inhibit)
  '(electric-pair-mode t)
  '(electric-pair-pairs nil)
- '(electric-pair-skip-whitespace-chars '(32 9 10))
+ '(electric-pair-skip-whitespace-chars '(32))
  '(electric-pair-text-pairs nil)
  '(emacs-lisp-mode-hook '(eldoc-mode format-all-mode))
  '(eproject-completing-read-function 'eproject--ido-completing-read)
@@ -423,6 +432,9 @@ enable, ?l to disable)."
  '(flycheck-display-errors-delay 0)
  '(flycheck-keymap-prefix "\3f")
  '(flycheck-mode-line-prefix "Fl")
+ '(flymake-mode-line-counter-format
+   '(":" flymake-mode-line-error-counter flymake-mode-line-warning-counter flymake-mode-line-note-counter))
+ '(flymake-mode-line-lighter "F")
  '(flyspell-issue-message-flag nil)
  '(flyspell-issue-welcome-flag nil)
  '(flyspell-mark-duplications-flag nil)
@@ -581,6 +593,7 @@ enable, ?l to disable)."
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
  '(flycheck-error ((t (:foreground "pink" :underline (:color foreground-color :style wave)))))
  '(flymake-error ((t (:foreground "pink" :underline (:color foreground-color :style wave :position nil)))))
+ '(flymake-warning ((t (:weight normal :inherit warning))))
  '(font-lock-comment-face ((t (:foreground "chocolate1" :slant italic))))
  '(font-lock-keyword-face ((t (:foreground "Cyan1" :weight bold))))
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
@@ -594,11 +607,11 @@ enable, ?l to disable)."
  '(mode-line-inactive ((t (:box (:line-width (1 . 1) :color "grey20") :foreground "grey80" :background "grey20" :inherit mode-line))))
  '(rainbow-delimiters-base-error-face ((t (:inherit rainbow-delimiters-base-face :foreground "red"))))
  '(rainbow-delimiters-base-face ((t (:inherit nil))))
- '(rainbow-delimiters-depth-1-face ((t (:inherit rainbow-delimiters-base-face))))
- '(rainbow-delimiters-depth-2-face ((t (:inherit rainbow-delimiters-base-face :foreground "dodgerblue"))))
- '(rainbow-delimiters-depth-3-face ((t (:inherit rainbow-delimiters-base-face :foreground "violet"))))
- '(rainbow-delimiters-depth-4-face ((t (:inherit rainbow-delimiters-base-face :foreground "lawngreen"))))
- '(rainbow-delimiters-depth-5-face ((t (:inherit rainbow-delimiters-base-face :foreground "orange"))))
+ '(rainbow-delimiters-depth-1-face ((t (:foreground "grey90" :inherit rainbow-delimiters-base-face))))
+ '(rainbow-delimiters-depth-2-face ((t (:foreground "grey80" :inherit rainbow-delimiters-base-face))))
+ '(rainbow-delimiters-depth-3-face ((t (:foreground "grey70" :inherit rainbow-delimiters-base-face))))
+ '(rainbow-delimiters-depth-4-face ((t (:foreground "grey60" :inherit rainbow-delimiters-base-face))))
+ '(rainbow-delimiters-depth-5-face ((t (:foreground "grey50" :inherit rainbow-delimiters-base-face))))
  '(rainbow-delimiters-depth-6-face ((t (:inherit rainbow-delimiters-base-face :foreground "violetred"))))
  '(rainbow-delimiters-depth-7-face ((t (:inherit rainbow-delimiters-base-face :foreground "gold"))))
  '(rainbow-delimiters-depth-8-face ((t (:inherit rainbow-delimiters-base-face :foreground "lawngreen"))))
