@@ -127,11 +127,24 @@ enable, ?l to disable)."
 (add-hook 'project-find-functions #'project-find-go-module)
 
 (setq-default eglot-workspace-configuration
-              '(:gopls
-                (:staticcheck t :analyses (:QF1008 :json-false) :usePlaceholders t :buildFlags ["-tags=k8s,unit_test"] :hints (:constantValues t) :diagnosticsDelay "250ms" :linksInHover :json-false)
-                :json
-                (:schemas [(:fileMatch ["deno.json"] :url "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json")
-                           (:fileMatch ["*.pipeline.json"] :url "https://raw.githubusercontent.com/pachyderm/pachyderm/master/src/internal/jsonschema/pps_v2/CreatePipelineRequest.schema.json")])))
+              '(
+                :gopls (
+                        :staticcheck t
+                        :analyses (:QF1008 :json-false)
+                        :usePlaceholders t
+                        :buildFlags ["-tags=k8s,unit_test"]
+                        :hints (:constantValues t)
+                        :diagnosticsDelay "250ms"
+                        :linksInHover :json-false
+                        :directoryFilters ["-bazel-out" "-bazel-bin" "-bazel-testlogs" "-bazel-pachyderm" "-bazel-gazelle" "-**/node_modules"]
+                        )
+                :json (
+                       :schemas [
+                                 (:fileMatch ["deno.json"]
+                                             :url "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json")
+                                 (:fileMatch ["*.pipeline.json"]
+                                             :url "https://raw.githubusercontent.com/pachyderm/pachyderm/master/src/internal/jsonschema/pps_v2/CreatePipelineRequest.schema.json")
+                                 ])))
 
 (defun my-eglot-organize-imports () (interactive)
        (eglot-code-actions nil nil "source.organizeImports" t))
