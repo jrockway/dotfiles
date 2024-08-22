@@ -1,4 +1,5 @@
-personal_ws-1.1 en 151 
+personal_ws-1.1 en 159 
+APIs
 Args
 AuthName
 BACKPAN
@@ -14,6 +15,7 @@ DateTime
 Deliverables
 ERC
 HOWTO
+JSONB
 Kioku
 KiokuDB
 Kubelet
@@ -30,6 +32,7 @@ ORM
 PAUSE's
 Photoshop
 Plugin
+Postgres
 REPL
 Rockway
 Subdirectories
@@ -75,6 +78,7 @@ formatter
 formatter's
 formatters
 formbuilder
+getters
 goroutine
 hostname
 html
@@ -85,6 +89,7 @@ introspectable
 javascript
 jrock
 jrockway
+json
 jsp
 kiokudb
 kubernetes
@@ -142,7 +147,10 @@ transactionally
 uchicago
 unapplied
 undef
+unfixable
+unmarshal
 unmarshaled
+unmarshals
 unsubscribe
 username
 utf
