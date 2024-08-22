@@ -126,13 +126,17 @@ enable, ?l to disable)."
 
 (add-hook 'project-find-functions #'project-find-go-module)
 
+(with-eval-after-load 'eglot
+  (add-to-list 'eglot-server-programs
+               '(bazel-starlark-mode . ("bazel-lsp"))))
+
 (setq-default eglot-workspace-configuration
               '(
                 :gopls (
                         :staticcheck t
                         :analyses (:QF1008 :json-false)
                         :usePlaceholders t
-                        :buildFlags ["-tags=k8s,unit_test"]
+                        :buildFlags ["-tags=k8s,bazel,unit_test"]
                         :hints (:constantValues t)
                         :diagnosticsDelay "250ms"
                         :linksInHover :json-false
@@ -196,9 +200,10 @@ enable, ?l to disable)."
                   ("YAML" . (prettier))
                   ("Jsonnet" . (jsonnetfmt))
                   ("Emacs Lisp" . (emacs-lisp))
-                  ("Bazel" . (buildifier))))
-  (add-hook 'prog-mode-hook #'format-all-mode)
-  (add-hook 'text-mode-hook #'format-all-mode))
+                  ("Bazel" . (buildifier))
+                  ("Nix" . (nixpkgs-fmt)))))
+(add-hook 'prog-mode-hook #'format-all-mode)
+(add-hook 'text-mode-hook #'format-all-mode)
 
 (use-package clang-format)
 
@@ -548,7 +553,7 @@ enable, ?l to disable)."
  '(occur-mode-hook '(turn-on-font-lock next-error-follow-minor-mode))
  '(p4-use-p4config-exclusively t t)
  '(package-selected-packages
-   '(corfu-terminal rainbow-delimiters format-all copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet))
+   '(nix-mode corfu-terminal rainbow-delimiters format-all copilot editorconfig quelpa-use-package quelpa consult-dir consult bazel minizinc-mode typescript-mode graphql-mode magit deadgrep powershell use-package window-number fill-column-indicator go-mode jsonnet-mode clang-format dockerfile-mode highlight-indentation scss-mode yaml-mode markdown-mode prettier-js protobuf-mode web-mode with-editor yasnippet))
  '(pgg-default-user-id "5BF3666D")
  '(pgg-gpg-use-agent t)
  '(prettier-js-args '("prettier"))
