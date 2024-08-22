@@ -15,7 +15,7 @@ $HOME/.gem/bin:\
 $HOME/.gem/ruby/2.5.0/bin:\
 $HOME/.dotfiles/bin:\
 /usr/local/scripts:\
-/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+$PATH
 
 export PATH
 
@@ -33,6 +33,12 @@ if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
     [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"
     [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"
 fi
+
+# Nix
+if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
+  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
+fi
+# End Nix
 
 # Use /usr/local/go instead of homebrew's.
 PATH=/usr/local/go/bin:$PATH
@@ -81,11 +87,6 @@ unset HISTSIZE
 # exports
 export EDITOR="$EMACSCLIENT -a '' -t"
 
-case $TERM in
-  xterm* | rxvt* | screen* )
-    export PAGER="less"
-esac
-
 # stuff to be done only in interactive shells
 if [[ $- == *i* ]] && test '!' $TMUX; then
   stty stop ''
@@ -103,6 +104,10 @@ if [ -f /etc/bash_completion ]; then
 fi
 [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
 
+if [ -f $HOME/.env.pach ]; then
+    source $HOME/.env.pach
+fi
+
 alias cover="go test -coverprofile=cover.out -covermode=atomic"
 alias coverall="go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./..."
 alias coverreport="go tool cover -html cover.out -o cover.html && serveme cover.html"
@@ -112,18 +117,9 @@ alias fl="fly -t jrock"
 complete -F _complete_alias fl
 alias k="kubectl"
 complete -F _complete_alias k
-alias blaze=bazel
-complete -F _complete_alias blaze
 complete -F _completion_goflags jlog
 
-export LOKI_ADDR="https://loki.jrock.us"
-export FLUX_FORWARD_NAMESPACE=flux
 export XCURSOR_SIZE=16
-export SSH_AUTH_SOCK=$(find /tmp -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
-
-if [ -e $HOME/pach/install/enterprise-key-values.yaml ]; then
-    export ENT_ACT_CODE=$(yaml2json < $HOME/pach/install/enterprise-key-values.yaml  | jq .pachd.enterpriseLicenseKey -r)
-fi
+export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
 
 alias pctx="pachctl config set active-context"
-alias pachctl="PAGER=bat pachctl"
