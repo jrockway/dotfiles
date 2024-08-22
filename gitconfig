@@ -15,6 +15,7 @@
 	sta = stash
 	fixup = commit --amend -C HEAD
         pr = pull --rebase
+        wt = worktree
 
 [color]
 	status = auto
