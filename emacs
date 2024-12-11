@@ -9,6 +9,7 @@
                          ("\\.svelte$" . web-mode)
                          ("\\.tsx$" . web-mode)
                          ("\\.js$" . typescript-mode)
+                         ("\\.mjs$" . typescript-mode)
                          ("\\.graphqls" . graphql-mode)
                          ("\\.ino$" . c++-mode)
                          ("\\.json$" . json-ts-mode)
@@ -79,6 +80,16 @@ enable, ?l to disable)."
 
   (defun xterm-mouse-tracking-enable-sequence () (apply #'concat (xterm-mouse--tracking-sequence ?h))))
 
+(with-eval-after-load 'bazel
+  ;; Look for MODULE.bazel instead of WORKSPACE.
+  (defun bazel--locate-workspace-file (directory)
+    "Return the file name of the Bazel WORKSPACE file in DIRECTORY.
+Return nil if DIRECTORY is not a Bazel workspace root (i.e.,
+doesn’t contain a WORKSPACE file).  DIRECTORY can be a directory
+name or directory file name."
+    (cl-check-type directory string)
+    (let ((bzlmod (locate-file "MODULE.bazel" (list directory) '(".bazel" ""))))
+      (if bzlmod bzlmod (locate-file "WORKSPACE" (list directory) '(".bazel" ""))))))
 ;;; load packages
 (require 'package)
 (add-to-list 'package-archives '("melpa" . "https://melpa.org/packages/") t)
@@ -140,7 +151,7 @@ enable, ?l to disable)."
                         :hints (:constantValues t)
                         :diagnosticsDelay "250ms"
                         :linksInHover :json-false
-                        :directoryFilters ["-bazel-out" "-bazel-bin" "-bazel-testlogs" "-bazel-pachyderm" "-bazel-gazelle" "-**/node_modules"]
+                        :directoryFilters ["-bazel-out" "-bazel-bin" "-bazel-testlogs" "-bazel-pachyderm" "-bazel-gazelle" "-bazel-monorepo" "-**/node_modules"]
                         )
                 :json (
                        :schemas [
@@ -357,7 +368,7 @@ enable, ?l to disable)."
 (defun tmux-here ()
   (interactive)
   (if (not (eq (getenv "TMUX") ""))
-      (shell-command (format "tmux new-window -c %s" default-directory))
+      (shell-command (format "tmux new-window -c %s" (directory-file-name default-directory)))
     (error "Not inside a tmux session.")))
 
 ;;; custom-set

@@ -123,3 +123,5 @@ export XCURSOR_SIZE=16
 export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
 
 alias pctx="pachctl config set active-context"
+alias gaz="bazel run //:gazelle"
+alias bdf="bazel run //:buildifier"
