@@ -1,0 +1,3 @@
+test --test_output=errors
+startup --max_idle_secs=604800
+common --disk_cache=/tmp/bazel
