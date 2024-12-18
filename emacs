@@ -608,7 +608,7 @@ name or directory file name."
  '(xterm-set-window-title t)
  '(yaml-backspace-function 'backward-delete-char)
  '(yaml-block-literal-search-lines 1000)
- '(yaml-indent-offset 2)
+ '(yaml-indent-offset 4)
  '(yas-verbosity 1 t))
 
 (custom-set-faces
