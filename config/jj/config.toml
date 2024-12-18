@@ -1,0 +1,14 @@
+[user]
+name = "June Rockway"
+email = "2367+jrockway@users.noreply.github.com"
+
+[colors]
+"working_copy description" = { underline = true }
+
+[ui]
+default-command = "st"
+
+[signing]
+sign-all = true
+backend = "ssh"
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzHWlVleTVOz5w2aqhriwcxKMPw30MeujGARucZn4Qs"
