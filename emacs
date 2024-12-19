@@ -426,6 +426,8 @@ name or directory file name."
  '(custom-magic-show-button t)
  '(dabbrev-case-fold-search nil)
  '(default-input-method "japanese")
+ '(dired-auto-revert-buffer t)
+ '(dired-listing-switches "-alFh")
  '(display-buffer-base-action '(nil))
  '(display-hourglass nil)
  '(eglot-autoshutdown t)
