@@ -4,6 +4,8 @@ email = "2367+jrockway@users.noreply.github.com"
 
 [colors]
 "working_copy description" = { underline = true }
+"diff removed token" = { underline = false }
+"diff added token" = { underline = false }
 
 [ui]
 default-command = "st"
