@@ -29,3 +29,9 @@ if(signature.email() == "2367+jrockway@users.noreply.github.com",
  coalesce(signature.email(), email_placeholder)
 )
 '''
+
+[snapshot]
+auto-track = "~glob:**/*.secret.*"
+
+[git]
+private-commits = 'description(glob:"private:*")'
