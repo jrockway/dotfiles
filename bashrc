@@ -2,6 +2,7 @@
 
 # path
 PATH=\
+/opt/homebrew/opt/openjdk/bin:\
 $HOME/pach/install:\
 $HOME/bin:\
 $HOME/go/bin:\
