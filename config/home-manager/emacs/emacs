@@ -133,9 +133,30 @@ name or directory file name."
 
 (add-hook 'project-find-functions #'project-find-go-module)
 
+(define-derived-mode vue-mode web-mode "Vue")
+(add-to-list 'auto-mode-alist '("\\.vue\\'" . vue-mode))
+(add-hook 'vue-mode-hook #'eglot-ensure)
+
+(defun vue-eglot-init-options ()
+  (let ((tsdk-path (expand-file-name
+                    "lib"
+                    (shell-command-to-string "npm list --parseable typescript | head -n1 | tr -d \"\n\""))))
+    `(
+      :typescript (:tsdk ,tsdk-path)
+      :vue (:hybridMode :json-false)
+      :languageFeatures (
+                         :completion (:defaultTagNameCase "both" :defaultAttrNameCase "kebabCase" :getDocumentNameCasesRequest nil :getDocumentSelectionRequest nil)
+                         :diagnostics (:getDocumentVersionRequest nil))
+      :documentFeatures (
+                         :documentFormatting (:defaultPrintWidth 100 :getDocumentPrintWidthRequest nil)
+                         :documentSymbol t
+                         :documentColor t))))
+
 (with-eval-after-load 'eglot
   (add-to-list 'eglot-server-programs
-               '(bazel-starlark-mode . ("bazel-lsp"))))
+               '(bazel-starlark-mode . ("bazel-lsp")))
+  (add-to-list 'eglot-server-programs
+               `(vue-mode . ("vue-language-server" "--stdio" :initializationOptions ,(vue-eglot-init-options)))))
 
 (setq-default eglot-workspace-configuration
               '(
