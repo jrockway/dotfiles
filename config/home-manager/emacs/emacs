@@ -305,7 +305,9 @@ name or directory file name."
  ((eq window-system 'w32)
   (add-to-list 'exec-path "C:/Program Files/Git/usr/bin")
   (add-to-list 'exec-path "C:/Users/jon/go/bin")
-  (add-to-list 'exec-path "C:/Program Files/nodejs")))
+  (add-to-list 'exec-path "C:/Program Files/nodejs"))
+ ((eq window-system 'ns)
+  (add-to-list 'exec-path "/Users/jrockway/.nix-profile/bin")))
 
 ;; ;; We need C-x C-c bound to s-b-k-t for emacsclient -t sessions, but when
 ;; ;; it kills my main X session (with 9 windows or whatever), it is really
@@ -572,7 +574,7 @@ name or directory file name."
  '(lisp-interaction-mode-hook '(turn-on-eldoc-mode))
  '(make-backup-files nil)
  '(max-lisp-eval-depth 65536)
- '(menu-bar-mode nil nil (menu-bar))
+ '(menu-bar-mode (eq window-system 'ns) nil (menu-bar))
  '(message-citation-line-format "* On %a, %b %d %Y, %N wrote:")
  '(message-citation-line-function 'message-insert-formatted-citation-line)
  '(message-dont-reply-to-names '("jon@jrock.us"))
