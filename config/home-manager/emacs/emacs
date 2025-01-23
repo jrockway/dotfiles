@@ -622,7 +622,7 @@ name or directory file name."
  '(typescript-auto-indent-flag nil)
  '(typescript-indent-level 4)
  '(uniquify-buffer-name-style 'forward nil (uniquify))
- '(user-mail-address "jon@jrock.us")
+ '(user-mail-address "june@jrock.us")
  '(vc-follow-symlinks t)
  '(view-inhibit-help-message t)
  '(web-mode-code-indent-offset 4)
