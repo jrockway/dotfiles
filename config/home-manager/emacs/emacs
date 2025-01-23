@@ -286,6 +286,8 @@ name or directory file name."
 (add-hook 'json-ts-mode-hook #'eglot-ensure)
 (add-hook 'json-ts-mode-hook #'rainbow-delimiters-mode-enable)
 (add-hook 'nix-mode-hook #'eglot-ensure)
+(add-hook 'typescript-mode-hook #'eglot-ensure)
+(add-hook 'typescript-mode-hook #'rainbow-delimiters-mode)
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
