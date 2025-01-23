@@ -8,9 +8,24 @@ email = "2367+jrockway@users.noreply.github.com"
 "diff added token" = { underline = false }
 
 [ui]
-default-command = "st"
+default-command = "log"
+diff.format = "git"
+conflict-marker-style = "git"
 
 [signing]
 sign-all = true
 backend = "ssh"
 key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzHWlVleTVOz5w2aqhriwcxKMPw30MeujGARucZn4Qs"
+
+[template-aliases]
+'format_short_signature(signature)' = '''
+if(signature.email() == "2367+jrockway@users.noreply.github.com",
+ raw_escape_sequence("\x1b[38;5;159m")++"J"++
+ raw_escape_sequence("\x1b[38;5;211m")++"u"++
+ raw_escape_sequence("\x1b[38;5;231m")++"n"++
+ raw_escape_sequence("\x1b[38;5;211m")++"e"++
+ raw_escape_sequence("\x1b[38;5;159m")++"!"++
+ raw_escape_sequence("\x1b[0m")++"",
+ coalesce(signature.email(), email_placeholder)
+)
+'''
