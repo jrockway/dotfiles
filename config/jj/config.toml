@@ -13,7 +13,7 @@ diff.format = "git"
 conflict-marker-style = "git"
 
 [signing]
-sign-all = true
+signing = "drop"
 backend = "ssh"
 key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzHWlVleTVOz5w2aqhriwcxKMPw30MeujGARucZn4Qs"
 
@@ -35,3 +35,4 @@ auto-track = "~glob:**/*.secret.*"
 
 [git]
 private-commits = 'description(glob:"private:*")'
+sign-on-push = true
