@@ -2,6 +2,7 @@
 
 # path
 PATH=\
+/opt/homebrew/opt/postgresql@17/bin:\
 /opt/homebrew/opt/openjdk/bin:\
 $HOME/pach/install:\
 $HOME/bin:\
@@ -23,9 +24,6 @@ export PATH
 if [ -x /opt/homebrew/bin/brew ]; then
    eval "$(/opt/homebrew/bin/brew shellenv)"
    export SHELL=`which bash`
-   if [ '!' -z ${TMUX+x} ]; then
-       export TERMINFO=/opt/homebrew/Cellar/ncurses/6.3/share/terminfo/74/tmux-direct
-   fi
 fi
 
 if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
