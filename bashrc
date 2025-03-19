@@ -126,3 +126,5 @@ export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id 
 alias pctx="pachctl config set active-context"
 alias gaz="bazel run //:gazelle"
 alias bdf="bazel run //:buildifier"
+alias master="jj bookmark move --to=@ master"
+alias main="jj bookmark move --to=@ main"
