@@ -15,7 +15,7 @@ conflict-marker-style = "git"
 [signing]
 signing = "drop"
 backend = "ssh"
-key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzHWlVleTVOz5w2aqhriwcxKMPw30MeujGARucZn4Qs"
+key = "~/.ssh/id_ed25519.pub"
 
 [template-aliases]
 'format_short_signature(signature)' = '''
