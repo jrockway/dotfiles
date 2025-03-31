@@ -1,4 +1,12 @@
 {
+  # Install Nix first:
+  # linux: $ sh <(curl -L https://nixos.org/nix/install) --daemon
+  # mac:   $ sh <(curl -L https://nixos.org/nix/install)
+  #
+  # Then link config/home-manager and config/nix into ~/.config.
+  #
+  # Finally,
+  # $ nix run home-manager/release-24.11 -- init --switch
   description = "Home Manager configuration of jrockway";
   inputs = {
     # Specify the source of Home Manager and Nixpkgs.
