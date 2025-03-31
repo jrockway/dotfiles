@@ -1,13 +1,10 @@
 { config, pkgs, unstable, system, ... }:
-
-{
+let darwin = pkgs.lib.strings.hasSuffix "darwin" system;
+in {
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "jrockway";
-  home.homeDirectory = if pkgs.lib.strings.hasSuffix "darwin" system then
-    "/Users/jrockway"
-  else
-    "/home/jrockway";
+  home.homeDirectory = if darwin then "/Users/jrockway" else "/home/jrockway";
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -60,14 +57,13 @@
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.yq
-    unstable.envoy
     unstable.go
     unstable.gopls
     unstable.jujutsu
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
-  ];
+  ] ++ (if darwin then [ ] else [ unstable.envoy ]);
 
   # Home Manager is pretty good at managing dotfiles. The primary way to manage
   # plain files is through 'home.file'.
