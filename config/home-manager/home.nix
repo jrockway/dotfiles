@@ -30,7 +30,7 @@ in {
     # (pkgs.writeShellScriptBin "my-hello" ''
     #   echo "Hello, ${config.home.username}!"
     # '')
-    pkgs.bash
+    pkgs.bashInteractive
     pkgs.bat
     pkgs.bazelisk
     pkgs.buildifier
