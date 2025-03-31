@@ -1,1 +1,3 @@
 source $HOME/.bashrc
+
+if [ -e /home/jrockway/.nix-profile/etc/profile.d/nix.sh ]; then . /home/jrockway/.nix-profile/etc/profile.d/nix.sh; fi # added by Nix installer

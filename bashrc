@@ -2,8 +2,6 @@
 
 # path
 PATH=\
-/opt/homebrew/opt/postgresql@17/bin:\
-/opt/homebrew/opt/openjdk/bin:\
 $HOME/pach/install:\
 $HOME/bin:\
 $HOME/go/bin:\
@@ -21,26 +19,7 @@ $PATH
 
 export PATH
 
-if [ -x /opt/homebrew/bin/brew ]; then
-   eval "$(/opt/homebrew/bin/brew shellenv)"
-   export SHELL=`which bash`
-fi
-
-if [ -x /home/linuxbrew/.linuxbrew/bin/brew ]; then
-    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
-    export NVM_DIR="$HOME/.nvm"
-    [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"
-    [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"
-fi
-
-# Nix
-if [ -e '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh' ]; then
-  . '/nix/var/nix/profiles/default/etc/profile.d/nix-daemon.sh'
-fi
-# End Nix
-
-# Use /usr/local/go instead of homebrew's.
-PATH=/usr/local/go/bin:$PATH
+source $HOME/.nix-profile/etc/profile.d/hm-session-vars.sh
 
 export PROMPT_COMMAND="history -a"
 

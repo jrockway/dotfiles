@@ -159,7 +159,13 @@ name or directory file name."
                                              :url "https://raw.githubusercontent.com/denoland/deno/main/cli/schemas/config-file.v1.json")
                                  (:fileMatch ["*.pipeline.json"]
                                              :url "https://raw.githubusercontent.com/pachyderm/pachyderm/master/src/internal/jsonschema/pps_v2/CreatePipelineRequest.schema.json")
-                                 ])))
+                                 ])
+                :nixd ( :options (
+                                  :home-manager ( :expr:
+                                                  "(import <home-manager/modules> { configuration = ~/.config/home-manager/home.nix; pkgs = import <nixpkgs> {}; }).options"
+                                                  )
+                                  )
+                        )))
 
 (defun my-eglot-organize-imports () (interactive)
        (eglot-code-actions nil nil "source.organizeImports" t))
@@ -212,7 +218,7 @@ name or directory file name."
                   ("Jsonnet" . (jsonnetfmt))
                   ("Emacs Lisp" . (emacs-lisp))
                   ("Bazel" . (buildifier))
-                  ("Nix" . (nixpkgs-fmt)))))
+                  ("Nix" . (nixfmt)))))
 (add-hook 'prog-mode-hook #'format-all-mode)
 (add-hook 'text-mode-hook #'format-all-mode)
 
@@ -262,6 +268,7 @@ name or directory file name."
 (add-hook 'js-json-mode-hook #'rainbow-delimiters-mode-enable)
 (add-hook 'json-ts-mode-hook #'eglot-ensure)
 (add-hook 'json-ts-mode-hook #'rainbow-delimiters-mode-enable)
+(add-hook 'nix-mode-hook #'eglot-ensure)
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
