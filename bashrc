@@ -2,19 +2,14 @@
 
 # path
 PATH=\
-$HOME/pach/install:\
 $HOME/bin:\
 $HOME/go/bin:\
-$HOME/.fly/bin:\
-$HOME/.cargo/bin:\
-$HOME/.npm-packages/bin:\
 $HOME/.krew/bin:\
-/snap/bin:\
 $HOME/.local/bin:\
-$HOME/.gem/bin:\
-$HOME/.gem/ruby/2.5.0/bin:\
 $HOME/.dotfiles/bin:\
 /usr/local/scripts:\
+/sbin:\
+/usr/sbin:\
 $PATH
 
 export PATH
@@ -81,10 +76,6 @@ if [ -f /etc/bash_completion ]; then
     for i in $HOME/.dotfiles/completion/*; do source $i; done
 fi
 [[ -r "/opt/homebrew/etc/profile.d/bash_completion.sh" ]] && . "/opt/homebrew/etc/profile.d/bash_completion.sh"
-
-if [ -f $HOME/.env.pach ]; then
-    source $HOME/.env.pach
-fi
 
 alias cover="go test -coverprofile=cover.out -covermode=atomic"
 alias coverall="go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./..."

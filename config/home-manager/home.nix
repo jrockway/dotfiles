@@ -34,29 +34,51 @@ in {
     pkgs.bat
     pkgs.bazelisk
     pkgs.buildifier
+    pkgs.curlHTTP3
     pkgs.deno
     pkgs.doctl
     pkgs.emacs
     pkgs.esbuild
-    pkgs.git
+    pkgs.git-crypt
+    pkgs.gitFull
+    pkgs.grafana
+    pkgs.htop
     pkgs.hugo
+    pkgs.iperf3
     pkgs.istioctl
+    pkgs.jq
+    pkgs.jsonnet
+    pkgs.jsonnet-language-server
     pkgs.kind
+    pkgs.krew
     pkgs.kubeconform
     pkgs.kubectl
+    pkgs.kubectx
     pkgs.kubernetes-helm
     pkgs.kubeseal
     pkgs.kustomize
+    pkgs.mg
     pkgs.mitmproxy
     pkgs.nixd
     pkgs.nixfmt-classic
+    pkgs.nodePackages.concurrently
+    pkgs.nodePackages.prettier
     pkgs.nodejs
+    pkgs.postgresql_17
+    pkgs.procps
+    pkgs.prometheus
+    pkgs.prometheus-node-exporter
+    pkgs.ripgrep
     pkgs.skopeo
+    pkgs.socat
     pkgs.tinygo
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
+    pkgs.wget
+    pkgs.yaml-language-server
     pkgs.yq
+    pkgs.bazel-watcher
     unstable.go
     unstable.gopls
     unstable.jujutsu
