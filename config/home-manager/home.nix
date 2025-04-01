@@ -102,28 +102,50 @@ in {
     # '';
   };
 
-  # Home Manager can also manage your environment variables through
-  # 'home.sessionVariables'. These will be explicitly sourced when using a
-  # shell provided by Home Manager. If you don't want to manage your shell
-  # through Home Manager then you have to manually source 'hm-session-vars.sh'
-  # located at either
-  #
-  #  ~/.nix-profile/etc/profile.d/hm-session-vars.sh
-  #
-  # or
-  #
-  #  ~/.local/state/nix/profiles/profile/etc/profile.d/hm-session-vars.sh
-  #
-  # or
-  #
-  #  /etc/profiles/per-user/jrockway/etc/profile.d/hm-session-vars.sh
-  #
-  home.sessionVariables = {
-    # EDITOR = "emacs";
-  };
+  home.sessionVariables = { XCURSOR_SIZE = "16"; };
 
+  home.sessionPath = [
+    "$HOME/bin"
+    "$HOME/go/bin"
+    "$HOME/.krew/bin"
+    "$HOME/.local/bin"
+    "$HOME/.dotfiles/bin"
+    "/usr/local/scripts"
+    "/sbin"
+    "/usr/sbin"
+  ];
+
+  # Let Home Manager install and manage itself.
   programs = {
-    # Let Home Manager install and manage itself.
     home-manager.enable = true;
+    bash = {
+      enable = true;
+      enableCompletion = true;
+      historyFileSize = 100000;
+      historySize = 10000;
+      bashrcExtra = builtins.readFile ./bashrc;
+      initExtra = builtins.readFile ./bashrc.interactive;
+      profileExtra = builtins.readFile ./bash_profile;
+      logoutExtra = builtins.readFile ./bash_logout;
+      shellAliases = {
+        cover = "go test -coverprofile=cover.out -covermode=atomic";
+        coverall =
+          "go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./...";
+        coverreport =
+          "go tool cover -html cover.out -o cover.html && serveme cover.html";
+        kctx = "kubectx";
+        kns = "kubens";
+        k = "kubectl";
+        pctx = "pachctl config set active-context";
+        gaz = "bazel run //:gazelle";
+        bdf = "bazel run //:buildifier";
+        master = "jj bookmark move --to=@ master";
+        main = "jj bookmark move --to=@ main";
+        h = "history";
+        ec = "emacsclient -t";
+        hm = "home-manager";
+      };
+      shellOptions = [ "cmdhist" "checkwinsize" "cdable_vars" "histappend" ];
+    };
   };
 }

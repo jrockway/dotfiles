@@ -1,0 +1,37 @@
+#-*-Shell-script-*-
+
+# stuff to be done only in interactive shells
+stty stop ''
+
+if test '!' $TMUX; then
+  tmux list-sessions
+fi
+
+export PROMPT_COMMAND="history -a"
+
+SSH_STATUS=""
+if [ -n "$SSH_CLIENT" ]; then
+    SSH_STATUS=" (ssh)"
+fi
+
+# prompts
+case $TERM in
+    dumb* | emacs* )
+	export PS1="[\w]\$ "
+	;;
+    *)
+	export PS1="\[\033[01;32m\]\n[\w] \j (\u@\h)$SSH_STATUS\n\$ \[\033[00m\]"
+	export PS2="\$ "
+	export PS3="\$ "
+	;;
+esac
+
+# completion from upstream
+if [ -f /etc/bash_completion ]; then
+    source /etc/bash_completion;
+    for i in $HOME/.dotfiles/completion/*; do source $i; done
+    complete -F _completion_goflags jlog
+fi
+
+# complete go commands if gotab is installed
+which gotab >/dev/null && complete -C gotab -o nospace go
