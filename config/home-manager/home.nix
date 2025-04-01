@@ -148,4 +148,12 @@ in {
       shellOptions = [ "cmdhist" "checkwinsize" "cdable_vars" "histappend" ];
     };
   };
+
+  services = {
+    emacs = {
+      enable = true;
+      defaultEditor = true;
+      startWithUserSession = true;
+    };
+  };
 }
