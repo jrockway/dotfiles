@@ -32,6 +32,7 @@ in {
     # '')
     pkgs.bashInteractive
     pkgs.bat
+    pkgs.bazel-watcher
     pkgs.bazelisk
     pkgs.buildifier
     pkgs.curlHTTP3
@@ -71,17 +72,16 @@ in {
     pkgs.ripgrep
     pkgs.skopeo
     pkgs.socat
-    pkgs.tinygo
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.wget
     pkgs.yaml-language-server
     pkgs.yq
-    pkgs.bazel-watcher
     unstable.go
     unstable.gopls
     unstable.jujutsu
+    unstable.tinygo
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
@@ -122,6 +122,8 @@ in {
     # EDITOR = "emacs";
   };
 
-  # Let Home Manager install and manage itself.
-  programs.home-manager.enable = true;
+  programs = {
+    # Let Home Manager install and manage itself.
+    home-manager.enable = true;
+  };
 }
