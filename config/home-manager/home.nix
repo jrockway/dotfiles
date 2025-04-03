@@ -1,6 +1,8 @@
-{ config, pkgs, unstable, system, ... }:
+{ config, pkgs, unstable, system, sops-nix, ... }:
 let darwin = pkgs.lib.strings.hasSuffix "darwin" system;
 in {
+  imports = [ sops-nix.homeManagerModules.sops ];
+
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = "jrockway";
@@ -73,12 +75,14 @@ in {
     pkgs.ripgrep
     pkgs.skopeo
     pkgs.socat
+    pkgs.sops
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.wget
     pkgs.yaml-language-server
     pkgs.yq
+    sops-nix
     unstable.go
     unstable.gopls
     unstable.jujutsu
@@ -161,5 +165,11 @@ in {
       defaultEditor = true;
       startWithUserSession = true;
     };
+  };
+
+  sops = {
+    age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
+    defaultSopsFile = ./sops/secrets.sops.yaml;
+    secrets.test = { path = "%r/test.txt"; };
   };
 }

@@ -8,9 +8,13 @@
       url = "github:nix-community/home-manager/release-24.11";
       inputs.nixpkgs.follows = "nixpkgs";
     };
+    sops-nix = {
+      url = "github:Mic92/sops-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
-
-  outputs = { nixpkgs, nixpkgs-unstable, flake-utils, home-manager, ... }:
+  outputs =
+    { nixpkgs, nixpkgs-unstable, flake-utils, home-manager, sops-nix, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = nixpkgs.legacyPackages.${system};
@@ -23,6 +27,7 @@
             extraSpecialArgs = {
               inherit unstable;
               inherit system;
+              inherit sops-nix;
             };
           };
       });

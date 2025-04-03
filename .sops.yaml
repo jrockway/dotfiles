@@ -1,0 +1,7 @@
+keys:
+    - &jrockway age1sxeg73875j2hg8dlr76k8xu652dflg6k46jtfv77gsz4ylr0vd4s0ygxkt
+creation_rules:
+    - path_regex: "[.]sops[.]yaml$"
+      key_groups:
+          - age:
+                - *jrockway
