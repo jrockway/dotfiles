@@ -87,22 +87,14 @@ in {
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
   ] ++ (if darwin then [ ] else [ unstable.envoy ]);
 
-  # Home Manager is pretty good at managing dotfiles. The primary way to manage
-  # plain files is through 'home.file'.
   home.file = {
-    # # Building this configuration will create a copy of 'dotfiles/screenrc' in
-    # # the Nix store. Activating the configuration will then make '~/.screenrc' a
-    # # symlink to the Nix store copy.
-    # ".screenrc".source = dotfiles/screenrc;
-
-    # # You can also set the file content immediately.
-    # ".gradle/gradle.properties".text = ''
-    #   org.gradle.console=verbose
-    #   org.gradle.daemon.idletimeout=3600000
-    # '';
+    # ".path".source = ./file
   };
 
-  home.sessionVariables = { XCURSOR_SIZE = "16"; };
+  home.sessionVariables = {
+    XCURSOR_SIZE = "16";
+    LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+  };
 
   home.sessionPath = [
     "$HOME/bin"
