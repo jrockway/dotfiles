@@ -88,12 +88,24 @@ in {
   ] ++ (if darwin then [ ] else [ unstable.envoy ]);
 
   home.file = {
-    # ".path".source = ./file
+    ".aspell.en.prepl".source = ./aspell/aspell.en.prepl;
+    ".aspell.en.pws".source = ./aspell/aspell.en.pws;
+    ".bazelrc".source = ./bazel/bazelrc;
+    ".emacs".source = ./emacs/emacs;
+    ".gitconfig".source = ./git/gitconfig;
+    ".htoprc".source = ./htop/htoprc;
+    ".jq".source = ./jq/jq;
+    ".tmux".source = ./tmux/tmux.conf;
+  };
+
+  xdg.configFile = {
+    "jj".source = ./jj;
+    "kitty".source = ./kitty;
   };
 
   home.sessionVariables = {
-    XCURSOR_SIZE = "16";
     LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+    XCURSOR_SIZE = "16";
   };
 
   home.sessionPath = [
@@ -115,10 +127,10 @@ in {
       enableCompletion = true;
       historyFileSize = 100000;
       historySize = 10000;
-      bashrcExtra = builtins.readFile ./bashrc;
-      initExtra = builtins.readFile ./bashrc.interactive;
-      profileExtra = builtins.readFile ./bash_profile;
-      logoutExtra = builtins.readFile ./bash_logout;
+      bashrcExtra = builtins.readFile ./bash/bashrc;
+      initExtra = builtins.readFile ./bash/bashrc.interactive;
+      profileExtra = builtins.readFile ./bash/bash_profile;
+      logoutExtra = builtins.readFile ./bash/bash_logout;
       shellAliases = {
         cover = "go test -coverprofile=cover.out -covermode=atomic";
         coverall =
