@@ -48,6 +48,7 @@ in {
     pkgs.grafana
     pkgs.htop
     pkgs.hugo
+    pkgs.iosevka
     pkgs.iperf3
     pkgs.istioctl
     pkgs.jq
@@ -174,5 +175,10 @@ in {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
     defaultSopsFile = ./sops/secrets.sops.yaml;
     secrets.test = { path = "%r/test.txt"; };
+  };
+
+  fonts.fontconfig = {
+    enable = true;
+    defaultFonts.monospace = [ "Iosevka-Regular" ];
   };
 }
