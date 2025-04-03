@@ -103,6 +103,7 @@ in {
     ".htoprc".source = ./htop/htoprc;
     ".jq".source = ./jq/jq;
     ".tmux".source = ./tmux/tmux.conf;
+    ".tmux.conf".source = ./tmux/tmux.conf;
   };
 
   xdg.configFile = {
