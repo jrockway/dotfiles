@@ -111,6 +111,9 @@ in {
   };
 
   home.sessionVariables = {
+    EDITOR = pkgs.lib.getBin (pkgs.writeShellScript "emacsclient" ''
+      exec ${pkgs.emacs}/bin/emacsclient -a ''' -t $@
+    '');
     XCURSOR_SIZE = "16";
   } // (if !darwin then {
     LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
@@ -165,7 +168,6 @@ in {
   services = if !darwin then {
     emacs = {
       enable = true;
-      defaultEditor = true;
       startWithUserSession = true;
     };
   } else
