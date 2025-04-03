@@ -40,6 +40,7 @@ in {
     pkgs.doctl
     pkgs.emacs
     pkgs.esbuild
+    pkgs.fd
     pkgs.git-crypt
     pkgs.gitFull
     pkgs.grafana
@@ -85,6 +86,7 @@ in {
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
+    (pkgs.writeShellScriptBin "fdfind" "exec -a $0 ${pkgs.fd}/bin/fd $@")
   ] ++ (if darwin then [ ] else [ unstable.envoy ]);
 
   home.file = {
