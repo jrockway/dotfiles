@@ -110,9 +110,11 @@ in {
   };
 
   home.sessionVariables = {
-    LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
     XCURSOR_SIZE = "16";
-  };
+  } // (if !darwin then {
+    LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+  } else
+    { });
 
   home.sessionPath = [
     "$HOME/bin"
@@ -159,13 +161,14 @@ in {
     };
   };
 
-  services = {
+  services = if !darwin then {
     emacs = {
       enable = true;
       defaultEditor = true;
       startWithUserSession = true;
     };
-  };
+  } else
+    { };
 
   sops = {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
