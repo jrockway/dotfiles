@@ -37,6 +37,7 @@ in {
     pkgs.bazel-watcher
     pkgs.bazelisk
     pkgs.buildifier
+    pkgs.coreutils-full
     pkgs.curlHTTP3
     pkgs.deno
     pkgs.doctl
@@ -68,7 +69,6 @@ in {
     pkgs.nixfmt-classic
     pkgs.nodePackages.concurrently
     pkgs.nodePackages.prettier
-    pkgs.nodejs
     pkgs.postgresql_17
     pkgs.procps
     pkgs.prometheus
@@ -87,6 +87,8 @@ in {
     unstable.go
     unstable.gopls
     unstable.jujutsu
+    unstable.ncurses
+    unstable.nodejs_20
     unstable.tinygo
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
