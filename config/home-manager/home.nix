@@ -51,6 +51,7 @@ in {
     pkgs.iosevka
     pkgs.iperf3
     pkgs.istioctl
+    pkgs.jdk
     pkgs.jq
     pkgs.jsonnet
     pkgs.jsonnet-language-server
