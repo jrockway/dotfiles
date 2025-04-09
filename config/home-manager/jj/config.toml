@@ -11,6 +11,7 @@ email = "2367+jrockway@users.noreply.github.com"
 default-command = "log"
 diff.format = "git"
 conflict-marker-style = "git"
+pager = ":builtin"
 
 [signing]
 signing = "drop"
