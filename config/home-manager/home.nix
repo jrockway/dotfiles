@@ -207,6 +207,13 @@ in {
         e.yasnippet
       ];
     };
+    fzf = {
+      enable = true;
+      enableBashIntegration = true;
+      changeDirWidgetCommand = "fd --type d";
+      defaultCommand = "fd --type f";
+      tmux.enableShellIntegration = true;
+    };
   };
 
   services = if !darwin then {
