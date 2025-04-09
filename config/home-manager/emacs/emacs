@@ -34,8 +34,7 @@
   (require 'ibuffer-git)
   (require 'editing-extras)
   (require 'text-extras)
-  (require 'treesit)
-  (setq treesit-extra-load-path '("~/elisp/tree-sitter-modules/")))
+  (require 'treesit))
 
 (require 'project)
 

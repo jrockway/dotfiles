@@ -41,7 +41,6 @@ in {
     pkgs.curlHTTP3
     pkgs.deno
     pkgs.doctl
-    pkgs.emacs
     pkgs.esbuild
     pkgs.fd
     pkgs.git-crypt
@@ -115,7 +114,7 @@ in {
 
   home.sessionVariables = {
     EDITOR = pkgs.lib.getBin (pkgs.writeShellScript "emacsclient" ''
-      exec ${pkgs.emacs}/bin/emacsclient -a ''' -t $@
+      exec ${config.programs.emacs.finalPackage}/bin/emacsclient -a ''' -t $@
     '');
     XCURSOR_SIZE = "16";
   } // (if !darwin then {
@@ -129,6 +128,7 @@ in {
     "$HOME/.krew/bin"
     "$HOME/.local/bin"
     "$HOME/.dotfiles/bin"
+    "/usr/local"
     "/usr/local/scripts"
     "/sbin"
     "/usr/sbin"
@@ -165,6 +165,46 @@ in {
         hm = "home-manager";
       };
       shellOptions = [ "cmdhist" "checkwinsize" "cdable_vars" "histappend" ];
+    };
+    emacs = {
+      enable = true;
+      package = pkgs.emacs-nox;
+      extraPackages = e: [
+        e.bazel
+        e.clang-format
+        e.consult
+        e.consult-dir
+        e.copilot
+        e.corfu
+        e.corfu-terminal
+        e.deadgrep
+        e.dockerfile-mode
+        e.editorconfig
+        e.fill-column-indicator
+        e.format-all
+        e.go-mode
+        e.graphql-mode
+        e.highlight-indentation
+        e.jsonnet-mode
+        e.markdown-mode
+        e.minizinc-mode
+        e.nix-mode
+        e.powershell
+        e.prettier-js
+        e.protobuf-mode
+        e.quelpa
+        e.quelpa-use-package
+        e.rainbow-delimiters
+        e.scss-mode
+        e.treesit-grammars.with-all-grammars
+        e.typescript-mode
+        e.use-package
+        e.web-mode
+        e.window-number
+        e.with-editor
+        e.yaml-mode
+        e.yasnippet
+      ];
     };
   };
 
