@@ -26,8 +26,6 @@
   (add-to-list 'load-path "~/elisp/eproject/lang")
   (add-to-list 'load-path "~/elisp/eslide")
   (add-to-list 'load-path "~/elisp/ibuffer-git")
-  (add-to-list 'load-path "~/elisp/devil")
-  (require 'devil)
   (require 'eproject)
   (require 'eproject-compile)
   (require 'eproject-extras)
@@ -46,7 +44,6 @@
 ;;; modes i want on by default
 (ido-mode 1)
 (winner-mode 1)
-(global-devil-mode)
 
 ;;; override stupid defaults
 (defalias 'yes-or-no-p 'y-or-n-p)
