@@ -1,5 +1,7 @@
 { config, pkgs, unstable, system, sops-nix, ... }:
-let darwin = pkgs.lib.strings.hasSuffix "darwin" system;
+let
+  darwin = pkgs.lib.strings.hasSuffix "darwin" system;
+  emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
 in {
   imports = [ sops-nix.homeManagerModules.sops ];
 
@@ -167,12 +169,16 @@ in {
         h = "history";
         ec = "emacsclient -t";
         hm = "home-manager";
-      };
+      } // (if darwin then {
+        emacs =
+          "${config.programs.emacs.finalPackage}/Applications/Emacs.app/Contents/MacOS/Emacs";
+      } else
+        { });
       shellOptions = [ "cmdhist" "checkwinsize" "cdable_vars" "histappend" ];
     };
     emacs = {
       enable = true;
-      package = pkgs.emacs-nox;
+      package = emacs;
       extraPackages = e: [
         e.bazel
         e.clang-format
