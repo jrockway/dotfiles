@@ -645,13 +645,18 @@ name or directory file name."
  ;; If you edit it by hand, you could mess it up, so be careful.
  ;; Your init file should contain only one such instance.
  ;; If there is more than one, they won't work right.
- '(default ((t nil)))
+ '(default ((((type x w32 ns)) (:background "#001d26" :foreground "grey90" :slant normal :weight regular :height 160 :width normal :family "Iosevka"))))
  '(eglot-inlay-hint-face ((t (:foreground "grey20" :slant italic))))
  '(eglot-mode-line ((t (:inherit font-lock-constant-face))))
  '(eslide-slideshow-normal-text ((t (:height 1000 :family "Computer Modern"))))
- '(flycheck-error ((t (:foreground "pink" :underline (:color foreground-color :style wave)))))
- '(flymake-error ((t (:foreground "pink" :underline (:color foreground-color :style wave :position nil)))))
- '(flymake-warning ((t (:weight normal :inherit warning))))
+ '(error ((((type w32 ns x))
+           (:underline (:color "VioletRed1" :style wave)))
+          (t (:foreground "Pink"))))
+ '(warning ((((type w32 ns x))
+             (:underline (:color "DarkOrange" :style wave)))
+            (t (:foreground "DarkOrange"))))
+ '(fixed-pitch ((t (:family "Iosevka"))))
+ '(fixed-pitch-serif ((t (:family "Iosevka Slab"))))
  '(font-lock-comment-face ((t (:foreground "chocolate1" :slant italic))))
  '(font-lock-keyword-face ((t (:foreground "Cyan1" :weight bold))))
  '(highlight-indentation-current-column-face ((t (:background "#338833"))))
@@ -674,9 +679,7 @@ name or directory file name."
  '(rainbow-delimiters-depth-7-face ((t (:inherit rainbow-delimiters-base-face :foreground "gold"))))
  '(rainbow-delimiters-depth-8-face ((t (:inherit rainbow-delimiters-base-face :foreground "lawngreen"))))
  '(rainbow-delimiters-depth-9-face ((t (:inherit rainbow-delimiters-base-face :foreground "mediumaquamarine"))))
+ '(variable-pitch ((t (:family "Iosevka Aile"))))
  '(window-number-face ((t (:foreground "red"))) t)
  '(xref-file-header ((t (:foreground "green")))))
-
-(set-face-foreground 'default "grey90")
-(set-face-background 'default "black")
 (server-start)
