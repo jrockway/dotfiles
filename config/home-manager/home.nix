@@ -122,6 +122,7 @@ in {
     EDITOR = pkgs.lib.getBin (pkgs.writeShellScript "emacsclient" ''
       exec ${config.programs.emacs.finalPackage}/bin/emacsclient -a ''' -t $@
     '');
+    TERMINFO = "$HOME/.nix-profile/lib/terminfo";
     XCURSOR_SIZE = "16";
   } // (if !darwin then {
     LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
