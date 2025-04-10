@@ -36,10 +36,12 @@ in {
     pkgs.bat
     pkgs.bazel-watcher
     pkgs.bazelisk
+    pkgs.bc
     pkgs.buildifier
     pkgs.coreutils-full
     pkgs.curlHTTP3
     pkgs.deno
+    pkgs.dig
     pkgs.doctl
     pkgs.esbuild
     pkgs.fd
@@ -80,6 +82,7 @@ in {
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
+    pkgs.units
     pkgs.wget
     pkgs.yaml-language-server
     pkgs.yq
