@@ -94,8 +94,6 @@ name or directory file name."
 (use-package quelpa)
 (use-package quelpa-use-package)
 
-(defface my-window-number-face '((t :foreground "red")) "")
-
 (use-package corfu :init (global-corfu-mode))
 (use-package corfu-terminal
   :bind
@@ -117,6 +115,7 @@ name or directory file name."
 
 (use-package window-number
   :config
+  (defface my-window-number-face '((t :foreground "red")) "")
   (defun window-number-set-inactive-color () (force-mode-line-update))
   (defun window-number-set-active-color () (force-mode-line-update))
   (defun window-number-string ()
@@ -156,7 +155,9 @@ name or directory file name."
   (add-to-list 'eglot-server-programs
                '(bazel-starlark-mode . ("bazel-lsp")))
   (add-to-list 'eglot-server-programs
-               `(vue-mode . ("vue-language-server" "--stdio" :initializationOptions ,(vue-eglot-init-options)))))
+               `(vue-mode . ("vue-language-server" "--stdio" :initializationOptions ,(vue-eglot-init-options))))
+  (add-to-list 'eglot-server-programs
+               `(jsonnet-mode . ("jsonnet-language-server"))))
 
 (setq-default eglot-workspace-configuration
               '(
@@ -222,7 +223,10 @@ name or directory file name."
   :config
   (add-hook 'web-mode-hook #'prettier-js-mode))
 
-(use-package jsonnet-mode)
+(use-package jsonnet-mode
+  :config
+  (add-hook 'jsonnet-mode-hook #'eglot-ensure)
+  (add-hook 'typescript-mode-hook #'rainbow-delimiters-mode-enable))
 
 (use-package format-all
   :config
@@ -265,12 +269,7 @@ name or directory file name."
   (yas-global-mode t)
   (define-key yas-keymap (kbd "C-k") #'my-yas-clear-snippet))
 
-
-(use-package copilot
-  :quelpa (copilot :fetcher github
-                   :repo "zerolfx/copilot.el"
-                   :branch "main"
-                   :files ("dist" "*.el")))
+(use-package copilot)
 
 (use-package markdown-mode)
 
@@ -287,7 +286,7 @@ name or directory file name."
 (add-hook 'json-ts-mode-hook #'rainbow-delimiters-mode-enable)
 (add-hook 'nix-mode-hook #'eglot-ensure)
 (add-hook 'typescript-mode-hook #'eglot-ensure)
-(add-hook 'typescript-mode-hook #'rainbow-delimiters-mode)
+(add-hook 'typescript-mode-hook #'rainbow-delimiters-mode-enable)
 
 ;;; enable/disable
 (put 'downcase-region 'disabled nil)
