@@ -170,7 +170,7 @@ in {
         main = "jj bookmark move --to=@ main";
         h = "history";
         ec = "emacsclient -t";
-        hm = "home-manager";
+        hms = "nh home switch";
       } // (if darwin then {
         emacs =
           "${config.programs.emacs.finalPackage}/Applications/Emacs.app/Contents/MacOS/Emacs";
