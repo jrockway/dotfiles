@@ -1,6 +1,6 @@
-{ config, pkgs, unstable, system, sops-nix, ... }:
+{ config, pkgs, unstable, sops-nix, ... }:
 let
-  darwin = pkgs.lib.strings.hasSuffix "darwin" system;
+  darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
 in {
   imports = [ sops-nix.homeManagerModules.sops ];

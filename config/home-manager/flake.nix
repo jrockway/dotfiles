@@ -26,7 +26,6 @@
             modules = [ ./home.nix ];
             extraSpecialArgs = {
               inherit unstable;
-              inherit system;
               inherit sops-nix;
             };
           };
