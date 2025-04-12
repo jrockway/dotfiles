@@ -73,6 +73,7 @@ in {
     pkgs.nixfmt-classic
     pkgs.nodePackages.concurrently
     pkgs.nodePackages.prettier
+    pkgs.nvd
     pkgs.postgresql_17
     pkgs.procps
     pkgs.prometheus
@@ -223,6 +224,10 @@ in {
       changeDirWidgetCommand = "fd --type d";
       defaultCommand = "fd --type f";
       tmux.enableShellIntegration = true;
+    };
+    nh = {
+      enable = true;
+      flake = "${config.home.homeDirectory}/.config/home-manager";
     };
   };
 
