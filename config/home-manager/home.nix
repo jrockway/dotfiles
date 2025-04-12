@@ -226,13 +226,19 @@ in {
     };
   };
 
-  services = if !darwin then {
+  services = { } // (if !darwin then {
     emacs = {
       enable = true;
       startWithUserSession = true;
     };
+    home-manager.autoExpire = {
+      enable = true;
+      frequency = "daily";
+      timestamp = "-7 days";
+      store.cleanup = true;
+    };
   } else
-    { };
+    { });
 
   sops = {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
