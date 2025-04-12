@@ -212,6 +212,7 @@ in {
         e.treesit-grammars.with-all-grammars
         e.typescript-mode
         e.use-package
+        e.vterm
         e.web-mode
         e.window-number
         e.with-editor
