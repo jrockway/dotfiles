@@ -280,6 +280,12 @@ name or directory file name."
   (define-key flymake-mode-map (kbd "C-c f") 'flymake-show-buffer-diagnostics)
   (add-hook 'flymake-diagnostics-buffer-mode-hook (lambda (setq truncate-lines nil))))
 
+(use-package kkp
+  :ensure t
+  :config
+  ;; (setq kkp-alt-modifier 'alt) ;; use this if you want to map the Alt keyboard modifier to Alt in Emacs (and not to Meta)
+  (global-kkp-mode +1))
+
 (add-hook 'js-json-mode-hook #'eglot-ensure)
 (add-hook 'js-json-mode-hook #'rainbow-delimiters-mode-enable)
 (add-hook 'json-ts-mode-hook #'eglot-ensure)

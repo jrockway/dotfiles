@@ -198,6 +198,7 @@ in {
         e.graphql-mode
         e.highlight-indentation
         e.jsonnet-mode
+        e.kkp
         e.markdown-mode
         e.minizinc-mode
         e.nix-mode
