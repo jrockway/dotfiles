@@ -16,7 +16,7 @@ pager = ":builtin"
 [signing]
 signing = "drop"
 backend = "ssh"
-key = "~/.ssh/id_ed25519.pub"
+key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIzAhJaA8i7e1zomE5m+eTrp4GRQpYt0PDkG2RLTouiE"
 
 [template-aliases]
 'format_short_signature(signature)' = '''
