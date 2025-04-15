@@ -67,6 +67,7 @@ in {
     pkgs.kubernetes-helm
     pkgs.kubeseal
     pkgs.kustomize
+    pkgs.less
     pkgs.mg
     pkgs.mitmproxy
     pkgs.nixd
@@ -82,6 +83,8 @@ in {
     pkgs.skopeo
     pkgs.socat
     pkgs.sops
+    pkgs.termcap
+    pkgs.texinfoInteractive
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
@@ -127,8 +130,10 @@ in {
     XCURSOR_SIZE = "16";
   } // (if !darwin then {
     LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
-  } else
-    { });
+  } else {
+    SSH_AUTH_SOCK =
+      "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock";
+  });
 
   home.sessionPath = [
     "$HOME/bin"

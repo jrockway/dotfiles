@@ -3,4 +3,6 @@
 # limits
 ulimit -S -c 0
 
-export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
+if [[ ! -v SSH_AUTH_SOCK ]]; then
+    export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
+fi
