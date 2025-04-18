@@ -109,7 +109,8 @@ name or directory file name."
         ("M-9" . digit-argument)
         ("M-0" . digit-argument))
   :config
-  (corfu-terminal-mode +1))
+  (when (not (eq window-system 'ns))
+    (corfu-terminal-mode +1)))
 
 (use-package rainbow-delimiters :config (add-hook 'prog-mode-hook #'rainbow-delimiters-mode-enable))
 

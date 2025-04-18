@@ -93,6 +93,7 @@ in {
     pkgs.yaml-language-server
     pkgs.yq
     sops-nix
+    unstable.copilot-language-server
     unstable.go
     unstable.gopls
     unstable.jujutsu

@@ -17,8 +17,14 @@
     { nixpkgs, nixpkgs-unstable, flake-utils, home-manager, sops-nix, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
-        pkgs = nixpkgs.legacyPackages.${system};
-        unstable = nixpkgs-unstable.legacyPackages.${system};
+        pkgs = import nixpkgs {
+          inherit system;
+          config.allowUnfree = true;
+        };
+        unstable = import nixpkgs-unstable {
+          inherit system;
+          config.allowUnfree = true;
+        };
       in {
         packages.homeConfigurations."jrockway" =
           home-manager.lib.homeManagerConfiguration {
