@@ -89,6 +89,7 @@ in {
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.units
+    pkgs.vue-language-server
     pkgs.wget
     pkgs.yaml-language-server
     pkgs.yq
