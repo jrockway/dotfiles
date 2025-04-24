@@ -152,6 +152,7 @@ in {
   # Let Home Manager install and manage itself.
   programs = {
     home-manager.enable = true;
+
     bash = {
       enable = true;
       enableCompletion = true;
@@ -185,6 +186,13 @@ in {
         { });
       shellOptions = [ "cmdhist" "checkwinsize" "cdable_vars" "histappend" ];
     };
+
+    direnv = {
+      enable = true;
+      enableBashIntegration = true;
+      nix-direnv.enable = true;
+    };
+
     emacs = {
       enable = true;
       package = emacs;
@@ -227,6 +235,7 @@ in {
         e.yasnippet
       ];
     };
+
     fzf = {
       enable = true;
       enableBashIntegration = true;
@@ -234,6 +243,7 @@ in {
       defaultCommand = "fd --type f";
       tmux.enableShellIntegration = true;
     };
+
     nh = {
       enable = true;
       flake = "${config.home.homeDirectory}/.config/home-manager";
