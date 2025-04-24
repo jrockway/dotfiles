@@ -270,15 +270,22 @@ name or directory file name."
   (yas-global-mode t)
   (define-key yas-keymap (kbd "C-k") #'my-yas-clear-snippet))
 
-(use-package copilot)
+(use-package copilot :config
+  (define-key copilot-mode-map (kbd "C-c p")(make-sparse-keymap))
+  (define-key copilot-mode-map (kbd "C-c p n") #'copilot-next-completion)
+  (define-key copilot-mode-map (kbd "C-c p p") #'copilot-previous-completion)
+  (define-key copilot-mode-map (kbd "C-c p TAB") #'copilot-complete)
+  (define-key copilot-mode-map (kbd "C-c p RET") #'copilot-accept-completion))
+
 
 (use-package markdown-mode)
 
 (use-package flymake :defer t :config
   (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
   (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
-  (define-key flymake-mode-map (kbd "C-c p") 'flymake-show-project-diagnostics)
-  (define-key flymake-mode-map (kbd "C-c f") 'flymake-show-buffer-diagnostics)
+  (define-key flymake-mode-map (kbd "C-c f") (make-sparse-keymap))
+  (define-key flymake-mode-map (kbd "C-c f p") 'flymake-show-project-diagnostics)
+  (define-key flymake-mode-map (kbd "C-c f b") 'flymake-show-buffer-diagnostics)
   (add-hook 'flymake-diagnostics-buffer-mode-hook (lambda (setq truncate-lines nil))))
 
 (use-package kkp
