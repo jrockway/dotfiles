@@ -1,7 +1,10 @@
 { config, pkgs, unstable, sops-nix, ... }:
 let
   darwin = pkgs.stdenv.isDarwin;
-  emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
+  emacs = if darwin then
+    (unstable.emacs.override { withNativeCompilation = false; })
+  else
+    pkgs.emacs-nox;
 in {
   imports = [ sops-nix.homeManagerModules.sops ];
 
@@ -72,8 +75,8 @@ in {
     pkgs.mitmproxy
     pkgs.nixd
     pkgs.nixfmt-classic
-    pkgs.nodePackages.concurrently
     pkgs.nodePackages.prettier
+    pkgs.nodejs_22
     pkgs.nvd
     pkgs.postgresql_17
     pkgs.procps
@@ -99,7 +102,6 @@ in {
     unstable.gopls
     unstable.jujutsu
     unstable.ncurses
-    unstable.nodejs_20
     unstable.tinygo
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
