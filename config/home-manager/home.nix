@@ -92,6 +92,7 @@ in {
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.units
+    pkgs.vscode-langservers-extracted
     pkgs.vue-language-server
     pkgs.wget
     pkgs.yaml-language-server
@@ -102,6 +103,7 @@ in {
     unstable.gopls
     unstable.jujutsu
     unstable.ncurses
+    unstable.qmk
     unstable.tinygo
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
