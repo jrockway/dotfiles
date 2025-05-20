@@ -1,10 +1,7 @@
 { config, pkgs, unstable, sops-nix, ... }:
 let
   darwin = pkgs.stdenv.isDarwin;
-  emacs = if darwin then
-    (unstable.emacs.override { withNativeCompilation = false; })
-  else
-    pkgs.emacs-nox;
+  emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
 in {
   imports = [ sops-nix.homeManagerModules.sops ];
 
@@ -200,44 +197,53 @@ in {
     emacs = {
       enable = true;
       package = emacs;
-      extraPackages = e: [
-        e.bazel
-        e.clang-format
-        e.consult
-        e.consult-dir
-        e.copilot
-        e.corfu
-        e.corfu-terminal
-        e.deadgrep
-        e.dockerfile-mode
-        e.editorconfig
-        e.fill-column-indicator
-        e.format-all
-        e.go-mode
-        e.graphql-mode
-        e.highlight-indentation
-        e.jsonnet-mode
-        e.kkp
-        e.markdown-mode
-        e.minizinc-mode
-        e.nix-mode
-        e.powershell
-        e.prettier-js
-        e.protobuf-mode
-        e.quelpa
-        e.quelpa-use-package
-        e.rainbow-delimiters
-        e.scss-mode
-        e.treesit-grammars.with-all-grammars
-        e.typescript-mode
-        e.use-package
-        e.vterm
-        e.web-mode
-        e.window-number
-        e.with-editor
-        e.yaml-mode
-        e.yasnippet
-      ];
+      extraPackages = e:
+        let
+          # The package patches copilot to refer to copilot-language-server-fhs instead of
+          # copilot-language-server; this patching isn't possible to do on Darwin.  It's only
+          # referred to in the postPatch directive, so we'll just skip patching.
+          copilot = if darwin then
+            e.copilot.overrideAttrs { postPatch = ""; }
+          else
+            e.copilot;
+        in [
+          copilot
+          e.bazel
+          e.clang-format
+          e.consult
+          e.consult-dir
+          e.corfu
+          e.corfu-terminal
+          e.deadgrep
+          e.dockerfile-mode
+          e.editorconfig
+          e.fill-column-indicator
+          e.format-all
+          e.go-mode
+          e.graphql-mode
+          e.highlight-indentation
+          e.jsonnet-mode
+          e.kkp
+          e.markdown-mode
+          e.minizinc-mode
+          e.nix-mode
+          e.powershell
+          e.prettier-js
+          e.protobuf-mode
+          e.quelpa
+          e.quelpa-use-package
+          e.rainbow-delimiters
+          e.scss-mode
+          e.treesit-grammars.with-all-grammars
+          e.typescript-mode
+          e.use-package
+          e.vterm
+          e.web-mode
+          e.window-number
+          e.with-editor
+          e.yaml-mode
+          e.yasnippet
+        ];
     };
 
     fzf = {
@@ -255,15 +261,15 @@ in {
   };
 
   services = { } // (if !darwin then {
-    emacs = {
-      enable = true;
-      startWithUserSession = true;
-    };
     home-manager.autoExpire = {
       enable = true;
       frequency = "daily";
       timestamp = "-7 days";
       store.cleanup = true;
+    };
+    emacs = {
+      enable = true;
+      startWithUserSession = true;
     };
   } else
     { });
