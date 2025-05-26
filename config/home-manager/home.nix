@@ -76,6 +76,7 @@ in {
     pkgs.mg
     pkgs.mitmproxy
     pkgs.ncurses
+    pkgs.nix-output-monitor
     pkgs.nixd
     pkgs.nixfmt-classic
     pkgs.nodePackages.prettier
