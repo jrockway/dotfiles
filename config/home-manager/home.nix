@@ -43,6 +43,7 @@ in {
     pkgs.bazelisk
     pkgs.bc
     pkgs.buildifier
+    pkgs.copilot-language-server
     pkgs.coreutils-full
     pkgs.curlHTTP3
     pkgs.deno
@@ -52,6 +53,8 @@ in {
     pkgs.fd
     pkgs.git-crypt
     pkgs.gitFull
+    pkgs.go
+    pkgs.gopls
     pkgs.grafana
     pkgs.htop
     pkgs.hugo
@@ -62,6 +65,7 @@ in {
     pkgs.jq
     pkgs.jsonnet
     pkgs.jsonnet-language-server
+    pkgs.jujutsu
     pkgs.kind
     pkgs.krew
     pkgs.kubeconform
@@ -73,6 +77,7 @@ in {
     pkgs.less
     pkgs.mg
     pkgs.mitmproxy
+    pkgs.ncurses
     pkgs.nixd
     pkgs.nixfmt-classic
     pkgs.nodePackages.prettier
@@ -82,12 +87,14 @@ in {
     pkgs.procps
     pkgs.prometheus
     pkgs.prometheus-node-exporter
+    pkgs.qmk
     pkgs.ripgrep
     pkgs.skopeo
     pkgs.socat
     pkgs.sops
     pkgs.termcap
     pkgs.texinfoInteractive
+    pkgs.tinygo
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
@@ -98,18 +105,11 @@ in {
     pkgs.yaml-language-server
     pkgs.yq
     sops-nix
-    unstable.copilot-language-server
-    unstable.go
-    unstable.gopls
-    unstable.jujutsu
-    unstable.ncurses
-    unstable.qmk
-    unstable.tinygo
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
     (pkgs.writeShellScriptBin "fdfind" "exec -a $0 ${pkgs.fd}/bin/fd $@")
-  ] ++ (if darwin then [ ] else [ unstable.envoy ]);
+  ] ++ (if darwin then [ ] else [ pkgs.envoy-bin ]);
 
   home.file = {
     ".aspell.en.prepl".source = ./aspell/aspell.en.prepl;
