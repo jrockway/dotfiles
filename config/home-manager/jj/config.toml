@@ -37,3 +37,5 @@ auto-track = "~glob:**/*.secret.*"
 [git]
 private-commits = 'description(glob:"private:*")'
 sign-on-push = true
+push-bookmark-prefix = "june/push-"
+push-new-bookmarks = true
