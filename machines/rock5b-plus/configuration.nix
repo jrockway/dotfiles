@@ -13,19 +13,75 @@
   boot.loader.systemd-boot.enable = true;
   boot.loader.efi.canTouchEfiVariables = true;
   boot.kernelPackages = pkgs.linuxPackages_6_15;
-  boot.kernelModules = [ "panthor" "input_leds" "dw_mmc_rockchip" ];
+  boot.kernelModules = [ "panthor" ];
+  boot.kernelParams = [ "console=ttyS2,1500000n8" ];
   boot.initrd.availableKernelModules = lib.mkForce [
+    "adc_keys"
+    "bridge"
+    "cdrom"
+    "cmdlinepart"
+    "dax"
+    "display_connector"
+    "dm_mod"
+    "dmi_sysfs"
+    "drm_exec"
+    "drm_gpuvm"
     "dw_mmc_rockchip"
-    "hid"
-    "input_leds"
+    "ffa_core"
+    "gpu_sched"
+    "hantro_vpu"
+    "iso9660"
+    "isofs"
+    "llc"
+    "macvlan"
+    "mc"
     "mmc_block"
+    "nls_cp437"
+    "nls_iso8859_1"
     "nvme"
+    "nvme_auth"
+    "nvme_core"
+    "optee"
     "panthor"
+    "pci_endpoint_test"
+    "phy_rockchip_naneng_combphy"
+    "phy_rockchip_usbdp"
+    "polyval_ce"
+    "polyval_generic"
+    "pwm_fan"
+    "r8169"
+    "rfkill"
+    "rfkill_gpio"
+    "rk805_pwrkey"
+    "rockchip_dfi"
+    "rockchip_rga"
+    "rockchip_saradc"
+    "rockchip_thermal"
+    "rpmb_core"
+    "rtc_hym8563"
     "sdhci_of_dwcmshc"
+    "sm4"
+    "spi_rockchip_sfc"
+    "stp"
+    "tap"
+    "typec"
+    "uas"
+    "uio"
+    "uio_pdrv_genirq"
+    "v4l2_h264"
+    "v4l2_jpeg"
+    "v4l2_mem2mem"
+    "v4l2_vp9"
+    "videobuf2_common"
+    "videobuf2_dma_contig"
+    "videobuf2_dma_sg"
+    "videobuf2_memops"
+    "videobuf2_v4l2"
+    "videodev"
   ];
   boot.kernel.sysctl = { "kernel.dmesg_restrict" = 0; };
 
-  networking.hostName = "orangepi5max"; # Define your hostname.
+  networking.hostName = "berry-rock5bplus-0"; # Define your hostname.
   networking.networkmanager.enable = false;
   networking.useDHCP = false;
   systemd.network = {
@@ -34,8 +90,8 @@
       timeout = 5;
       anyInterface = true;
     };
-    networks."enP3p49s0" = {
-      matchConfig.Name = "enP3p49s0";
+    networks."enP4p65s0" = {
+      matchConfig.Name = "enP4p65s0";
       networkConfig.DHCP = "ipv4";
       linkConfig.RequiredForOnline = "yes";
     };
