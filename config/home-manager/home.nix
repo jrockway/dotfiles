@@ -73,9 +73,11 @@ in {
     pkgs.kubeseal
     pkgs.kustomize
     pkgs.less
+    pkgs.lm_sensors
     pkgs.mg
     pkgs.mitmproxy
     pkgs.ncurses
+    pkgs.neofetch
     pkgs.nix-output-monitor
     pkgs.nixd
     pkgs.nixfmt-classic
@@ -91,9 +93,11 @@ in {
     pkgs.skopeo
     pkgs.socat
     pkgs.sops
+    pkgs.stress-ng
     pkgs.termcap
     pkgs.texinfoInteractive
     pkgs.tinygo
+    pkgs.tinymembench
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
