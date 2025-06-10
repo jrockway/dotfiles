@@ -20,7 +20,7 @@
         ];
       };
 
-      berry-rockpi5bplus-0 = nixpkgs.lib.nixosSystem {
+      berry-rock5bplus-0 = nixpkgs.lib.nixosSystem {
         system = "aarch64-linux";
         modules = [
           (nixpkgs + "/nixos/modules/installer/scan/not-detected.nix")
@@ -31,6 +31,20 @@
           ./rock5b-plus-k8s-node-fs.nix
           ./jrockway.nix
           ./hosts/berry-rock5bplus-0.nix
+        ];
+      };
+
+      berry-rock5bplus-1 = nixpkgs.lib.nixosSystem {
+        system = "aarch64-linux";
+        modules = [
+          (nixpkgs + "/nixos/modules/installer/scan/not-detected.nix")
+          ./base.nix
+          ./no-networkmanager.nix
+          ./rk3588.nix
+          ./rock5b-plus.nix
+          ./rock5b-plus-k8s-node-fs.nix
+          ./jrockway.nix
+          ./hosts/berry-rock5bplus-1.nix
         ];
       };
 
