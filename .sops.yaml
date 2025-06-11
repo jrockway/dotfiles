@@ -1,7 +1,19 @@
 keys:
     - &jrockway age1sxeg73875j2hg8dlr76k8xu652dflg6k46jtfv77gsz4ylr0vd4s0ygxkt
+    - &server_nixos_vm age1wlw9ex0mm2pfvc63ftc9mv9mpknd9g5l2q338kvszjk7zr4x2flqart36z
+    - &server_berry_rock5bplus_0 age1cf4857zjeadc4pzz7vw29y0avgfm2hnlewtuw7zqvprm8ruv0peqsttv4j
+    - &server_berry_rock5bplus_1 age1xcl5uftxu0rnr3uugummvz63q4euahwwg08zkhenfc3xs3rf3qtqq6dwfm
+    - &server_berry_rock5bplus_2 age1x5enzfhfayf7vafp4g2fj0m6vwl7llw2r8qsjt9f7cpx8gwecqhsgdk8wt
 creation_rules:
     - path_regex: "[.]sops[.]yaml$"
       key_groups:
           - age:
                 - *jrockway
+    - path_regex: nixos/secrets/[^/]+[.]yaml$
+      key_groups:
+          - age:
+                - *jrockway
+                - *server_nixos_vm
+                - *server_berry_rock5bplus_0
+                - *server_berry_rock5bplus_1
+                - *server_berry_rock5bplus_2
