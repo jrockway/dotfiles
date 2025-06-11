@@ -2,7 +2,7 @@
   boot.kernel.sysctl = { "kernel.dmesg_restrict" = 0; };
 
   environment.systemPackages =
-    lib.mkDefault [ pkgs.mg pkgs.gitFull pkgs.home-manager ];
+    lib.mkDefault [ pkgs.mg pkgs.gitFull pkgs.home-manager pkgs.smartmontools ];
 
   i18n.defaultLocale = "en_US.UTF-8";
 
