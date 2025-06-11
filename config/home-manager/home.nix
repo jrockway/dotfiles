@@ -81,6 +81,7 @@ in {
     pkgs.nix-output-monitor
     pkgs.nixd
     pkgs.nixfmt-classic
+    pkgs.nixos-rebuild
     pkgs.nodePackages.prettier
     pkgs.nodejs_22
     pkgs.nvd
@@ -93,6 +94,7 @@ in {
     pkgs.skopeo
     pkgs.socat
     pkgs.sops
+    pkgs.ssh-to-age
     pkgs.stress-ng
     pkgs.termcap
     pkgs.texinfoInteractive
@@ -112,7 +114,7 @@ in {
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
     (pkgs.writeShellScriptBin "fdfind" "exec -a $0 ${pkgs.fd}/bin/fd $@")
-  ] ++ (if darwin then [ ] else [ pkgs.envoy-bin ]);
+  ] ++ (if darwin then [ ] else [ pkgs.envoy-bin pkgs.nixos-install-tools ]);
 
   home.file = {
     ".aspell.en.prepl".source = ./aspell/aspell.en.prepl;
