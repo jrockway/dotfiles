@@ -13,9 +13,13 @@
 
   services.chrony.enable = true;
   services.openssh.enable = true;
-  services.prometheus.exporters.node = {
-    openFirewall = true;
+  services.prometheus.exporters.chrony = {
     enable = true;
+    openFirewall = true;
+  };
+  services.prometheus.exporters.node = {
+    enable = true;
+    openFirewall = true;
   };
   services.tailscale.enable = true;
   services.timesyncd.enable = false; # using chrony instead
