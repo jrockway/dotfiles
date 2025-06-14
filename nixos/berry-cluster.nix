@@ -20,6 +20,7 @@
     ];
     peerKeyFile = "/run/secrets/tls-key";
     peerCertFile = "/etc/tls-crt";
+    peerClientCertAuth = true;
     openFirewall = true;
   };
 
