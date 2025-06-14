@@ -2,6 +2,8 @@
   services.flannel = {
     enable = true;
     network = "192.168.32.0/19";
+    interface = "enP4p65s0";
+    backend = "host-gw";
     etcd.endpoints = [
       "http://192.168.1.80:2379"
       "http://192.168.1.81:2379"
