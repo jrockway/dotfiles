@@ -5,4 +5,8 @@
     networkConfig.DHCP = "ipv4";
     linkConfig.RequiredForOnline = "yes";
   };
+  # turn off VERY BRIGHT status LED
+  services.udev.extraRules = ''
+    ACTION=="add", SUBSYSTEM=="leds", KERNEL=="blue:status", ATTR{trigger}="none"
+  '';
 }
