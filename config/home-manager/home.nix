@@ -41,6 +41,7 @@ in {
     pkgs.bazelisk
     pkgs.bc
     pkgs.buildifier
+    pkgs.cfssl
     pkgs.copilot-language-server
     pkgs.coreutils-full
     pkgs.curlHTTP3
@@ -114,6 +115,12 @@ in {
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
     (pkgs.writeShellScriptBin "fdfind" "exec -a $0 ${pkgs.fd}/bin/fd $@")
+    (pkgs.writeShellApplication {
+      name = "gencert";
+      runtimeInputs = [ pkgs.cfssl ];
+      text = ''
+        exec cfssl gencert -config "$HOME/.ca/ca-config.json" -ca "$HOME/.ca/ca.pem" -ca-key "$HOME/.ca/ca-key.pem" "$@"'';
+    })
   ] ++ (if darwin then [ ] else [ pkgs.envoy-bin pkgs.nixos-install-tools ]);
 
   home.file = {
@@ -126,6 +133,10 @@ in {
     ".jq".source = ./jq/jq;
     ".tmux".source = ./tmux/tmux.conf;
     ".tmux.conf".source = ./tmux/tmux.conf;
+    ".ca" = {
+      source = ./ca;
+      recursive = true;
+    };
   };
 
   xdg.configFile = {
@@ -286,6 +297,9 @@ in {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
     defaultSopsFile = ./sops/secrets.sops.yaml;
     secrets.test = { path = "%r/test.txt"; };
+    secrets."ca-key.pem" = {
+      path = "${config.home.homeDirectory}/.ca/ca-key.pem";
+    };
   };
 
   fonts.fontconfig = {

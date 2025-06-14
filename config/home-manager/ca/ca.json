@@ -1,0 +1,15 @@
+{
+  "CN": "Juniper Berry Root CA",
+  "key": {
+    "algo": "ed25519"
+  },
+  "names": [
+    {
+      "C": "US",
+      "ST": "New York",
+      "L": "Brooklyn",
+      "O": "Junipers-R-Us",
+      "OU": "Juniper Berry Root CA"
+    }
+  ]
+}
