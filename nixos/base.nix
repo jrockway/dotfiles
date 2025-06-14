@@ -35,4 +35,9 @@
 
   sops.defaultSopsFile = ./secrets/secrets.yaml;
   sops.age.sshKeyPaths = [ "/etc/ssh/ssh_host_ed25519_key" ];
+  users.groups.tls = { };
+  security.pki.certificateFiles = [
+    "${pkgs.cacert}/etc/ssl/certs/ca-bundle.crt"
+    ./juniper-berry-root-ca.pem
+  ];
 }

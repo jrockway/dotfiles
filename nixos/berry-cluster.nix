@@ -14,10 +14,19 @@
   services.etcd = {
     enable = true;
     initialCluster = [
-      "berry-rock5bplus-0=http://192.168.1.80:2380"
-      "berry-rock5bplus-1=http://192.168.1.81:2380"
-      "berry-rock5bplus-2=http://192.168.1.82:2380"
+      "berry-rock5bplus-0=https://192.168.1.80:2380"
+      "berry-rock5bplus-1=https://192.168.1.81:2380"
+      "berry-rock5bplus-2=https://192.168.1.82:2380"
     ];
+    peerKeyFile = "/run/secrets/tls-key";
+    peerCertFile = "/etc/tls-crt";
+    peerClientCertAuth = true;
     openFirewall = true;
+  };
+
+  users.users.etcd.extraGroups = [ "keys" "tls" ];
+  sops.secrets.tls-key = {
+    mode = "0440";
+    group = "tls";
   };
 }

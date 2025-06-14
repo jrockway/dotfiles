@@ -17,3 +17,18 @@ creation_rules:
                 - *server_berry_rock5bplus_0
                 - *server_berry_rock5bplus_1
                 - *server_berry_rock5bplus_2
+    - path_regex: nixos/secrets/berry-rock5bplus-0/secrets[.]yaml$
+      key_groups:
+          - age:
+                - *jrockway
+                - *server_berry_rock5bplus_0
+    - path_regex: nixos/secrets/berry-rock5bplus-1/secrets[.]yaml$
+      key_groups:
+          - age:
+                - *jrockway
+                - *server_berry_rock5bplus_1
+    - path_regex: nixos/secrets/berry-rock5bplus-2/secrets[.]yaml$
+      key_groups:
+          - age:
+                - *jrockway
+                - *server_berry_rock5bplus_2
