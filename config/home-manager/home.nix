@@ -77,6 +77,7 @@ in {
     pkgs.lm_sensors
     pkgs.mg
     pkgs.mitmproxy
+    pkgs.mqttui
     pkgs.ncurses
     pkgs.neofetch
     pkgs.nix-output-monitor
