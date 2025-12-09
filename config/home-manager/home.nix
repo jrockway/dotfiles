@@ -44,7 +44,7 @@ in {
     pkgs.cfssl
     pkgs.copilot-language-server
     pkgs.coreutils-full
-    pkgs.curlHTTP3
+    pkgs.curl
     pkgs.deno
     pkgs.dig
     pkgs.doctl
@@ -74,7 +74,6 @@ in {
     pkgs.kubeseal
     pkgs.kustomize
     pkgs.less
-    pkgs.lm_sensors
     pkgs.mg
     pkgs.mitmproxy
     pkgs.mqttui
@@ -101,7 +100,6 @@ in {
     pkgs.termcap
     pkgs.texinfoInteractive
     pkgs.tinygo
-    pkgs.tinymembench
     pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
@@ -122,7 +120,14 @@ in {
       text = ''
         exec cfssl gencert -config "$HOME/.ca/ca-config.json" -ca "$HOME/.ca/ca.pem" -ca-key "$HOME/.ca/ca-key.pem" "$@"'';
     })
-  ] ++ (if darwin then [ ] else [ pkgs.envoy-bin pkgs.nixos-install-tools ]);
+  ] ++ (if darwin then
+    [ ]
+  else [
+    pkgs.envoy-bin
+    pkgs.lm_sensors
+    pkgs.nixos-install-tools
+    pkgs.tinymembench
+  ]);
 
   home.file = {
     ".aspell.en.prepl".source = ./aspell/aspell.en.prepl;
