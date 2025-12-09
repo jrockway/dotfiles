@@ -76,6 +76,7 @@ in {
     pkgs.less
     pkgs.mg
     pkgs.mitmproxy
+    pkgs.moon
     pkgs.mqttui
     pkgs.ncurses
     pkgs.neofetch
