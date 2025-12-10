@@ -55,6 +55,7 @@ in {
     pkgs.go
     pkgs.gopls
     pkgs.grafana
+    pkgs.helmfile
     pkgs.htop
     pkgs.hugo
     pkgs.iosevka
@@ -75,6 +76,7 @@ in {
     pkgs.kustomize
     pkgs.less
     pkgs.mg
+    pkgs.minikube
     pkgs.mitmproxy
     pkgs.moon
     pkgs.mqttui
