@@ -46,15 +46,19 @@ in {
     pkgs.coreutils-full
     pkgs.curl
     pkgs.deno
+    pkgs.devcontainer
     pkgs.dig
     pkgs.doctl
     pkgs.esbuild
     pkgs.fd
+    pkgs.gh
     pkgs.git-crypt
     pkgs.gitFull
     pkgs.go
     pkgs.gopls
     pkgs.grafana
+    pkgs.grafana-loki
+    pkgs.hdf5
     pkgs.helmfile
     pkgs.htop
     pkgs.hugo
@@ -89,10 +93,12 @@ in {
     pkgs.nodePackages.prettier
     pkgs.nodejs_22
     pkgs.nvd
+    pkgs.openssl
     pkgs.postgresql_17
     pkgs.procps
     pkgs.prometheus
     pkgs.prometheus-node-exporter
+    pkgs.proto
     pkgs.qmk
     pkgs.ripgrep
     pkgs.skopeo
