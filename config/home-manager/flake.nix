@@ -1,5 +1,5 @@
 {
-  description = "Home Manager configuration of jrockway";
+  description = "Home Manager configuration";
   inputs = {
     nixpkgs.url = "github:nixos/nixpkgs/nixos-25.11";
     nixpkgs-unstable.url = "github:nixos/nixpkgs/nixos-unstable";
@@ -44,11 +44,22 @@
           if isDarwin then home-manager-darwin else home-manager-linux;
         sops-nix = if isDarwin then sops-nix-darwin else sops-nix-linux;
       in {
+        packages.homeConfigurations."vscode" =
+          home-manager.lib.homeManagerConfiguration {
+            inherit pkgs;
+            modules = [ ./home.nix ];
+            extraSpecialArgs = {
+              username = "vscode";
+              inherit unstable;
+              inherit sops-nix;
+            };
+          };
         packages.homeConfigurations."jrockway" =
           home-manager.lib.homeManagerConfiguration {
             pkgs = if isDarwin then darwin-pkgs else pkgs;
             modules = [ ./home.nix ];
             extraSpecialArgs = {
+              username = "jrockway";
               inherit unstable;
               inherit sops-nix;
             };

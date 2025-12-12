@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, sops-nix, ... }:
+{ config, pkgs, unstable, sops-nix, username, ... }:
 let
   darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
@@ -7,8 +7,9 @@ in {
 
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
-  home.username = "jrockway";
-  home.homeDirectory = if darwin then "/Users/jrockway" else "/home/jrockway";
+  home.username = username;
+  home.homeDirectory =
+    if darwin then "/Users/" + username else "/home/" + username;
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
