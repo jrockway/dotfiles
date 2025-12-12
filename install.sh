@@ -11,4 +11,9 @@ sh <(curl --proto '=https' --tlsv1.2 -L https://nixos.org/nix/install) --no-daem
 mkdir -p ~/.config
 ln -sf $PWD/config/nix ~/.config/nix
 ln -sf $PWD/config/home-manager ~/.config/home-manager
+
+mv ~/.bashrc ~/.bashrc-orig
+mv ~/.profile ~/.profile-orig
+mv ~/.bash_logout ~/.bash_logout-orig
+
 nix run home-manager/release-25.11 -- switch
