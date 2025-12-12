@@ -146,7 +146,6 @@ in {
     ".aspell.en.pws".source = ./aspell/aspell.en.pws;
     ".bazelrc".source = ./bazel/bazelrc;
     ".emacs".source = ./emacs/emacs;
-    ".gitconfig".source = ./git/gitconfig;
     ".htoprc".source = ./htop/htoprc;
     ".jq".source = ./jq/jq;
     ".tmux".source = ./tmux/tmux.conf;
@@ -160,6 +159,7 @@ in {
   xdg.configFile = {
     "jj".source = ./jj;
     "kitty".source = ./kitty;
+    "git".source = ./git;
   };
 
   home.sessionVariables = {
