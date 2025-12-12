@@ -54,6 +54,7 @@ in {
     pkgs.gh
     pkgs.git-crypt
     pkgs.gitFull
+    pkgs.gnumake
     pkgs.go
     pkgs.gopls
     pkgs.grafana
@@ -86,6 +87,7 @@ in {
     pkgs.mqttui
     pkgs.ncurses
     pkgs.neofetch
+    pkgs.nginxMainline
     pkgs.nix-output-monitor
     pkgs.nixd
     pkgs.nixfmt-classic
