@@ -1,5 +1,11 @@
 #-*-Shell-script-*-
 
+if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
+    . ~/.nix-profile/etc/profile.d/nix.sh
+fi
+
+export PATH="$HOME/.nix-profile/bin:$PATH"
+
 # limits
 ulimit -S -c 0
 
