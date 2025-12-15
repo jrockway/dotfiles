@@ -116,6 +116,7 @@ in {
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.units
+    pkgs.universal-ctags
     pkgs.vscode-langservers-extracted
     pkgs.vue-language-server
     pkgs.wget
@@ -271,6 +272,7 @@ in {
           e.quelpa-use-package
           e.rainbow-delimiters
           e.scss-mode
+          e.terraform-mode
           e.treesit-grammars.with-all-grammars
           e.typescript-mode
           e.use-package
