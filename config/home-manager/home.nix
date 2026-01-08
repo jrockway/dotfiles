@@ -54,6 +54,7 @@ in {
     pkgs.doctl
     pkgs.esbuild
     pkgs.fd
+    pkgs.fluxcd
     pkgs.gh
     pkgs.git-crypt
     pkgs.gitFull
@@ -106,6 +107,7 @@ in {
     pkgs.prometheus-node-exporter
     pkgs.proto
     pkgs.qmk
+    pkgs.rancher
     pkgs.ripgrep
     pkgs.skopeo
     pkgs.socat
