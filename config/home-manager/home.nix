@@ -36,6 +36,8 @@ in {
     #   echo "Hello, ${config.home.username}!"
     # '')
     pkgs.aspell
+    pkgs.aspellDicts.en
+    pkgs.aspellDicts.en-computers
     pkgs.bashInteractive
     pkgs.bat
     pkgs.bazel-watcher
