@@ -32,3 +32,7 @@ if [ -f /etc/bash_completion ]; then
     for i in $HOME/.dotfiles/completion/*; do source $i; done
     complete -F _completion_goflags jlog
 fi
+
+complete -F _complete_alias kctx
+complete -F _complete_alias kns
+complete -F _complete_alias k
