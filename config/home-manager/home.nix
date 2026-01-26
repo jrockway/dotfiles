@@ -106,6 +106,7 @@ in {
     pkgs.prometheus
     pkgs.prometheus-node-exporter
     pkgs.proto
+    pkgs.python314
     pkgs.qmk
     pkgs.rancher
     pkgs.ripgrep
