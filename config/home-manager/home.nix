@@ -60,6 +60,7 @@ in {
     pkgs.gnumake
     pkgs.go
     pkgs.gopls
+    pkgs.gotestsum
     pkgs.grafana
     pkgs.grafana-loki
     pkgs.hdf5
