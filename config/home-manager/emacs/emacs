@@ -131,7 +131,15 @@ name or directory file name."
 (cl-defmethod project-root ((project (head go-module)))
   (cdr project))
 
+(defun project-find-baseten-backend (dir)
+  (when (string-prefix-p "/workspace/backend" dir)
+    (cons 'baseten-backend "/workspace/backend")))
+
+(cl-defmethod project-root ((project (head baseten-backend)))
+  (cdr project))
+
 (add-hook 'project-find-functions #'project-find-go-module)
+(add-hook 'project-find-functions #'project-find-baseten-backend)
 
 (define-derived-mode vue-mode web-mode "Vue")
 (add-to-list 'auto-mode-alist '("\\.vue\\'" . vue-mode))
