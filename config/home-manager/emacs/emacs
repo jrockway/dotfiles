@@ -192,7 +192,16 @@ name or directory file name."
                                                   "(import <home-manager/modules> { configuration = ~/.config/home-manager/home.nix; pkgs = import <nixpkgs> {}; }).options"
                                                   )
                                   )
-                        )))
+                        )
+                :basedpyright.analysis (
+                                        :typeCheckingMode "standard"
+                                        :inlayHints (
+                                                     :variableTypes :json-false
+                                                     :callArgumentNames :json-false
+                                                     :functionReturnTypes :json-false
+                                                     :genericTypes :json-false
+                                                     )
+		                        )))
 
 (defun my-eglot-organize-imports () (interactive)
        (eglot-code-actions nil nil "source.organizeImports" t))

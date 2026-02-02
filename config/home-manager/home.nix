@@ -38,6 +38,7 @@ in {
     pkgs.aspell
     pkgs.aspellDicts.en
     pkgs.aspellDicts.en-computers
+    pkgs.basedpyright
     pkgs.bashInteractive
     pkgs.bat
     pkgs.bazel-watcher
@@ -106,7 +107,6 @@ in {
     pkgs.prometheus
     pkgs.prometheus-node-exporter
     pkgs.proto
-    pkgs.pyright
     pkgs.python314
     pkgs.qmk
     pkgs.rancher
