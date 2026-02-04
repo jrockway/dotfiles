@@ -110,6 +110,7 @@ in {
     pkgs.python314
     pkgs.qmk
     pkgs.rancher
+    pkgs.remarshal
     pkgs.ripgrep
     pkgs.skopeo
     pkgs.socat
