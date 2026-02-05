@@ -46,7 +46,7 @@ in {
     pkgs.bc
     pkgs.buildifier
     pkgs.cfssl
-    pkgs.copilot-language-server
+    unstable.claude-code
     pkgs.coreutils-full
     pkgs.curl
     pkgs.deno
@@ -244,17 +244,10 @@ in {
       package = emacs;
       extraPackages = e:
         let
-          # The package patches copilot to refer to copilot-language-server-fhs instead of
-          # copilot-language-server; this patching isn't possible to do on Darwin.  It's only
-          # referred to in the postPatch directive, so we'll just skip patching.
-          copilot = if darwin then
-            e.copilot.overrideAttrs { postPatch = ""; }
-          else
-            e.copilot;
         in [
-          copilot
           e.bazel
           e.clang-format
+          e.claude-code
           e.consult
           e.consult-dir
           e.corfu
