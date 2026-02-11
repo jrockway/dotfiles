@@ -51,6 +51,7 @@ in {
     pkgs.curl
     pkgs.deno
     pkgs.devcontainer
+    pkgs.devpod
     pkgs.dig
     pkgs.doctl
     pkgs.esbuild
@@ -77,6 +78,7 @@ in {
     pkgs.jsonnet
     pkgs.jsonnet-language-server
     pkgs.jujutsu
+    pkgs.k3d
     pkgs.kind
     pkgs.krew
     pkgs.kubeconform
