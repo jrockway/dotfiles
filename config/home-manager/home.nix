@@ -44,6 +44,7 @@ in {
     pkgs.bazel-watcher
     pkgs.bazelisk
     pkgs.bc
+    pkgs.buf
     pkgs.buildifier
     pkgs.cfssl
     unstable.claude-code
@@ -127,6 +128,7 @@ in {
     pkgs.typescript-language-server
     pkgs.units
     pkgs.universal-ctags
+    pkgs.uv
     pkgs.vscode-langservers-extracted
     pkgs.vue-language-server
     pkgs.wget
@@ -192,6 +194,7 @@ in {
     "$HOME/.krew/bin"
     "$HOME/.local/bin"
     "$HOME/.dotfiles/bin"
+    "$HOME/.proto/bin"
     "/usr/local"
     "/usr/local/scripts"
     "/sbin"
