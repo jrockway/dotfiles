@@ -123,7 +123,6 @@ in {
     pkgs.termcap
     pkgs.texinfoInteractive
     pkgs.tinygo
-    pkgs.tmux
     pkgs.tmux-mem-cpu-load
     pkgs.typescript-language-server
     pkgs.units
@@ -161,8 +160,6 @@ in {
     ".emacs".source = ./emacs/emacs;
     ".htoprc".source = ./htop/htoprc;
     ".jq".source = ./jq/jq;
-    ".tmux".source = ./tmux/tmux.conf;
-    ".tmux.conf".source = ./tmux/tmux.conf;
     ".ca" = {
       source = ./ca;
       recursive = true;
@@ -302,6 +299,11 @@ in {
     nh = {
       enable = true;
       flake = "${config.home.homeDirectory}/.config/home-manager";
+    };
+
+    tmux = {
+      enable = true;
+      extraConfig = builtins.readFile ./tmux/tmux.conf;
     };
   };
 
