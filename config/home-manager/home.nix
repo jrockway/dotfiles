@@ -105,6 +105,7 @@ in {
     pkgs.nodejs_22
     pkgs.nvd
     pkgs.openssl
+    pkgs.postgresql17Packages.wal2json
     pkgs.postgresql_17
     pkgs.procps
     pkgs.prometheus
