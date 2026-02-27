@@ -80,6 +80,7 @@ in {
     pkgs.jsonnet-language-server
     pkgs.jujutsu
     pkgs.k3d
+    pkgs.k6
     pkgs.kind
     pkgs.krew
     pkgs.kubeconform
