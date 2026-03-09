@@ -106,6 +106,8 @@ in {
     pkgs.nodejs_22
     pkgs.nvd
     pkgs.openssl
+    pkgs.opentelemetry-collector
+    pkgs.otel-desktop-viewer
     pkgs.postgresql17Packages.wal2json
     pkgs.postgresql_17
     pkgs.procps
