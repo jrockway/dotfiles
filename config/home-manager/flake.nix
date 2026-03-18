@@ -21,10 +21,18 @@
       url = "github:Mic92/sops-nix";
       inputs.nixpkgs.follows = "nixpkgs-darwin";
     };
+    nix-index-database-linux = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    nix-index-database-darwin = {
+      url = "github:nix-community/nix-index-database";
+      inputs.nixpkgs.follows = "nixpkgs-darwin";
+    };
   };
   outputs = { nixpkgs, nixpkgs-unstable, nixpkgs-darwin, flake-utils
     , home-manager-linux, home-manager-darwin, sops-nix-linux, sops-nix-darwin
-    , ... }:
+    , nix-index-database-linux, nix-index-database-darwin, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -43,11 +51,15 @@
         home-manager =
           if isDarwin then home-manager-darwin else home-manager-linux;
         sops-nix = if isDarwin then sops-nix-darwin else sops-nix-linux;
+        nix-index-database = if isDarwin then
+          nix-index-database-darwin
+        else
+          nix-index-database-linux;
       in {
         packages.homeConfigurations."vscode" =
           home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
-            modules = [ ./home.nix ];
+            modules = [ ./home.nix nix-index-database.homeModules.default ];
             extraSpecialArgs = {
               username = "vscode";
               inherit unstable;
@@ -57,7 +69,7 @@
         packages.homeConfigurations."jrockway" =
           home-manager.lib.homeManagerConfiguration {
             pkgs = if isDarwin then darwin-pkgs else pkgs;
-            modules = [ ./home.nix ];
+            modules = [ ./home.nix nix-index-database.homeModules.default ];
             extraSpecialArgs = {
               username = "jrockway";
               inherit unstable;

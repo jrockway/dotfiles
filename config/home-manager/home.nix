@@ -57,6 +57,7 @@ in {
     pkgs.doctl
     pkgs.esbuild
     pkgs.fd
+    pkgs.file
     pkgs.fluxcd
     pkgs.gh
     pkgs.git-crypt
@@ -309,6 +310,11 @@ in {
     tmux = {
       enable = true;
       extraConfig = builtins.readFile ./tmux/tmux.conf;
+    };
+
+    nix-index = {
+      enable = true;
+      enableBashIntegration = true;
     };
   };
 
