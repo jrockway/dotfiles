@@ -69,6 +69,7 @@ in {
     pkgs.grafana-loki
     pkgs.hdf5
     pkgs.helmfile
+    pkgs.hey
     pkgs.htop
     pkgs.hugo
     pkgs.iosevka
