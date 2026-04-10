@@ -68,6 +68,8 @@ in {
     pkgs.gotestsum
     pkgs.grafana
     pkgs.grafana-loki
+    pkgs.grpc-health-probe
+    pkgs.grpcurl
     pkgs.hdf5
     pkgs.helmfile
     pkgs.hey
@@ -92,6 +94,7 @@ in {
     pkgs.kubeseal
     pkgs.kustomize
     pkgs.less
+    pkgs.mcp-grafana
     pkgs.mg
     pkgs.minikube
     pkgs.mitmproxy
