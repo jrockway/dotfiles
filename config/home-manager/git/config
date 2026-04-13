@@ -1,7 +1,7 @@
 [user]
 	name = June Rockway
 	email = 2367+jrockway@users.noreply.github.com
-        signingKey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIGzHWlVleTVOz5w2aqhriwcxKMPw30MeujGARucZn4Qs
+        signingKey = ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIIzAhJaA8i7e1zomE5m+eTrp4GRQpYt0PDkG2RLTouiE
 [alias]
 	st = status
 	di = diff
