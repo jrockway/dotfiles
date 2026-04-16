@@ -47,7 +47,6 @@ in {
     pkgs.buf
     pkgs.buildifier
     pkgs.cfssl
-    unstable.claude-code
     pkgs.coreutils-full
     pkgs.curl
     pkgs.deno
@@ -318,6 +317,12 @@ in {
     nix-index = {
       enable = true;
       enableBashIntegration = true;
+    };
+
+    claude-code = {
+      enable = true;
+      package = unstable.claude-code;
+      memory.source = ./claude/CLAUDE.md;
     };
   };
 
