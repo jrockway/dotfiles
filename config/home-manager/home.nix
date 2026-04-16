@@ -141,7 +141,6 @@ in {
     pkgs.wget
     pkgs.yaml-language-server
     pkgs.yq
-    sops-nix
   ] ++ [
     (pkgs.writeShellScriptBin "bazel"
       "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
