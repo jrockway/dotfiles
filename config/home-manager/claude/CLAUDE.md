@@ -15,7 +15,7 @@ When moving changes between commits, prefer `jj squash --from <src> --into <dst>
 
 ## Home Manager
 
-To apply home-manager changes, run `hms` (alias for `nh home switch`). Do not suggest `home-manager switch` or `nixos-rebuild`.
+To apply home-manager changes, run `hms` (alias for `nh home switch`). Do not suggest `home-manager switch`.
 
 ## PR preparation flow
 
@@ -51,3 +51,15 @@ When asked to "make a PR", "prep a PR", "set up a PR commit", or similar:
    ```
    jj rebase -r @ -d <original_parent_change_id> -d <new_change_id>
    ```
+
+## Go builds
+
+Use `go build -o /dev/null ./...` (or the specific package path) instead of `go build ./...`. The binary is discarded immediately so it never appears in `jj st` / `git status`.
+
+## Global memories
+
+To add a memory that persists across all Claude sessions in every project, edit `~/.dotfiles/config/home-manager/claude/CLAUDE.md` directly (this file). Do not use the per-project auto-memory system in `~/.claude/projects/` for things that should apply globally.  If there is a commit in progress (`jj st` has changes in ~/.dotfiles) then start a new one before updating the memories.
+
+## Go imports
+
+When proposing a change to Go code, suggest the code change first and the new imports second.
