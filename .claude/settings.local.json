@@ -5,7 +5,9 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:mynixos.com)",
       "WebFetch(domain:raw.githubusercontent.com)",
-      "Bash(jj log:*)"
+      "Bash(jj log:*)",
+      "Bash(jj st *)",
+      "Bash(jj diff *)"
     ]
   }
 }
