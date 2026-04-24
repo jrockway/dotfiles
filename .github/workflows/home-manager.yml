@@ -13,6 +13,8 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v22
 
       - uses: DeterminateSystems/magic-nix-cache-action@v13
+        with:
+          use-flakehub: false
 
       - name: Build home configuration
         run: nix build ./config/home-manager#homeConfigurations.vscode.activationPackage
@@ -25,6 +27,8 @@ jobs:
       - uses: DeterminateSystems/nix-installer-action@v22
 
       - uses: DeterminateSystems/magic-nix-cache-action@v13
+        with:
+          use-flakehub: false
 
       - name: Build home configuration
         run: nix build ./config/home-manager#homeConfigurations.jrockway.activationPackage
