@@ -295,6 +295,7 @@ in {
 
     tmux = {
       enable = true;
+      focusEvents = true;
       extraConfig = builtins.readFile ./tmux/tmux.conf;
     };
 
