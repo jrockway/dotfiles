@@ -43,6 +43,7 @@
 ;;; modes i want on by default
 (ido-mode 1)
 (winner-mode 1)
+(global-auto-revert-mode 1)
 
 ;;; override stupid defaults
 (defalias 'yes-or-no-p 'y-or-n-p)
