@@ -83,7 +83,7 @@ in {
     pkgs.mg
     pkgs.minikube
     pkgs.mitmproxy
-    pkgs.moon
+    # pkgs.moon
     pkgs.mqttui
     pkgs.ncurses
     pkgs.neofetch
@@ -103,7 +103,7 @@ in {
     pkgs.procps
     pkgs.prometheus
     pkgs.prometheus-node-exporter
-    pkgs.proto
+    unstable.proto
     pkgs.python314
     pkgs.qmk
     pkgs.rancher
@@ -240,44 +240,44 @@ in {
       enable = true;
       package = emacs;
       extraPackages = e: [
-          e.bazel
-          e.clang-format
-          e.claude-code
-          e.consult
-          e.consult-dir
-          e.corfu
-          e.corfu-terminal
-          e.deadgrep
-          e.dockerfile-mode
-          e.editorconfig
-          e.fill-column-indicator
-          e.format-all
-          e.go-mode
-          e.graphql-mode
-          e.highlight-indentation
-          e.jsonnet-mode
-          e.kkp
-          e.markdown-mode
-          e.minizinc-mode
-          e.nix-mode
-          e.powershell
-          e.prettier-js
-          e.protobuf-mode
-          e.quelpa
-          e.quelpa-use-package
-          e.rainbow-delimiters
-          e.scss-mode
-          e.terraform-mode
-          e.treesit-grammars.with-all-grammars
-          e.typescript-mode
-          e.use-package
-          e.vterm
-          e.web-mode
-          e.window-number
-          e.with-editor
-          e.yaml-mode
-          e.yasnippet
-        ];
+        e.bazel
+        e.clang-format
+        e.claude-code
+        e.consult
+        e.consult-dir
+        e.corfu
+        e.corfu-terminal
+        e.deadgrep
+        e.dockerfile-mode
+        e.editorconfig
+        e.fill-column-indicator
+        e.format-all
+        e.go-mode
+        e.graphql-mode
+        e.highlight-indentation
+        e.jsonnet-mode
+        e.kkp
+        e.markdown-mode
+        e.minizinc-mode
+        e.nix-mode
+        e.powershell
+        e.prettier-js
+        e.protobuf-mode
+        e.quelpa
+        e.quelpa-use-package
+        e.rainbow-delimiters
+        e.scss-mode
+        e.terraform-mode
+        e.treesit-grammars.with-all-grammars
+        e.typescript-mode
+        e.use-package
+        e.vterm
+        e.web-mode
+        e.window-number
+        e.with-editor
+        e.yaml-mode
+        e.yasnippet
+      ];
     };
 
     fzf = {
