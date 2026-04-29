@@ -4,7 +4,7 @@
 stty stop ''
 
 if test '!' $TMUX; then
-  tmux list-sessions
+  tmux list-sessions 2>/dev/null
 fi
 
 export PROMPT_COMMAND="history -a"

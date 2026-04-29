@@ -4,11 +4,16 @@ if [ -f ~/.nix-profile/etc/profile.d/nix.sh ]; then
     . ~/.nix-profile/etc/profile.d/nix.sh
 fi
 
-export PATH="$HOME/.nix-profile/bin:$PATH"
+# Ensure home-manager session variables are present even in non-login shells
+# (e.g. IDE terminals, `bash -c`, container shells). The script self-guards
+# against repeated sourcing via __HM_SESS_VARS_SOURCED.
+if [ -e "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh" ]; then
+    . "$HOME/.nix-profile/etc/profile.d/hm-session-vars.sh"
+fi
 
 # limits
 ulimit -S -c 0
 
-if [[ ! -v SSH_AUTH_SOCK ]]; then
+if [[ $- == *i* ]] && [[ ! -v SSH_AUTH_SOCK ]]; then
     export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
 fi
