@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, sops-nix, username, ... }:
+{ config, pkgs, unstable, sops-nix, truss, username, ... }:
 let
   darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
@@ -118,6 +118,7 @@ in {
     pkgs.texinfoInteractive
     pkgs.tinygo
     pkgs.tmux-mem-cpu-load
+    truss
     pkgs.typescript-language-server
     pkgs.units
     pkgs.universal-ctags

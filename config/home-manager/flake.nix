@@ -29,10 +29,30 @@
       url = "github:nix-community/nix-index-database";
       inputs.nixpkgs.follows = "nixpkgs-darwin";
     };
+    pyproject-nix = {
+      url = "github:pyproject-nix/pyproject.nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    uv2nix = {
+      url = "github:pyproject-nix/uv2nix";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    pyproject-build-systems = {
+      url = "github:pyproject-nix/build-system-pkgs";
+      inputs.pyproject-nix.follows = "pyproject-nix";
+      inputs.uv2nix.follows = "uv2nix";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
+    truss-src = {
+      url = "github:basetenlabs/truss";
+      flake = false;
+    };
   };
   outputs = { nixpkgs, nixpkgs-unstable, nixpkgs-darwin, flake-utils
     , home-manager-linux, home-manager-darwin, sops-nix-linux, sops-nix-darwin
-    , nix-index-database-linux, nix-index-database-darwin, ... }:
+    , nix-index-database-linux, nix-index-database-darwin, pyproject-nix, uv2nix
+    , pyproject-build-systems, truss-src, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -55,6 +75,12 @@
           nix-index-database-darwin
         else
           nix-index-database-linux;
+        truss = pkgs.callPackage ./truss {
+          inherit pyproject-nix uv2nix pyproject-build-systems truss-src;
+        };
+        truss-darwin = darwin-pkgs.callPackage ./truss {
+          inherit pyproject-nix uv2nix pyproject-build-systems truss-src;
+        };
       in {
         packages.homeConfigurations."vscode" =
           home-manager.lib.homeManagerConfiguration {
@@ -64,6 +90,7 @@
               username = "vscode";
               inherit unstable;
               inherit sops-nix;
+              inherit truss;
             };
           };
         packages.homeConfigurations."jrockway" =
@@ -74,6 +101,7 @@
               username = "jrockway";
               inherit unstable;
               inherit sops-nix;
+              truss = if isDarwin then truss-darwin else truss;
             };
           };
       });
