@@ -60,6 +60,22 @@
         "type": "github"
       }
     },
+    "jlog-src": {
+      "flake": false,
+      "locked": {
+        "lastModified": 1671291808,
+        "narHash": "sha256-nc/v/0oNRP7g2A+8V1AKCjLvLA60EIkK251QvsgNF7Y=",
+        "owner": "jrockway",
+        "repo": "json-logs",
+        "rev": "ed08852f8304c7ec1a92013e8c8e3edfc6ccfabf",
+        "type": "github"
+      },
+      "original": {
+        "owner": "jrockway",
+        "repo": "json-logs",
+        "type": "github"
+      }
+    },
     "nix-index-database-darwin": {
       "inputs": {
         "nixpkgs": [
@@ -199,6 +215,7 @@
         "flake-utils": "flake-utils",
         "home-manager-darwin": "home-manager-darwin",
         "home-manager-linux": "home-manager-linux",
+        "jlog-src": "jlog-src",
         "nix-index-database-darwin": "nix-index-database-darwin",
         "nix-index-database-linux": "nix-index-database-linux",
         "nixpkgs": "nixpkgs",

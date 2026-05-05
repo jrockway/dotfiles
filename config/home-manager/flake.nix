@@ -48,11 +48,15 @@
       url = "github:basetenlabs/truss";
       flake = false;
     };
+    jlog-src = {
+      url = "github:jrockway/json-logs";
+      flake = false;
+    };
   };
   outputs = { nixpkgs, nixpkgs-unstable, nixpkgs-darwin, flake-utils
     , home-manager-linux, home-manager-darwin, sops-nix-linux, sops-nix-darwin
     , nix-index-database-linux, nix-index-database-darwin, pyproject-nix, uv2nix
-    , pyproject-build-systems, truss-src, ... }:
+    , pyproject-build-systems, truss-src, jlog-src, ... }:
     flake-utils.lib.eachDefaultSystem (system:
       let
         pkgs = import nixpkgs {
@@ -81,7 +85,10 @@
         truss-darwin = darwin-pkgs.callPackage ./truss {
           inherit pyproject-nix uv2nix pyproject-build-systems truss-src;
         };
+        jlog = pkgs.callPackage ./jlog { inherit jlog-src; };
+        jlog-darwin = darwin-pkgs.callPackage ./jlog { inherit jlog-src; };
       in {
+        packages.jlog = jlog;
         packages.homeConfigurations."vscode" =
           home-manager.lib.homeManagerConfiguration {
             inherit pkgs;
@@ -91,6 +98,7 @@
               inherit unstable;
               inherit sops-nix;
               inherit truss;
+              inherit jlog;
             };
           };
         packages.homeConfigurations."jrockway" =
@@ -102,6 +110,7 @@
               inherit unstable;
               inherit sops-nix;
               truss = if isDarwin then truss-darwin else truss;
+              jlog = if isDarwin then jlog-darwin else jlog;
             };
           };
       });

@@ -1,4 +1,4 @@
-{ config, pkgs, unstable, sops-nix, truss, username, ... }:
+{ config, pkgs, unstable, sops-nix, truss, jlog, username, ... }:
 let
   darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
@@ -64,6 +64,7 @@ in {
     pkgs.iperf3
     pkgs.istioctl
     pkgs.jdk
+    jlog
     pkgs.jq
     pkgs.jsonnet
     pkgs.jsonnet-language-server
