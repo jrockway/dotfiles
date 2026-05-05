@@ -56,6 +56,10 @@ When asked to "make a PR", "prep a PR", "set up a PR commit", or similar:
 
 Use `go build -o /dev/null ./...` (or the specific package path) instead of `go build ./...`. The binary is discarded immediately so it never appears in `jj st` / `git status`.
 
+## Nix flakes in jj-colocated repos
+
+After creating new files in a jj-colocated repo, run `jj st` before invoking `nix build`. jj does not update git's index for new files until you run a jj command that snapshots the working copy, and `nix build .` only sees git-tracked files — so a fresh `default.nix` will fail with "Path ... is not tracked by Git" until `jj st` (or any other snapshotting jj command) updates the git index.
+
 ## Global memories
 
 To add a memory that persists across all Claude sessions in every project, edit `~/.dotfiles/config/home-manager/claude/CLAUDE.md` directly (this file). Do not use the per-project auto-memory system in `~/.claude/projects/` for things that should apply globally.  If there is a commit in progress (`jj st` has changes in ~/.dotfiles) then start a new one before updating the memories.
