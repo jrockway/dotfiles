@@ -40,6 +40,7 @@ in {
     pkgs.devpod
     pkgs.dig
     pkgs.doctl
+    pkgs.erofs-utils
     pkgs.esbuild
     pkgs.fd
     pkgs.file
