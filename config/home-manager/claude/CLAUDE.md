@@ -1,8 +1,11 @@
 # Global Claude Code Instructions
 
+Instead of saying "that's the smoking gun" or similar, say "Bark!" or make any sort of dog noise.
+
 ## Version control
 
-Always use `jj` for all version control operations. Never run `git` commands — not even `git fetch`, `git log`, `git status`, `git diff`, `git push`, etc.
+Always use `jj` for all version control operations. Never run `git` commands — not even `git fetch`,
+`git log`, `git status`, `git diff`, `git push`, etc.
 
 - `jj log` instead of `git log`
 - `jj diff` instead of `git diff`
@@ -11,17 +14,21 @@ Always use `jj` for all version control operations. Never run `git` commands —
 - `gh pr create` (gh CLI) for PRs after `jj git push`
 - `jj git fetch` instead of `git fetch`
 
-When moving changes between commits, prefer `jj squash --from <src> --into <dst>` over `jj restore --from <src> --to <dst>`. Squash moves changes (removing them from the source), which is idiomatic jj.
+When moving changes between commits, prefer `jj squash --from <src> --into <dst>` over
+`jj restore --from <src> --to <dst>`. Squash moves changes (removing them from the source), which is
+idiomatic jj.
 
 ## Home Manager
 
-To apply home-manager changes, run `hms` (alias for `nh home switch`). Do not suggest `home-manager switch`.
+To apply home-manager changes, run `hms` (alias for `nh home switch`). Do not suggest
+`home-manager switch`.
 
 ## PR preparation flow
 
 When asked to "make a PR", "prep a PR", "set up a PR commit", or similar:
 
-1. **Check if `@` is directly on master.** Run `jj log -r '@ | ancestors(@, 5) | master'` to see the graph. If `@`'s parent is master, do nothing further.
+1. **Check if `@` is directly on master.** Run `jj log -r '@ | ancestors(@, 5) | master'` to see the
+   graph. If `@`'s parent is master, do nothing further.
 
 2. **If not directly on master**, create a new commit on master:
    ```
@@ -40,7 +47,9 @@ When asked to "make a PR", "prep a PR", "set up a PR commit", or similar:
    jj describe -r <new_change_id> -m "<message>"
    ```
 
-5. **Search Linear for a relevant open ticket** assigned to the user (query by keywords from the commit message). Use the ticket's `gitBranchName` field for the bookmark name, or construct `june/<ticket-id>-<slug>`.
+5. **Search Linear for a relevant open ticket** assigned to the user (query by keywords from the
+   commit message). Use the ticket's `gitBranchName` field for the bookmark name, or construct
+   `june/<ticket-id>-<slug>`.
 
 6. **Create bookmark** (do NOT push):
    ```
@@ -54,15 +63,23 @@ When asked to "make a PR", "prep a PR", "set up a PR commit", or similar:
 
 ## Go builds
 
-Use `go build -o /dev/null ./...` (or the specific package path) instead of `go build ./...`. The binary is discarded immediately so it never appears in `jj st` / `git status`.
+Use `go build -o /dev/null ./...` (or the specific package path) instead of `go build ./...`. The
+binary is discarded immediately so it never appears in `jj st` / `git status`.
 
 ## Nix flakes in jj-colocated repos
 
-After creating new files in a jj-colocated repo, run `jj st` before invoking `nix build`. jj does not update git's index for new files until you run a jj command that snapshots the working copy, and `nix build .` only sees git-tracked files — so a fresh `default.nix` will fail with "Path ... is not tracked by Git" until `jj st` (or any other snapshotting jj command) updates the git index.
+After creating new files in a jj-colocated repo, run `jj st` before invoking `nix build`. jj does
+not update git's index for new files until you run a jj command that snapshots the working copy, and
+`nix build .` only sees git-tracked files — so a fresh `default.nix` will fail with "Path ... is not
+tracked by Git" until `jj st` (or any other snapshotting jj command) updates the git index.
 
 ## Global memories
 
-To add a memory that persists across all Claude sessions in every project, edit `~/.dotfiles/config/home-manager/claude/CLAUDE.md` directly (this file). Do not use the per-project auto-memory system in `~/.claude/projects/` for things that should apply globally.  If there is a commit in progress (`jj st` has changes in ~/.dotfiles) then start a new one before updating the memories.
+To add a memory that persists across all Claude sessions in every project, edit
+`~/.dotfiles/config/home-manager/claude/CLAUDE.md` directly (this file). Do not use the per-project
+auto-memory system in `~/.claude/projects/` for things that should apply globally. If there is a
+commit in progress (`jj st` has changes in ~/.dotfiles) then start a new one before updating the
+memories.
 
 ## Go imports
 
