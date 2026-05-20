@@ -3,6 +3,7 @@ name: home-manager
 on:
   push:
   pull_request:
+  merge_group:
 
 jobs:
   build:
