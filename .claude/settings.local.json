@@ -7,7 +7,24 @@
       "WebFetch(domain:raw.githubusercontent.com)",
       "Bash(jj log:*)",
       "Bash(jj st *)",
-      "Bash(jj diff *)"
+      "Bash(jj diff *)",
+      "Bash(gh pr view *)",
+      "Bash(jj new *)",
+      "Bash(gh api:*)"
+    ],
+    "ask": [
+      "Bash(gh api -X *)",
+      "Bash(gh api * -X *)",
+      "Bash(gh api --method *)",
+      "Bash(gh api * --method *)",
+      "Bash(gh api -f *)",
+      "Bash(gh api * -f *)",
+      "Bash(gh api -F *)",
+      "Bash(gh api * -F *)",
+      "Bash(gh api --field *)",
+      "Bash(gh api * --field *)",
+      "Bash(gh api --raw-field *)",
+      "Bash(gh api * --raw-field *)"
     ]
   }
 }
