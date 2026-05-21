@@ -11,7 +11,7 @@ Always use `jj` for all version control operations. Never run `git` commands —
 - `jj diff` instead of `git diff`
 - `jj status` instead of `git status`
 - `jj git push` to push branches
-- `gh pr create` (gh CLI) for PRs after `jj git push`
+- `gh pr create` (gh CLI) for PRs after `jj git push`. Always pass `--head <bookmark> --base <branch>` explicitly — jj leaves the git working copy detached, so `gh` can't infer the current branch and will fail with "not on any branch".
 - `jj git fetch` instead of `git fetch`
 
 When moving changes between commits, prefer `jj squash --from <src> --into <dst>` over
