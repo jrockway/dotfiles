@@ -204,7 +204,9 @@ in {
       historyFileSize = 100000;
       historySize = 10000;
       bashrcExtra = builtins.readFile ./bash/bashrc;
-      initExtra = builtins.readFile ./bash/bashrc.interactive;
+      initExtra = ''
+        source ${pkgs.complete-alias}/bin/complete_alias
+      '' + builtins.readFile ./bash/bashrc.interactive;
       profileExtra = builtins.readFile ./bash/bash_profile;
       logoutExtra = builtins.readFile ./bash/bash_logout;
       shellAliases = {

@@ -26,12 +26,10 @@ case $TERM in
 	;;
 esac
 
-# completion from upstream
-if [ -f /etc/bash_completion ]; then
-    source /etc/bash_completion;
-    for i in $HOME/.dotfiles/completion/*; do source $i; done
-    complete -F _completion_goflags jlog
-fi
+# extra completion scripts from the dotfiles tree (bash-completion itself is
+# sourced earlier by home-manager).
+for i in $HOME/.dotfiles/completion/*; do source "$i"; done
+complete -F _completion_goflags jlog
 
 complete -F _complete_alias kctx
 complete -F _complete_alias kns
