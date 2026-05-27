@@ -96,6 +96,51 @@ in {
     pkgs.prettier
     pkgs.nodejs_22
     pkgs.nvd
+    (pkgs.writeShellApplication {
+      name = "hm-preview";
+      runtimeInputs = [ pkgs.nix pkgs.nvd ];
+      text = ''
+        # Show what `nh home switch` would change, without activating.
+        #   hm-preview                # current working tree
+        #   hm-preview <git-ref>      # a ref in ~/.dotfiles (e.g. master, origin/master)
+        #   hm-preview <flakeref>     # any flakeref (contains / : or .)
+        flake_dir="$HOME/.dotfiles/config/home-manager"
+        user="$(whoami)"
+        attr="homeConfigurations.$user.activationPackage"
+
+        case "$#" in
+          0) ref="$flake_dir" ;;
+          1)
+            arg="$1"
+            if [[ "$arg" == *:* || "$arg" == */* || "$arg" == .* ]]; then
+              ref="$arg"
+            else
+              ref="git+file://$HOME/.dotfiles?dir=config/home-manager&ref=$arg"
+            fi
+            ;;
+          *) echo "usage: hm-preview [git-ref|flakeref]" >&2; exit 2 ;;
+        esac
+
+        [[ "$ref" == *"#"* ]] || ref="$ref#$attr"
+
+        current="$HOME/.local/state/nix/profiles/home-manager"
+        echo "==> Building: $ref"
+        new="$(nix build --no-link --print-out-paths "$ref")"
+
+        if [ "$(readlink -f "$current")" = "$new" ]; then
+          echo "==> No changes."
+          exit 0
+        fi
+
+        echo
+        echo "==> Package changes (nvd):"
+        nvd diff "$current" "$new"
+
+        echo
+        echo "==> Closure size delta:"
+        nix --extra-experimental-features nix-command store diff-closures "$current" "$new"
+      '';
+    })
     pkgs.openssl
     pkgs.opentelemetry-collector
     pkgs.otel-desktop-viewer
