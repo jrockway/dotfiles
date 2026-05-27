@@ -88,13 +88,12 @@ in {
     # pkgs.moon
     pkgs.mqttui
     pkgs.ncurses
-    pkgs.neofetch
     pkgs.nginxMainline
     pkgs.nix-output-monitor
     pkgs.nixd
     pkgs.nixfmt-classic
     pkgs.nixos-rebuild
-    pkgs.nodePackages.prettier
+    pkgs.prettier
     pkgs.nodejs_22
     pkgs.nvd
     pkgs.openssl
@@ -163,7 +162,7 @@ in {
   };
 
   xdg.configFile = {
-    "jj".source = ./jj;
+    "jj/config.toml".source = ./jj/config.toml;
     "kitty".source = ./kitty;
     "git".source = ./git;
   };
@@ -311,7 +310,7 @@ in {
     claude-code = {
       enable = true;
       package = unstable.claude-code;
-      memory.source = ./claude/CLAUDE.md;
+      context = ./claude/CLAUDE.md;
     };
   };
 
