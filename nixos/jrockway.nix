@@ -1,4 +1,10 @@
-{ config, lib, pkgs, ... }: {
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
   sops.secrets.jrockway-password.neededForUsers = true;
 
   users.users.jrockway = {

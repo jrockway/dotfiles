@@ -1,4 +1,5 @@
-{ ... }: {
+{ ... }:
+{
   services.chrony = {
     initstepslew.enabled = false; # makestep is better
     enableRTCTrimming = false;

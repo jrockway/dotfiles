@@ -1,13 +1,28 @@
-{ config, lib, pkgs, ... }: {
-  boot.kernel.sysctl = { "kernel.dmesg_restrict" = 0; };
+{
+  config,
+  lib,
+  pkgs,
+  ...
+}:
+{
+  boot.kernel.sysctl = {
+    "kernel.dmesg_restrict" = 0;
+  };
 
-  environment.systemPackages =
-    [ pkgs.mg pkgs.gitFull pkgs.home-manager pkgs.smartmontools ];
+  environment.systemPackages = [
+    pkgs.mg
+    pkgs.gitFull
+    pkgs.home-manager
+    pkgs.smartmontools
+  ];
 
   i18n.defaultLocale = "en_US.UTF-8";
 
   nix.gc.automatic = true;
-  nix.settings.experimental-features = [ "nix-command" "flakes" ];
+  nix.settings.experimental-features = [
+    "nix-command"
+    "flakes"
+  ];
 
   security.sudo.wheelNeedsPassword = false;
 
@@ -26,8 +41,11 @@
 
   system.autoUpgrade.allowReboot = false;
   system.autoUpgrade.enable = true;
-  system.autoUpgrade.flags =
-    [ "--update-input" "nixpkgs" "--recreate-lock-file" ];
+  system.autoUpgrade.flags = [
+    "--update-input"
+    "nixpkgs"
+    "--recreate-lock-file"
+  ];
 
   time.timeZone = "America/New_York";
 

@@ -53,11 +53,27 @@
       flake = false;
     };
   };
-  outputs = { nixpkgs, nixpkgs-unstable, nixpkgs-darwin, flake-utils
-    , home-manager-linux, home-manager-darwin, sops-nix-linux, sops-nix-darwin
-    , nix-index-database-linux, nix-index-database-darwin, pyproject-nix, uv2nix
-    , pyproject-build-systems, truss-src, jlog-src, ... }:
-    flake-utils.lib.eachDefaultSystem (system:
+  outputs =
+    {
+      nixpkgs,
+      nixpkgs-unstable,
+      nixpkgs-darwin,
+      flake-utils,
+      home-manager-linux,
+      home-manager-darwin,
+      sops-nix-linux,
+      sops-nix-darwin,
+      nix-index-database-linux,
+      nix-index-database-darwin,
+      pyproject-nix,
+      uv2nix,
+      pyproject-build-systems,
+      truss-src,
+      jlog-src,
+      ...
+    }:
+    flake-utils.lib.eachDefaultSystem (
+      system:
       let
         pkgs = import nixpkgs {
           inherit system;
@@ -72,46 +88,58 @@
           inherit system;
           config.allowUnfree = true;
         };
-        home-manager =
-          if isDarwin then home-manager-darwin else home-manager-linux;
+        home-manager = if isDarwin then home-manager-darwin else home-manager-linux;
         sops-nix = if isDarwin then sops-nix-darwin else sops-nix-linux;
-        nix-index-database = if isDarwin then
-          nix-index-database-darwin
-        else
-          nix-index-database-linux;
+        nix-index-database = if isDarwin then nix-index-database-darwin else nix-index-database-linux;
         truss = pkgs.callPackage ./truss {
-          inherit pyproject-nix uv2nix pyproject-build-systems truss-src;
+          inherit
+            pyproject-nix
+            uv2nix
+            pyproject-build-systems
+            truss-src
+            ;
         };
         truss-darwin = darwin-pkgs.callPackage ./truss {
-          inherit pyproject-nix uv2nix pyproject-build-systems truss-src;
+          inherit
+            pyproject-nix
+            uv2nix
+            pyproject-build-systems
+            truss-src
+            ;
         };
         jlog = pkgs.callPackage ./jlog { inherit jlog-src; };
         jlog-darwin = darwin-pkgs.callPackage ./jlog { inherit jlog-src; };
-      in {
+      in
+      {
         packages.jlog = jlog;
-        packages.homeConfigurations."vscode" =
-          home-manager.lib.homeManagerConfiguration {
-            inherit pkgs;
-            modules = [ ./home.nix nix-index-database.homeModules.default ];
-            extraSpecialArgs = {
-              username = "vscode";
-              inherit unstable;
-              inherit sops-nix;
-              inherit truss;
-              inherit jlog;
-            };
+        packages.homeConfigurations."vscode" = home-manager.lib.homeManagerConfiguration {
+          inherit pkgs;
+          modules = [
+            ./home.nix
+            nix-index-database.homeModules.default
+          ];
+          extraSpecialArgs = {
+            username = "vscode";
+            inherit unstable;
+            inherit sops-nix;
+            inherit truss;
+            inherit jlog;
           };
-        packages.homeConfigurations."jrockway" =
-          home-manager.lib.homeManagerConfiguration {
-            pkgs = if isDarwin then darwin-pkgs else pkgs;
-            modules = [ ./home.nix nix-index-database.homeModules.default ];
-            extraSpecialArgs = {
-              username = "jrockway";
-              inherit unstable;
-              inherit sops-nix;
-              truss = if isDarwin then truss-darwin else truss;
-              jlog = if isDarwin then jlog-darwin else jlog;
-            };
+        };
+        packages.homeConfigurations."jrockway" = home-manager.lib.homeManagerConfiguration {
+          pkgs = if isDarwin then darwin-pkgs else pkgs;
+          modules = [
+            ./home.nix
+            nix-index-database.homeModules.default
+          ];
+          extraSpecialArgs = {
+            username = "jrockway";
+            inherit unstable;
+            inherit sops-nix;
+            truss = if isDarwin then truss-darwin else truss;
+            jlog = if isDarwin then jlog-darwin else jlog;
           };
-      });
+        };
+      }
+    );
 }

@@ -1,9 +1,12 @@
-{ ... }: {
+{ ... }:
+{
   services.flannel = {
     enable = true;
     network = "192.168.32.0/19";
     iface = "enP4p65s0";
-    backend = { Type = "host-gw"; };
+    backend = {
+      Type = "host-gw";
+    };
     etcd = {
       endpoints = [
         "https://192.168.1.80:2379"
@@ -29,7 +32,10 @@
     openFirewall = true;
   };
 
-  users.users.etcd.extraGroups = [ "keys" "tls" ];
+  users.users.etcd.extraGroups = [
+    "keys"
+    "tls"
+  ];
   sops.secrets.tls-key = {
     mode = "0440";
     group = "tls";

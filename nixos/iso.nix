@@ -1,1 +1,4 @@
-{ ... }: { isoImage.squashfsCompression = "zstd -Xcompression-level 3"; }
+{ ... }:
+{
+  isoImage.squashfsCompression = "zstd -Xcompression-level 3";
+}

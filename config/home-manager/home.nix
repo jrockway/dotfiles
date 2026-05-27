@@ -1,15 +1,24 @@
-{ config, pkgs, unstable, sops-nix, truss, jlog, username, ... }:
+{
+  config,
+  pkgs,
+  unstable,
+  sops-nix,
+  truss,
+  jlog,
+  username,
+  ...
+}:
 let
   darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
-in {
+in
+{
   imports = [ sops-nix.homeManagerModules.sops ];
 
   # Home Manager needs a bit of information about you and the paths it should
   # manage.
   home.username = username;
-  home.homeDirectory =
-    if darwin then "/Users/" + username else "/home/" + username;
+  home.homeDirectory = if darwin then "/Users/" + username else "/home/" + username;
 
   # This value determines the Home Manager release that your configuration is
   # compatible with. This helps avoid breakage when a new Home Manager release
@@ -91,14 +100,17 @@ in {
     pkgs.nginxMainline
     pkgs.nix-output-monitor
     pkgs.nixd
-    pkgs.nixfmt-classic
+    pkgs.nixfmt
     pkgs.nixos-rebuild
     pkgs.prettier
     pkgs.nodejs_22
     pkgs.nvd
     (pkgs.writeShellApplication {
       name = "hm-preview";
-      runtimeInputs = [ pkgs.nix pkgs.nvd ];
+      runtimeInputs = [
+        pkgs.nix
+        pkgs.nvd
+      ];
       text = ''
         # Show what `nh home switch` would change, without activating.
         #   hm-preview                # current working tree
@@ -174,24 +186,27 @@ in {
     pkgs.wget
     pkgs.yaml-language-server
     pkgs.yq
-  ] ++ [
-    (pkgs.writeShellScriptBin "bazel"
-      "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
+  ]
+  ++ [
+    (pkgs.writeShellScriptBin "bazel" "exec -a $0 ${pkgs.bazelisk}/bin/bazelisk $@")
     (pkgs.writeShellScriptBin "fdfind" "exec -a $0 ${pkgs.fd}/bin/fd $@")
     (pkgs.writeShellApplication {
       name = "gencert";
       runtimeInputs = [ pkgs.cfssl ];
-      text = ''
-        exec cfssl gencert -config "$HOME/.ca/ca-config.json" -ca "$HOME/.ca/ca.pem" -ca-key "$HOME/.ca/ca-key.pem" "$@"'';
+      text = ''exec cfssl gencert -config "$HOME/.ca/ca-config.json" -ca "$HOME/.ca/ca.pem" -ca-key "$HOME/.ca/ca-key.pem" "$@"'';
     })
-  ] ++ (if darwin then
-    [ ]
-  else [
-    pkgs.envoy-bin
-    pkgs.lm_sensors
-    pkgs.nixos-install-tools
-    pkgs.tinymembench
-  ]);
+  ]
+  ++ (
+    if darwin then
+      [ ]
+    else
+      [
+        pkgs.envoy-bin
+        pkgs.lm_sensors
+        pkgs.nixos-install-tools
+        pkgs.tinymembench
+      ]
+  );
 
   home.file = {
     ".aspell.en.prepl".source = ./aspell/aspell.en.prepl;
@@ -213,17 +228,24 @@ in {
   };
 
   home.sessionVariables = {
-    EDITOR = pkgs.lib.getBin (pkgs.writeShellScript "emacsclient" ''
-      exec ${config.programs.emacs.finalPackage}/bin/emacsclient -a ''' -t $@
-    '');
+    EDITOR = pkgs.lib.getBin (
+      pkgs.writeShellScript "emacsclient" ''
+        exec ${config.programs.emacs.finalPackage}/bin/emacsclient -a ''' -t $@
+      ''
+    );
     TERMINFO = "$HOME/.nix-profile/lib/terminfo";
     XCURSOR_SIZE = "16";
-  } // (if !darwin then {
-    LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
-  } else {
-    SSH_AUTH_SOCK =
-      "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock";
-  });
+  }
+  // (
+    if !darwin then
+      {
+        LOCALE_ARCHIVE = "${pkgs.glibcLocales}/lib/locale/locale-archive";
+      }
+    else
+      {
+        SSH_AUTH_SOCK = "$HOME/Library/Group Containers/2BUA8C4S2C.com.1password/t/agent.sock";
+      }
+  );
 
   home.sessionPath = [
     "$HOME/bin"
@@ -250,15 +272,14 @@ in {
       bashrcExtra = builtins.readFile ./bash/bashrc;
       initExtra = ''
         source ${pkgs.complete-alias}/bin/complete_alias
-      '' + builtins.readFile ./bash/bashrc.interactive;
+      ''
+      + builtins.readFile ./bash/bashrc.interactive;
       profileExtra = builtins.readFile ./bash/bash_profile;
       logoutExtra = builtins.readFile ./bash/bash_logout;
       shellAliases = {
         cover = "go test -coverprofile=cover.out -covermode=atomic";
-        coverall =
-          "go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./...";
-        coverreport =
-          "go tool cover -html cover.out -o cover.html && serveme cover.html";
+        coverall = "go test -coverprofile=cover.out ./... -covermode=atomic -coverpkg=./...";
+        coverreport = "go tool cover -html cover.out -o cover.html && serveme cover.html";
         kctx = "kubectx";
         kns = "kubens";
         k = "kubectl";
@@ -270,12 +291,21 @@ in {
         h = "history";
         ec = "emacsclient -t";
         hms = "nh home switch";
-      } // (if darwin then {
-        emacs =
-          "${config.programs.emacs.finalPackage}/Applications/Emacs.app/Contents/MacOS/Emacs";
-      } else
-        { });
-      shellOptions = [ "cmdhist" "checkwinsize" "cdable_vars" "histappend" ];
+      }
+      // (
+        if darwin then
+          {
+            emacs = "${config.programs.emacs.finalPackage}/Applications/Emacs.app/Contents/MacOS/Emacs";
+          }
+        else
+          { }
+      );
+      shellOptions = [
+        "cmdhist"
+        "checkwinsize"
+        "cdable_vars"
+        "histappend"
+      ];
     };
 
     direnv = {
@@ -359,24 +389,32 @@ in {
     };
   };
 
-  services = { } // (if !darwin then {
-    home-manager.autoExpire = {
-      enable = true;
-      frequency = "daily";
-      timestamp = "-7 days";
-      store.cleanup = true;
-    };
-    emacs = {
-      enable = true;
-      startWithUserSession = true;
-    };
-  } else
-    { });
+  services =
+    { }
+    // (
+      if !darwin then
+        {
+          home-manager.autoExpire = {
+            enable = true;
+            frequency = "daily";
+            timestamp = "-7 days";
+            store.cleanup = true;
+          };
+          emacs = {
+            enable = true;
+            startWithUserSession = true;
+          };
+        }
+      else
+        { }
+    );
 
   sops = {
     age.sshKeyPaths = [ "${config.home.homeDirectory}/.ssh/id_ed25519" ];
     defaultSopsFile = ./sops/secrets.sops.yaml;
-    secrets.test = { path = "%r/test.txt"; };
+    secrets.test = {
+      path = "%r/test.txt";
+    };
     secrets."ca-key.pem" = {
       path = "${config.home.homeDirectory}/.ca/ca-key.pem";
     };
