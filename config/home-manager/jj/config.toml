@@ -37,7 +37,9 @@ auto-track = "~glob:**/*.secret.*"
 [git]
 private-commits = 'description(glob:"private:*")'
 sign-on-push = true
-push-new-bookmarks = true
+
+[remotes.origin]
+auto-track-bookmarks = "glob:june/*"
 
 [templates]
 git_push_bookmark = '"june/push-" ++ change_id.short()'
