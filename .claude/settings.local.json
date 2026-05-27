@@ -10,7 +10,8 @@
       "Bash(jj diff *)",
       "Bash(gh pr view *)",
       "Bash(jj new *)",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(home-manager generations *)"
     ],
     "ask": [
       "Bash(gh api -X *)",
