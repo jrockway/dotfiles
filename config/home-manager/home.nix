@@ -70,7 +70,7 @@ in
     pkgs.hey
     pkgs.htop
     pkgs.hugo
-    pkgs.iosevka
+    pkgs.iosevka-bin
     pkgs.iperf3
     pkgs.istioctl
     pkgs.jdk
