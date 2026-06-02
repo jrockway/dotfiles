@@ -16,7 +16,8 @@
       "Bash(/nix/store/gs462v66g6d5rmskd4g3mrfgrpil8fk7-home-manager-generation/activate)",
       "Read(//nix/store/w9n9mc7kzf299p48qi452q3la17ygj0q-hm_jj/**)",
       "Read(//home/vscode/.local/state/home-manager/gcroots/**)",
-      "Read(//home/vscode/.local/state/nix/profiles/**)"
+      "Read(//home/vscode/.local/state/nix/profiles/**)",
+      "Bash(nix eval *)"
     ],
     "ask": [
       "Bash(gh api -X *)",

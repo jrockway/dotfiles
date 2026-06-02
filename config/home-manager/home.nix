@@ -63,6 +63,7 @@ in
     pkgs.gotestsum
     pkgs.grafana
     pkgs.grafana-loki
+    pkgs.graphviz-nox
     pkgs.grpc-health-probe
     pkgs.grpcurl
     pkgs.hdf5
