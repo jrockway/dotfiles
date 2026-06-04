@@ -13,7 +13,7 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@v22
 
-      - uses: DeterminateSystems/magic-nix-cache-action@v13
+      - uses: DeterminateSystems/magic-nix-cache-action@v14
         with:
           use-flakehub: false
 
@@ -27,7 +27,7 @@ jobs:
 
       - uses: DeterminateSystems/nix-installer-action@v22
 
-      - uses: DeterminateSystems/magic-nix-cache-action@v13
+      - uses: DeterminateSystems/magic-nix-cache-action@v14
         with:
           use-flakehub: false
 
