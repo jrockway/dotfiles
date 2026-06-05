@@ -1,5 +1,6 @@
 {
   config,
+  lib,
   pkgs,
   unstable,
   sops-nix,
@@ -11,6 +12,12 @@
 let
   darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
+
+  # Global Claude Code permissions, generated to a JSON file and merged into the
+  # (mutable) ~/.claude/settings.json by home.activation.claudeMergePermissions.
+  claudePermissions = (pkgs.formats.json { }).generate "claude-permissions.json" {
+    permissions = import ./claude/permissions.nix;
+  };
 in
 {
   imports = [ sops-nix.homeManagerModules.sops ];
@@ -216,11 +223,30 @@ in
     ".emacs".source = ./emacs/emacs;
     ".htoprc".source = ./htop/htoprc;
     ".jq".source = ./jq/jq;
+    ".claude/statusline-command.sh".source = ./claude/statusline-command.sh;
     ".ca" = {
       source = ./ca;
       recursive = true;
     };
   };
+
+  # Merge the nix-managed global Claude permissions into ~/.claude/settings.json.
+  # settings.json is deliberately left mutable (not a store symlink) so /model,
+  # /fast and the theme toggle keep persisting; this only rewrites the
+  # permissions.allow / permissions.ask arrays from claude/permissions.nix and
+  # preserves every other key.
+  home.activation.claudeMergePermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+    settings="$HOME/.claude/settings.json"
+    $DRY_RUN_CMD mkdir -p "$HOME/.claude"
+    existing="$([ -f "$settings" ] && cat "$settings" || echo '{}')"
+    tmp="$(mktemp)"
+    if printf '%s' "$existing" | ${pkgs.jq}/bin/jq -s '.[0] * .[1]' - ${claudePermissions} > "$tmp"; then
+      $DRY_RUN_CMD mv $VERBOSE_ARG "$tmp" "$settings"
+    else
+      echo "claudeMergePermissions: jq merge failed; leaving $settings unchanged" >&2
+      rm -f "$tmp"
+    fi
+  '';
 
   xdg.configFile = {
     "jj/config.toml".source = ./jj/config.toml;
