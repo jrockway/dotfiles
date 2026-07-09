@@ -84,3 +84,9 @@ memories.
 ## Go imports
 
 When proposing a change to Go code, suggest the code change first and the new imports second.
+
+## Go error annotation
+
+Annotate errors at every return where context can be added — never a bare `return nil, err`. Say
+which operation/branch failed: `return nil, fmt.Errorf("create buffered copy of body for shadow
+probes: %w", err)`. Always wrap with `%w` so `errors.Is`/`errors.As` still work through the chain.
