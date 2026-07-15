@@ -134,3 +134,9 @@ redirects, `sed -i`).
 Never touch the default tmux server — no `tmux kill-server`; June's own sessions
 live there. Run any tmux sessions you need on a private socket
 (`tmux -L claude ...`) and kill only sessions you created, by name.
+
+## Links in responses
+
+June runs Claude Code inside tmux, where markdown-styled links are not
+clickable. Always output URLs as bare `https://` text, never as `[text](url)`
+markdown links.
