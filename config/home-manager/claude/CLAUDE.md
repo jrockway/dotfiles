@@ -48,8 +48,9 @@ unasked.
 
 ## Home Manager
 
-To apply home-manager changes, run `hms` (alias for `nh home switch`). Do not
-suggest `home-manager switch`.
+To apply home-manager changes, run `nh home switch`. The `hms` alias for it
+only exists in interactive shells, so it fails with "command not found" when
+Claude runs it. Do not suggest `home-manager switch`.
 
 ## PR preparation flow
 
