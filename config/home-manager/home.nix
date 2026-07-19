@@ -363,6 +363,8 @@ in
         e.jsonnet-mode
         e.kkp
         e.markdown-mode
+        # majutsu is only in unstable; build its elisp against our stable emacs
+        (unstable.emacsPackagesFor emacs).majutsu
         e.minizinc-mode
         e.nix-mode
         e.powershell
@@ -376,6 +378,7 @@ in
         e.treesit-grammars.with-all-grammars
         e.typescript-mode
         e.use-package
+        e.vc-jj
         e.vterm
         e.web-mode
         e.window-number

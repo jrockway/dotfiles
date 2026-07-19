@@ -290,6 +290,9 @@ name or directory file name."
 
 (use-package markdown-mode)
 
+(use-package majutsu
+  :bind ("C-c j" . majutsu-log))
+
 (use-package flymake :defer t :config
   (define-key flymake-mode-map (kbd "M-n") 'flymake-goto-next-error)
   (define-key flymake-mode-map (kbd "M-p") 'flymake-goto-prev-error)
