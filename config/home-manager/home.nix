@@ -17,6 +17,7 @@ let
   # (mutable) ~/.claude/settings.json by home.activation.claudeMergePermissions.
   claudePermissions = (pkgs.formats.json { }).generate "claude-permissions.json" {
     permissions = import ./claude/permissions.nix;
+    autoMode = import ./claude/auto-mode.nix;
   };
 in
 {

@@ -17,7 +17,8 @@
       "Read(//nix/store/w9n9mc7kzf299p48qi452q3la17ygj0q-hm_jj/**)",
       "Read(//home/vscode/.local/state/home-manager/gcroots/**)",
       "Read(//home/vscode/.local/state/nix/profiles/**)",
-      "Bash(nix eval *)"
+      "Bash(nix eval *)",
+      "Bash(nh home switch)"
     ],
     "ask": [
       "Bash(gh api -X *)",

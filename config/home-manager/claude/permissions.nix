@@ -89,6 +89,13 @@
     "mcp__claude_ai_Linear__list_issues"
   ];
 
+  # git is never OK — jj is the only VCS interface (see CLAUDE.md). Prefix
+  # matching means `jj git push` / `jj git fetch` are unaffected. The auto-mode
+  # classifier side of this lives in auto-mode.nix.
+  deny = [
+    "Bash(git *)"
+  ];
+
   # Mutating gh api calls always prompt, even though `gh api:*` is allowed above.
   ask = [
     "Bash(gh api -X *)"
