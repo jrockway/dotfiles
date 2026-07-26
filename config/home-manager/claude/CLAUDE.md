@@ -48,6 +48,22 @@ before any `jj new` / `jj edit` / `jj squash`; `@` is often already positioned
 on the target commit. Default to editing in place; don't move the working copy
 unasked.
 
+## Baseten monorepo jj workspaces
+
+The monorepo's default workspace is `/workspace`; sessions usually start there
+(shared project memory) but often operate on a secondary jj workspace. A
+per-prompt hook injects the current workspace into context — trust it, and run
+jj commands and file edits from that workspace's root.
+
+New monorepo workspaces always go in `~/monorepo-workspaces/<name>` — never an
+ad-hoc path (June kept losing those):
+
+```
+jj -R /workspace workspace add --name <name> -r <base> ~/monorepo-workspaces/<name>
+```
+
+June points a session at a workspace with the `/workspace <name>` command.
+
 ## Home Manager
 
 To apply home-manager changes, run `nh home switch`. The `hms` alias for it only

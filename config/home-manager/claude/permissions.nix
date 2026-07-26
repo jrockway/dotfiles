@@ -10,6 +10,19 @@
 # hash-pinned /nix/store/<hash> entries were intentionally dropped because the
 # hash changes on every rebuild, so they could never match again.
 {
+  # Extra working directories for every session. Claude Code only allows `cd`
+  # within the session's working directories, so without these a session
+  # started in /workspace cannot move into a jj workspace (or vice versa) —
+  # which is what the /workspace command needs to do. Both usernames are
+  # listed, matching the Read rules below; nonexistent paths are inert.
+  # ~/baseten-ttfb predates the ~/monorepo-workspaces convention.
+  additionalDirectories = [
+    "/workspace/"
+    "/home/vscode/monorepo-workspaces/"
+    "/home/jrockway/monorepo-workspaces/"
+    "/home/vscode/baseten-ttfb/"
+  ];
+
   allow = [
     # Shell / build
     "Bash(go build *)"

@@ -240,6 +240,7 @@ in
     ".jq".source = ./jq/jq;
     ".claude/statusline-command.sh".source = ./claude/statusline-command.sh;
     ".claude/jj-workspace-hook.sh".source = ./claude/jj-workspace-hook.sh;
+    ".claude/commands/workspace.md".source = ./claude/commands/workspace.md;
     ".ca" = {
       source = ./ca;
       recursive = true;
