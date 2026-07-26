@@ -1,9 +1,16 @@
 #!/bin/sh
 # Claude Code statusLine — jj-centric.
-# Format: <id> [bookmark] <desc...> +N-M ↑K [⚠ conflict|(empty)] | model ctx:X%
+# Format: ws:<name> <id> [bookmark] <desc...> +N-M ↑K [⚠ conflict|(empty)] | model ctx:X%
 input=$(cat)
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+
+# Run jj from the session's live cwd, not the launch dir: sessions started in
+# the default workspace often operate on a different jj workspace entirely.
+current_dir=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
+if [ -n "$current_dir" ] && [ -d "$current_dir" ]; then
+    cd "$current_dir" 2>/dev/null
+fi
 
 # Color escapes (printf-interpreted).
 C_RESET='\033[0m'
@@ -12,10 +19,25 @@ C_GREEN='\033[32m'
 C_RED='\033[31m'
 C_YELLOW='\033[33m'
 C_CYAN='\033[36m'
+C_MAGENTA='\033[35m'
 C_BOLD_RED='\033[1;31m'
 C_BOLD_GREEN='\033[1;32m'
 
 parts=""
+
+# Workspace segment, only in multi-workspace repos. Name is resolved by
+# matching `jj workspace root` against the list — the directory basename is
+# not reliable (workspace ttfb lives in baseten-ttfb).
+ws_root=$(jj --no-pager --ignore-working-copy workspace root 2>/dev/null)
+if [ -n "$ws_root" ]; then
+    ws_list=$(jj --no-pager --ignore-working-copy workspace list \
+        -T 'self.name() ++ "\t" ++ self.root() ++ "\n"' 2>/dev/null)
+    if [ "$(printf '%s\n' "$ws_list" | grep -c .)" -gt 1 ]; then
+        ws_name=$(printf '%s\n' "$ws_list" |
+            awk -F'\t' -v root="$ws_root" '$2 == root {print $1}')
+        parts="${parts}${C_MAGENTA}ws:${ws_name:-?}${C_RESET} "
+    fi
+fi
 
 # One jj call: id\tdesc\tbookmarks\tconflict\tempty
 jj_info=$(jj --no-pager --ignore-working-copy log -r @ --no-graph \

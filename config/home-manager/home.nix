@@ -18,6 +18,20 @@ let
   claudePermissions = (pkgs.formats.json { }).generate "claude-permissions.json" {
     permissions = import ./claude/permissions.nix;
     autoMode = import ./claude/auto-mode.nix;
+    hooks = {
+      # Tell Claude which jj workspace the session is operating on; sessions
+      # start in /workspace (shared memory) but often work elsewhere.
+      UserPromptSubmit = [
+        {
+          hooks = [
+            {
+              type = "command";
+              command = ''sh "$HOME/.claude/jj-workspace-hook.sh"'';
+            }
+          ];
+        }
+      ];
+    };
   };
 in
 {
@@ -225,6 +239,7 @@ in
     ".htoprc".source = ./htop/htoprc;
     ".jq".source = ./jq/jq;
     ".claude/statusline-command.sh".source = ./claude/statusline-command.sh;
+    ".claude/jj-workspace-hook.sh".source = ./claude/jj-workspace-hook.sh;
     ".ca" = {
       source = ./ca;
       recursive = true;
@@ -233,9 +248,9 @@ in
 
   # Merge the nix-managed global Claude permissions into ~/.claude/settings.json.
   # settings.json is deliberately left mutable (not a store symlink) so /model,
-  # /fast and the theme toggle keep persisting; this only rewrites the
-  # permissions.allow / permissions.ask arrays from claude/permissions.nix and
-  # preserves every other key.
+  # /fast and the theme toggle keep persisting; this only rewrites the keys in
+  # claudePermissions (permissions, autoMode, hooks) and preserves every other
+  # key.
   home.activation.claudeMergePermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     settings="$HOME/.claude/settings.json"
     $DRY_RUN_CMD mkdir -p "$HOME/.claude"
