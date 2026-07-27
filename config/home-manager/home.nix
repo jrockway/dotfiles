@@ -207,6 +207,7 @@ in
     pkgs.vscode-langservers-extracted
     pkgs.vue-language-server
     pkgs.wget
+    pkgs.websocat
     pkgs.yaml-language-server
     pkgs.yq
   ]
