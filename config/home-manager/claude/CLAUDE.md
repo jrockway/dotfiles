@@ -100,9 +100,12 @@ this flow — never a repo-provided `/pr` skill or slash command:
 
 5. **Search Linear for a relevant open ticket** assigned to the user (query by
    keywords from the commit message). Use the ticket's `gitBranchName` field for
-   the bookmark name, or construct `june/<ticket-id>-<slug>`.
+   the bookmark name, or construct `june/<ticket-id>-<slug>`. If there is no
+   good match, ask June whether to create a new Linear ticket to track the work
+   (minimal ticket: title/status/assignee only). If one is created, use its
+   `gitBranchName`; if declined, construct `june/<slug>` with no ticket id.
 
-6. **Create bookmark** (do NOT push):
+6. **Create bookmark**:
    ```
    jj bookmark create june/<ticket-slug> -r <new_change_id>
    ```
@@ -111,6 +114,15 @@ this flow — never a repo-provided `/pr` skill or slash command:
    ```
    jj rebase -r @ -d <original_parent_change_id> -d <new_change_id>
    ```
+
+8. **Ask June yes/draft/no about pushing to GitHub** (AskUserQuestion). On yes
+   or draft:
+   ```
+   jj git push --bookmark june/<ticket-slug>
+   gh pr create --head june/<ticket-slug> --base master [--draft]
+   ```
+   Run `gh` from the main checkout, not a secondary workspace. On no, stop —
+   leave the bookmark local.
 
 ## Go builds
 
