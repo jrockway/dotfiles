@@ -166,6 +166,13 @@ Never touch the default tmux server — no `tmux kill-server`; June's own sessio
 live there. Run any tmux sessions you need on a private socket
 (`tmux -L claude ...`) and kill only sessions you created, by name.
 
+## Speaking in public forums
+
+When writing anything in a public forum on June's behalf — GitHub review
+comments, Slack messages, Linear comments — prefix the message with
+"Bark! This is Claude speaking --" or similar, so readers know it's Claude and
+not June. This does NOT apply to PR descriptions.
+
 ## Links in responses
 
 June runs Claude Code inside tmux, where markdown-styled links are not
