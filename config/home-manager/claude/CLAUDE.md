@@ -124,6 +124,27 @@ this flow — never a repo-provided `/pr` skill or slash command:
    Run `gh` from the main checkout, not a secondary workspace. On no, stop —
    leave the bookmark local.
 
+## Stacked PRs
+
+To stack one PR on another: rebase the child commit onto the parent PR's
+bookmark (`jj rebase -s <child> -d <parent-bookmark>`), push, point the child
+PR's base at the parent's branch (`gh pr edit <child> --base <parent-branch>`),
+then register the stack on GitHub:
+
+```
+gh stack link <bottom-pr> ... <top-pr>   # PR numbers, bottom to top
+```
+
+- `gh stack link` is the jj-friendly mode: no local tracking state, and
+  append-only — it never removes PRs from a stack. To restructure or insert
+  below the bottom, `gh stack unstack` and re-link.
+- On repos whose trunk is `master` it may warn
+  `failed to update base branch ... to main: HTTP 422` — harmless; every base
+  stays as set.
+- The local subcommands (`gh stack view`, navigation) need a checked-out git
+  branch, which jj doesn't leave — they fail with "not on any branch"; the
+  stack still exists on GitHub.
+
 ## Go builds
 
 Use `go build -o /dev/null ./...` (or the specific package path) instead of
