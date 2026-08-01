@@ -1,18 +1,30 @@
 #!/bin/sh
 # Claude Code statusLine — jj-centric.
-# Format: ws:<name> <id> [bookmark] <desc...> +N-M ↑K [⚠ conflict|(empty)] | model ctx:X%
+# Format: ws:<name> [cwd:<dir>] <id> [bookmark] <desc...> +N-M ↑K [⚠ conflict|(empty)] | model ctx:X%
 input=$(cat)
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
-
-# Run jj from the session's live cwd, not the launch dir: sessions started in
-# the default workspace often operate on a different jj workspace entirely.
+session_id=$(echo "$input" | jq -r '.session_id // empty')
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
-if [ -n "$current_dir" ] && [ -d "$current_dir" ]; then
-    cd "$current_dir" 2>/dev/null
+
+# /workspace pins the session's declared jj workspace (root path, one line, in
+# the pin file — see commands/workspace.md). The shell cwd drifts (gh runs
+# from the main checkout), so jj info renders from the pin when one exists,
+# with a cwd marker when the shell is elsewhere.
+pin_root=""
+if [ -n "$session_id" ] && [ -f "$HOME/.claude/jj-workspace-pins/$session_id" ]; then
+    pin_root=$(head -n1 "$HOME/.claude/jj-workspace-pins/$session_id")
+    [ -d "$pin_root" ] || pin_root=""
 fi
 
-# Color escapes (printf-interpreted).
+# Run jj from the pinned root, else the session's live cwd — sessions started
+# in the default workspace often operate on a different jj workspace entirely.
+dir="${pin_root:-$current_dir}"
+if [ -n "$dir" ] && [ -d "$dir" ]; then
+    cd "$dir" 2>/dev/null
+fi
+
+# Color escapes (printf %b-interpreted).
 C_RESET='\033[0m'
 C_DIM='\033[90m'
 C_GREEN='\033[32m'
@@ -25,10 +37,34 @@ C_BOLD_GREEN='\033[1;32m'
 
 parts=""
 
+ws_root=$(jj --no-pager --ignore-working-copy workspace root 2>/dev/null)
+
+# Every jj read below uses --ignore-working-copy, so plain file edits don't
+# show up (+N-M, description, (empty)) until something snapshots. Refresh via
+# a rate-limited background snapshot — the next render picks it up. Snapshot
+# stderr is kept: a working copy rewritten from another workspace can't
+# snapshot until `jj workspace update-stale`, which deserves a marker rather
+# than a silently frozen statusline.
+if [ -n "$ws_root" ]; then
+    snap_dir="$HOME/.claude/cache"
+    snap_key=$(printf '%s' "$ws_root" | cksum | cut -d' ' -f1)
+    snap_marker="$snap_dir/jj-snapshot-$snap_key"
+    snap_err="$snap_dir/jj-snapshot-$snap_key.err"
+    mkdir -p "$snap_dir"
+    now=$(date +%s)
+    last=$(stat -c %Y "$snap_marker" 2>/dev/null || echo 0)
+    if [ $((now - last)) -ge 15 ]; then
+        touch "$snap_marker"
+        (jj --no-pager util snapshot >/dev/null 2>"$snap_err.tmp"; mv -f "$snap_err.tmp" "$snap_err") &
+    fi
+    if [ -s "$snap_err" ] && grep -qi 'stale' "$snap_err" 2>/dev/null; then
+        parts="${parts}${C_BOLD_RED}⚠ needs update-stale${C_RESET} "
+    fi
+fi
+
 # Workspace segment, only in multi-workspace repos. Name is resolved by
 # matching `jj workspace root` against the list — the directory basename is
 # not reliable (workspace ttfb lives in baseten-ttfb).
-ws_root=$(jj --no-pager --ignore-working-copy workspace root 2>/dev/null)
 if [ -n "$ws_root" ]; then
     ws_list=$(jj --no-pager --ignore-working-copy workspace list \
         -T 'self.name() ++ "\t" ++ self.root() ++ "\n"' 2>/dev/null)
@@ -39,6 +75,14 @@ if [ -n "$ws_root" ]; then
     fi
 fi
 
+# Drift marker: pinned, but the shell cwd is off the pinned root.
+if [ -n "$pin_root" ] && [ -n "$current_dir" ]; then
+    case "$current_dir/" in
+    "$pin_root"/*) ;;
+    *) parts="${parts}${C_YELLOW}cwd:$(basename "$current_dir")${C_RESET} " ;;
+    esac
+fi
+
 # One jj call: id\tdesc\tbookmarks\tconflict\tempty
 jj_info=$(jj --no-pager --ignore-working-copy log -r @ --no-graph \
     -T 'change_id.shortest(8) ++ "\t" ++ description.first_line() ++ "\t" ++ bookmarks.map(|b| b.name()).join(",") ++ "\t" ++ if(conflict, "1", "0") ++ "\t" ++ if(empty, "1", "0")' \
@@ -46,7 +90,9 @@ jj_info=$(jj --no-pager --ignore-working-copy log -r @ --no-graph \
 
 if [ -n "$jj_info" ]; then
     change=$(printf '%s' "$jj_info" | cut -f1)
-    desc=$(printf '%s' "$jj_info" | cut -f2)
+    # Strip backslashes: the trailing printf renders with %b, which would
+    # otherwise interpret them as escapes.
+    desc=$(printf '%s' "$jj_info" | cut -f2 | tr -d '\\')
     bookmarks=$(printf '%s' "$jj_info" | cut -f3)
     is_conflict=$(printf '%s' "$jj_info" | cut -f4)
     is_empty=$(printf '%s' "$jj_info" | cut -f5)
@@ -95,11 +141,13 @@ if [ -n "$model" ]; then
 fi
 if [ -n "$used" ]; then
     used_int=$(printf '%.0f' "$used")
-    tail="${tail} ${C_DIM}ctx:${used_int}%%${C_RESET}"
+    tail="${tail} ${C_DIM}ctx:${used_int}%${C_RESET}"
 fi
 
 if [ -n "$tail" ]; then
     parts="${parts} ${C_DIM}|${C_RESET}${tail}"
 fi
 
-printf "${parts}\n"
+# %b interprets the color escapes but not stray % in descriptions (a bare
+# printf "$parts" would treat the whole line as a format string).
+printf '%b\n' "$parts"

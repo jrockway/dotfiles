@@ -242,6 +242,7 @@ in
     ".claude/statusline-command.sh".source = ./claude/statusline-command.sh;
     ".claude/jj-workspace-hook.sh".source = ./claude/jj-workspace-hook.sh;
     ".claude/commands/workspace.md".source = ./claude/commands/workspace.md;
+    ".claude/commands/workspace-tab.md".source = ./claude/commands/workspace-tab.md;
     ".ca" = {
       source = ./ca;
       recursive = true;
