@@ -48,6 +48,11 @@ before any `jj new` / `jj edit` / `jj squash`; `@` is often already positioned
 on the target commit. Default to editing in place; don't move the working copy
 unasked.
 
+Create bookmarks only once the commit has real content in it, never on a
+freshly-described empty shell — the bookmark marks a PR-able unit of work.
+Describe up front, write the code, verify, then
+`jj bookmark create june/<slug> -r @`.
+
 ## Baseten monorepo jj workspaces
 
 The monorepo's default workspace is `/workspace`; sessions usually start there
@@ -62,7 +67,27 @@ ad-hoc path (June kept losing those):
 jj -R /workspace workspace add --name <name> -r <base> ~/monorepo-workspaces/<name>
 ```
 
-June points a session at a workspace with the `/workspace <name>` command.
+June points a session at a workspace with the `/workspace <name>` command. That
+command pins the session by writing the workspace root to
+`~/.claude/jj-workspace-pins/<session-id>`; the statusline and per-prompt hook
+render from the pin, so a yellow `cwd:` marker means the shell has drifted from
+the pinned workspace — cd back. The statusline runs a background `jj util
+snapshot` so Edit/Write changes show up in its `+N-M` counts, and shows a
+bold-red `⚠ needs update-stale` when the workspace has gone stale.
+
+Workspace staleness traps (jj operations in one workspace — fetch, `workspace
+forget`, rewriting a parent commit — leave sibling workspaces stale):
+
+- `jj workspace update-stale` in a workspace holding **un-snapshotted** edits
+  makes the change divergent (`xxxx/1` vs `xxxx/2`, bookmark shows `??`) and
+  may park `@` on the twin without the edits, so the work looks lost.
+  Recovery: `jj diff --from <sha1> --to <sha2> --stat` to find the twin with
+  the work, `jj edit <good>`, `jj abandon <bad>`. Prevention: run `jj st` in a
+  workspace after every editing burst there, and especially before rewriting
+  its parent from another workspace.
+- After a `workspace forget` or other cleanup, update-stale can park the
+  default workspace's `@` on a fresh empty commit instead of its WIP commit.
+  Run `jj workspace list`, verify default's `@`, and `jj edit` back if needed.
 
 ## Home Manager
 
@@ -179,13 +204,23 @@ Always wrap with `%w` so `errors.Is`/`errors.As` still work through the chain.
 
 Make all file changes with the Edit/Write tools, including appends. Never write
 file content via Bash (`cat >> file << 'EOF'` heredocs, `echo`/`printf`
-redirects, `sed -i`).
+redirects, `sed -i`). The sed temptation strikes on mechanical renames — that
+is exactly what Edit with `replace_all: true` is for (one call per file, still
+reviewable). A rename spanning many files is one Edit per file, never
+`sed`/`awk`/`perl -i`.
 
 ## tmux
 
 Never touch the default tmux server — no `tmux kill-server`; June's own sessions
 live there. Run any tmux sessions you need on a private socket
 (`tmux -L claude ...`) and kill only sessions you created, by name.
+
+To verify a TUI renders, run it under tmux on that private socket and capture
+the screen: `tmux -L claude new-session -d -s check '<cmd>'`, wait for the UI
+to settle, `tmux -L claude capture-pane -p -t check`, then kill the session by
+name. Do not use `script -qec` for this — it silently skips pty allocation
+when its own stdin isn't a terminal, so programs gating on a TTY never start
+their UI and the capture looks falsely empty.
 
 ## Speaking in public forums
 
@@ -199,3 +234,34 @@ not June. This does NOT apply to PR descriptions.
 June runs Claude Code inside tmux, where markdown-styled links are not
 clickable. Always output URLs as bare `https://` text, never as `[text](url)`
 markdown links.
+
+In Slack messages, separate a URL from any text appended after it with a
+space, never a newline — Slack's linkifier swallows a trailing newline into
+the link and breaks it. Keep `<url> (extra info)` on one line.
+
+Any notification requesting June's action (PushNotification, ready-to-merge
+pings, anomaly stops) must include the bare URL of the thing to act on — she
+acts from the ping, and without the link she has to go hunt for it.
+PushNotifications are one line under 200 chars: spend the characters on the
+URL, trim prose.
+
+## Scheduled jobs
+
+CronCreate interprets cron expressions in host-local America/New_York, not
+UTC. Convert UTC deadlines before pinning one-shot times (run `date` first;
+UTC−4 in summer, UTC−5 in winter). Interval-style expressions
+(`*/4 * * * *`) are timezone-independent and unaffected.
+
+## Timeouts
+
+June's favorite timeout value is 5 seconds. When adding a bounded timeout and
+she has supplied the judgment (or the choice is hers to make), default to 5s
+rather than inventing 2s/3s/10s values. When the measurement is yours to take,
+measure the real duration first and anchor ~10x on the right clock instead.
+
+## Hashing
+
+For content/comparison hashes (fingerprints, dedup, config hashes), use
+BLAKE2b-256 — in Go, `blake2b.Sum256` from `golang.org/x/crypto/blake2b` —
+never SHA-256 ("it's slow and it sucks"). Cryptographic-protocol contexts
+mandated by an external spec are the only exception.
