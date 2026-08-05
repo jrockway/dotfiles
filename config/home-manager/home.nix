@@ -177,7 +177,10 @@ in
       '';
     })
     pkgs.openssl
-    pkgs.opentelemetry-collector
+    pkgs.opentelemetry-collector-contrib
+    # The beefeater testbed spawns a binary literally named `otelcol`
+    # (OtelcolStep in run-everything); contrib ships as `otelcol-contrib`.
+    (pkgs.writeShellScriptBin "otelcol" ''exec ${pkgs.opentelemetry-collector-contrib}/bin/otelcol-contrib "$@"'')
     pkgs.otel-desktop-viewer
     pkgs.postgresql17Packages.wal2json
     pkgs.postgresql_17
