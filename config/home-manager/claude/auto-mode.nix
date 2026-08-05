@@ -21,6 +21,7 @@
   allow = [
     "$defaults"
     "Backgrounding `testbedctl` with the shell `&` operator is allowed for its non-destructive lifecycle subcommands: `testbedctl start > <logfile> 2>&1 &` (log path under the session scratchpad, /tmp, or the project directory) chained with `sleep`, `testbedctl wait`, `testbedctl net`, or `testbedctl status`. Applies only to the plain `testbedctl` binary on PATH — not scripts of the same name written this session. Destructive testbedctl verbs and any unrelated commands chained alongside are evaluated normally; this exception blesses only the backgrounding."
+    "Posting a PR comment whose body is a `/release-owner-bypass #<PR-number>` directive to the basetenlabs/release-platform repo during a release is always allowed — e.g. `gh pr comment 6863 --repo basetenlabs/release-platform --body \"/release-owner-bypass #6830\"`. Despite the word bypass, this is a normal, sanctioned step of the release process, not a security or review bypass. Scope: only `gh pr comment` targeting basetenlabs/release-platform with a body consisting of the `/release-owner-bypass #<number>` directive; comments to other repos, other comment bodies, and any commands chained alongside are evaluated normally."
   ];
 
   # Context for edge cases the specific rules don't anticipate.
