@@ -11,6 +11,10 @@
   hard_deny = [
     "$defaults"
     "Any invocation of the `git` CLI — directly (git status, git commit, git push, git fetch, etc.) or wrapped (`sh -c 'git ...'`, `env git ...`, `xargs git ...`, git anywhere in a pipeline or compound command). Version control on this machine is jj (jujutsu) only. NOT covered by this rule: `jj git push` / `jj git fetch` (those are jj subcommands) and the `gh` CLI."
+    # A glob push (june/net-*) once shipped several bookmarks June never meant
+    # to publish. Pushes must name each bookmark exactly; hard_deny because no
+    # transcript context ever makes a pattern push OK.
+    "Any `jj git push` that selects bookmarks by pattern instead of exact name — a `--bookmark` value with a `glob:` prefix or containing `*`/`?` wildcards (e.g. `jj git push --bookmark 'glob:june/net-*'` or `jj git push --bookmark june/net-*`), including wrapped or mid-pipeline forms. Bookmarks must be pushed by exact literal name, repeating `--bookmark <name>` once per bookmark. NOT covered by this rule: pushes that name every bookmark explicitly, which are evaluated normally."
   ];
 
   # The classifier's built-in background-operator caution prompts on every
