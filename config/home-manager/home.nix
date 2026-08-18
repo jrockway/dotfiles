@@ -93,6 +93,7 @@ in
     pkgs.hey
     pkgs.htop
     pkgs.hugo
+    pkgs.inetutils
     pkgs.iosevka-bin
     pkgs.iperf3
     pkgs.istioctl
