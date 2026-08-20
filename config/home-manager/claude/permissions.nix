@@ -58,6 +58,7 @@
     "Bash(grafana-server -v)"
     "Bash(ls -la /workspace 2>&1 | head -50)"
     "Bash(moon run beefeater:lint)"
+    "Bash(go/cdli/cdli.sh apps promote *)"
 
     # Reads
     "Read(//usr/bin/**)"
