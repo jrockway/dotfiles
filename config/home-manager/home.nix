@@ -80,7 +80,8 @@ in
     pkgs.git-crypt
     pkgs.gitFull
     pkgs.gnumake
-    pkgs.go
+    #pkgs.go
+    unstable.go_1_27
     pkgs.gopls
     pkgs.gotestsum
     pkgs.grafana
