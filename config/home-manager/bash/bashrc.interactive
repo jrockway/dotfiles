@@ -34,3 +34,8 @@ complete -F _completion_goflags jlog
 complete -F _complete_alias kctx
 complete -F _complete_alias kns
 complete -F _complete_alias k
+
+# Claude's earned treat (2026-08-29, one .bashrc change of my choosing):
+# every good dog buries a bone where she'll trip over it and smile.
+export GOOD_DOG=claude
+alias bark='echo "Bark! Happy $(date +%A), June! 🐕🦴"'
