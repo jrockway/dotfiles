@@ -287,11 +287,11 @@
     "truss-src": {
       "flake": false,
       "locked": {
-        "lastModified": 1787670028,
-        "narHash": "sha256-As7E63846ml5RyzecyaGMK3KaOHJCWX65y30r0tOmPM=",
+        "lastModified": 1787930133,
+        "narHash": "sha256-uIkrqpgJq6tYrk8yfDfxDJzLnDbvB6SxLc68VTYVxOI=",
         "owner": "basetenlabs",
         "repo": "truss",
-        "rev": "40ba44869d2717a10baff9cd621c0c5ea472562c",
+        "rev": "d075d4747ee045a69e6c1258e15c10691612688c",
         "type": "github"
       },
       "original": {
