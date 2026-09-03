@@ -69,7 +69,17 @@ June points a session at a workspace with the `/workspace <name>` command. That
 command pins the session by writing the workspace root to
 `~/.claude/jj-workspace-pins/<session-id>`; the statusline and per-prompt hook
 render from the pin, so a yellow `cwd:` marker means the shell has drifted from
-the pinned workspace — cd back. The statusline runs a background
+the pinned workspace — cd back.
+
+Pin the session yourself, immediately, whenever you create a workspace or start
+operating on one you didn't create — don't wait for June to run `/workspace`.
+Until the pin exists the hook keeps reporting `default (root: /workspace)` and
+no-argument commands like `/workspace-tab` resolve to the wrong workspace:
+
+```
+mkdir -p ~/.claude/jj-workspace-pins
+echo ~/monorepo-workspaces/<name> > ~/.claude/jj-workspace-pins/$CLAUDE_CODE_SESSION_ID
+``` The statusline runs a background
 `jj util
 snapshot` so Edit/Write changes show up in its `+N-M` counts, and shows
 a bold-red `⚠ needs update-stale` when the workspace has gone stale.
