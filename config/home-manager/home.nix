@@ -188,6 +188,7 @@ in
     pkgs.postgresql_17
     pkgs.procps
     pkgs.prometheus
+    pkgs.prometheus-nginxlog-exporter
     pkgs.prometheus-node-exporter
     unstable.proto
     pkgs.python314
