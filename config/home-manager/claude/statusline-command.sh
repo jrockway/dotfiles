@@ -4,6 +4,8 @@
 input=$(cat)
 model=$(echo "$input" | jq -r '.model.display_name // empty')
 used=$(echo "$input" | jq -r '.context_window.used_percentage // empty')
+effort=$(echo "$input" | jq -r '.effort.level // empty')
+fast=$(echo "$input" | jq -r '.fast_mode // false')
 session_id=$(echo "$input" | jq -r '.session_id // empty')
 current_dir=$(echo "$input" | jq -r '.workspace.current_dir // .cwd // empty')
 
@@ -24,18 +26,22 @@ if [ -n "$dir" ] && [ -d "$dir" ]; then
     cd "$dir" 2>/dev/null
 fi
 
-# Color escapes (printf %b-interpreted).
+# Color escapes (printf %b-interpreted). Fall 2026 palette, 256-color, picked
+# for the dark theme: plum for the workspace, pumpkin for anything that wants a
+# glance (model, cwd drift), gold for bookmarks, moss/maple for the diff, and
+# bold maple for the two states that need a fix now.
 C_RESET='\033[0m'
-C_DIM='\033[90m'
-C_GREEN='\033[32m'
-C_RED='\033[31m'
-C_YELLOW='\033[33m'
-C_CYAN='\033[36m'
-C_MAGENTA='\033[35m'
-C_BOLD_RED='\033[1;31m'
-C_BOLD_GREEN='\033[1;32m'
+C_DIM='\033[38;5;245m'
+C_PLUM='\033[38;5;139m'
+C_PUMPKIN='\033[38;5;208m'
+C_AMBER='\033[38;5;214m'
+C_GOLD='\033[38;5;178m'
+C_MOSS='\033[38;5;107m'
+C_MAPLE='\033[38;5;167m'
+C_BOLD_MAPLE='\033[1;38;5;160m'
+C_BOLD_PUMPKIN='\033[1;38;5;208m'
 
-parts=""
+parts="${C_DIM}🍂${C_RESET} "
 
 ws_root=$(jj --no-pager --ignore-working-copy workspace root 2>/dev/null)
 
@@ -58,7 +64,7 @@ if [ -n "$ws_root" ]; then
         (jj --no-pager util snapshot >/dev/null 2>"$snap_err.tmp"; mv -f "$snap_err.tmp" "$snap_err") &
     fi
     if [ -s "$snap_err" ] && grep -qi 'stale' "$snap_err" 2>/dev/null; then
-        parts="${parts}${C_BOLD_RED}⚠ needs update-stale${C_RESET} "
+        parts="${parts}${C_BOLD_MAPLE}⚠ needs update-stale${C_RESET} "
     fi
 fi
 
@@ -71,7 +77,7 @@ if [ -n "$ws_root" ]; then
     if [ "$(printf '%s\n' "$ws_list" | grep -c .)" -gt 1 ]; then
         ws_name=$(printf '%s\n' "$ws_list" |
             awk -F'\t' -v root="$ws_root" '$2 == root {print $1}')
-        parts="${parts}${C_MAGENTA}ws:${ws_name:-?}${C_RESET} "
+        parts="${parts}${C_PLUM}ws:${ws_name:-?}${C_RESET} "
     fi
 fi
 
@@ -79,7 +85,7 @@ fi
 if [ -n "$pin_root" ] && [ -n "$current_dir" ]; then
     case "$current_dir/" in
     "$pin_root"/*) ;;
-    *) parts="${parts}${C_YELLOW}cwd:$(basename "$current_dir")${C_RESET} " ;;
+    *) parts="${parts}${C_PUMPKIN}cwd:$(basename "$current_dir")${C_RESET} " ;;
     esac
 fi
 
@@ -100,11 +106,11 @@ if [ -n "$jj_info" ]; then
     parts="${parts}${C_DIM}${change}${C_RESET}"
 
     if [ -n "$bookmarks" ]; then
-        parts="${parts} ${C_CYAN}[${bookmarks}]${C_RESET}"
+        parts="${parts} ${C_GOLD}[${bookmarks}]${C_RESET}"
     fi
 
     if [ "$is_conflict" = "1" ]; then
-        parts="${parts} ${C_BOLD_RED}⚠ conflict${C_RESET}"
+        parts="${parts} ${C_BOLD_MAPLE}⚠ conflict${C_RESET}"
     fi
 
     if [ -n "$desc" ]; then
@@ -124,24 +130,32 @@ if [ -n "$jj_info" ]; then
         del=$(printf '%s' "$diff_stat" | grep -oE '[0-9]+ deletion' | grep -oE '[0-9]+')
         ins=${ins:-0}
         del=${del:-0}
-        parts="${parts} ${C_GREEN}+${ins}${C_RED}-${del}${C_RESET}"
+        parts="${parts} ${C_MOSS}+${ins}${C_MAPLE}-${del}${C_RESET}"
     fi
 
     # Commits ahead of master.
     ahead=$(jj --no-pager --ignore-working-copy log -r 'master..@' --no-graph -T '"x\n"' 2>/dev/null | wc -l | tr -d ' ')
     if [ -n "$ahead" ] && [ "$ahead" -gt 0 ]; then
-        parts="${parts} ${C_YELLOW}↑${ahead}${C_RESET}"
+        parts="${parts} ${C_AMBER}↑${ahead}${C_RESET}"
     fi
 fi
 
 # Model + ctx.
 tail=""
 if [ -n "$model" ]; then
-    tail="${tail} ${C_BOLD_GREEN}${model}${C_RESET}"
+    tail="${tail} ${C_BOLD_PUMPKIN}${model}${C_RESET}"
+    # Effort as a dim suffix, and a bolt when fast mode is on: both change what a
+    # turn costs and neither is visible anywhere else on screen.
+    [ -n "$effort" ] && tail="${tail}${C_DIM}·${effort}${C_RESET}"
+    [ "$fast" = "true" ] && tail="${tail} ${C_AMBER}⚡${C_RESET}"
 fi
 if [ -n "$used" ]; then
     used_int=$(printf '%.0f' "$used")
-    tail="${tail} ${C_DIM}ctx:${used_int}%${C_RESET}"
+    # The leaves turn as the context window fills: moss, then amber, then maple.
+    if [ "$used_int" -ge 90 ]; then ctx_color="$C_MAPLE"
+    elif [ "$used_int" -ge 70 ]; then ctx_color="$C_AMBER"
+    else ctx_color="$C_DIM"; fi
+    tail="${tail} ${ctx_color}ctx:${used_int}%${C_RESET}"
 fi
 
 if [ -n "$tail" ]; then

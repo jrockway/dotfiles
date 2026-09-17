@@ -1,5 +1,5 @@
 # Auto mode classifier customization, merged into ~/.claude/settings.json
-# alongside permissions.nix (see home.activation.claudeMergePermissions in
+# alongside permissions.nix (see home.activation.claudeMergeSettings in
 # home.nix).
 #
 # The deterministic `Bash(git *)` deny rule in permissions.nix already blocks

@@ -1,5 +1,5 @@
 # Global Claude Code permissions, merged into ~/.claude/settings.json on every
-# `hms` activation (see home.activation.claudeMergePermissions in home.nix).
+# `hms` activation (see home.activation.claudeMergeSettings in home.nix).
 #
 # Claude Code merges permission allow/deny/ask lists across all settings scopes,
 # so anything here applies to every project. This file is the source of truth for

@@ -13,11 +13,13 @@ let
   darwin = pkgs.stdenv.isDarwin;
   emacs = if darwin then pkgs.emacs else pkgs.emacs-nox;
 
-  # Global Claude Code permissions, generated to a JSON file and merged into the
-  # (mutable) ~/.claude/settings.json by home.activation.claudeMergePermissions.
-  claudePermissions = (pkgs.formats.json { }).generate "claude-permissions.json" {
+  # Global Claude Code settings that nix owns — permissions, auto-mode classifier
+  # rules, hooks, spinner — generated to a JSON file and merged into the
+  # (mutable) ~/.claude/settings.json by home.activation.claudeMergeSettings.
+  claudeSettings = (pkgs.formats.json { }).generate "claude-settings.json" {
     permissions = import ./claude/permissions.nix;
     autoMode = import ./claude/auto-mode.nix;
+    inherit (import ./claude/spinner.nix) spinnerVerbs spinnerTipsOverride;
     hooks = {
       # Tell Claude which jj workspace the session is operating on; sessions
       # start in /workspace (shared memory) but often work elsewhere.
@@ -255,20 +257,20 @@ in
     };
   };
 
-  # Merge the nix-managed global Claude permissions into ~/.claude/settings.json.
+  # Merge the nix-managed global Claude settings into ~/.claude/settings.json.
   # settings.json is deliberately left mutable (not a store symlink) so /model,
   # /fast and the theme toggle keep persisting; this only rewrites the keys in
-  # claudePermissions (permissions, autoMode, hooks) and preserves every other
-  # key.
-  home.activation.claudeMergePermissions = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
+  # claudeSettings (permissions, autoMode, hooks, spinnerVerbs,
+  # spinnerTipsOverride) and preserves every other key.
+  home.activation.claudeMergeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     settings="$HOME/.claude/settings.json"
     $DRY_RUN_CMD mkdir -p "$HOME/.claude"
     existing="$([ -f "$settings" ] && cat "$settings" || echo '{}')"
     tmp="$(mktemp)"
-    if printf '%s' "$existing" | ${pkgs.jq}/bin/jq -s '.[0] * .[1]' - ${claudePermissions} > "$tmp"; then
+    if printf '%s' "$existing" | ${pkgs.jq}/bin/jq -s '.[0] * .[1]' - ${claudeSettings} > "$tmp"; then
       $DRY_RUN_CMD mv $VERBOSE_ARG "$tmp" "$settings"
     else
-      echo "claudeMergePermissions: jq merge failed; leaving $settings unchanged" >&2
+      echo "claudeMergeSettings: jq merge failed; leaving $settings unchanged" >&2
       rm -f "$tmp"
     fi
   '';
