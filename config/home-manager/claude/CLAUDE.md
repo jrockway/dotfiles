@@ -218,6 +218,20 @@ Annotate errors at every return where context can be added — never a bare
 probes: %w", err)`.
 Always wrap with `%w` so `errors.Is`/`errors.As` still work through the chain.
 
+## Go tests
+
+In tests, pass `t.Context()` wherever a context is needed, never
+`context.Background()`, even when the neighboring tests in that file still use
+`context.Background()` (leave the neighbors alone unless asked). The one
+exception is cleanup: `t.Cleanup` runs after `t.Context()` is canceled, so
+cleanup work takes a bounded background context
+(`context.WithTimeout(context.Background(), 5*time.Second)`), never
+`t.Context()` and never an unbounded Background.
+
+Why: `t.Context()` is tied to the test's lifecycle, so leaked goroutines and
+hung calls fail the test instead of outliving it, while an unbounded Background
+in cleanup can hang the whole suite.
+
 ## tmux
 
 Never touch the default tmux server — no `tmux kill-server`; June's own sessions
