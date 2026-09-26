@@ -345,6 +345,8 @@ in
         h = "history";
         ec = "emacsclient -t";
         hms = "nh home switch";
+        # The org's per-session default (medium) beats effortLevel in settings.json; the flag beats both.
+        claude = "claude --effort xhigh";
       }
       // (
         if darwin then
