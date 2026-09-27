@@ -134,11 +134,13 @@ this flow — never a repo-provided `/pr` skill or slash command:
    ```
 
 5. **Search Linear for a relevant open ticket** assigned to the user (query by
-   keywords from the commit message). Use the ticket's `gitBranchName` field for
-   the bookmark name, or construct `june/<ticket-id>-<slug>`. If there is no
-   good match, ask June whether to create a new Linear ticket to track the work
-   (minimal ticket: title/status/assignee only). If one is created, use its
-   `gitBranchName`; if declined, construct `june/<slug>` with no ticket id.
+   keywords from the commit message). Name the bookmark
+   `june/<ticket-id>-<slug>` with a short slug of your own (e.g.
+   `june/net-1308-activator-h2c`), not the ticket's `gitBranchName`, which is
+   `junerockway/<id>-<the whole title>`. If there is no good match, ask June
+   whether to create a new Linear ticket to track the work (minimal ticket:
+   title/status/assignee only); if declined, construct `june/<slug>` with no
+   ticket id.
 
 6. **Create bookmark**:
    ```
