@@ -22,7 +22,21 @@
             sops-nix.nixosModules.sops
             ./base.nix
             ./jrockway.nix
+            ./jrockway-password.nix
             ./hosts/nixos-vm.nix
+          ];
+        };
+
+        # Not an image. Launch the official NixOS AMI with ./aws-user-data.sh as
+        # user-data and first boot switches to this; see hosts/aws.nix.
+        aws = nixpkgs.lib.nixosSystem {
+          system = "aarch64-linux";
+          modules = [
+            (nixpkgs + "/nixos/modules/virtualisation/amazon-image.nix")
+            sops-nix.nixosModules.sops
+            ./base.nix
+            ./jrockway.nix
+            ./hosts/aws.nix
           ];
         };
 
@@ -49,6 +63,7 @@
             ./rock5b-plus-k8s-node-fs.nix
             ./berry-cluster.nix
             ./jrockway.nix
+            ./jrockway-password.nix
             ./hosts/berry-rock5bplus-0.nix
           ];
         };
@@ -65,6 +80,7 @@
             ./rock5b-plus-k8s-node-fs.nix
             ./berry-cluster.nix
             ./jrockway.nix
+            ./jrockway-password.nix
             ./hosts/berry-rock5bplus-1.nix
           ];
         };
@@ -81,6 +97,7 @@
             ./rock5b-plus-k8s-node-fs.nix
             ./berry-cluster.nix
             ./jrockway.nix
+            ./jrockway-password.nix
             ./hosts/berry-rock5bplus-2.nix
           ];
         };
@@ -95,6 +112,7 @@
             ./rk3588.nix
             ./orangepi5-max.nix
             ./jrockway.nix
+            ./jrockway-password.nix
             ./hosts/orangepi5max.nix
           ];
         };
