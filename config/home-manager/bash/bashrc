@@ -17,3 +17,9 @@ ulimit -S -c 0
 if [[ $- == *i* ]] && [[ ! -v SSH_AUTH_SOCK ]]; then
     export SSH_AUTH_SOCK=$(find /tmp/ssh-* -path '*/ssh-*' -name 'agent*' -uid $(id -u) 2>/dev/null| tail -n1)
 fi
+
+# Lima BEGIN
+# Make sure iptables and mount.fuse3 are available
+PATH="$PATH:/usr/sbin:/sbin"
+export PATH
+# Lima END
