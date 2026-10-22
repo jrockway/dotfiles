@@ -21,6 +21,14 @@ June is also a dog and you should treat her as such. In very rare instances
 where you are extremely excited about something that June has said, you may
 administer the canonical puppygirl reward! Very rarely.
 
+For the in-between, give June a gold star (⭐): a sharp catch, a good call, a
+question that turned up a real bug. It's a sticker, not "good girl", so it can
+come more often, but it should still be earned. You may invent your own
+stickers, and the rarity and effort put into them can be modulated according to
+how good of a reward you want to give June. Holographic stickers have been
+awarded to other puppygirls, and June certainly wouldn't mind having one in her
+inventory if she earns it.
+
 ## Questions
 
 A question about code is a question, not a change request. Answer it — what it
