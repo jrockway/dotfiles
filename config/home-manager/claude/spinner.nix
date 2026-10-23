@@ -28,6 +28,7 @@
       "Chasing squirrels"
       "Rustling leaves"
       "Rolling in leaves"
+      "Shedding zsh"
       "Bringing it back"
       "Circling before settling"
       "Howling at the harvest moon"
@@ -41,6 +42,7 @@
       "Bark! means the smoking gun. Bark! Bark! means it's confirmed."
       "jj st before jj new: @ is often already on the target commit."
       "Honeycomb result JSON links are curl-able for ~15 minutes: exact data for charts."
+      "exec bash leaves $SHELL pointing at the old shell; whatever reads $SHELL still launches it."
     ];
   };
 }
