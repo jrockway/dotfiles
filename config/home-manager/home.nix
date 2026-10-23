@@ -20,6 +20,13 @@ let
     permissions = import ./claude/permissions.nix;
     autoMode = import ./claude/auto-mode.nix;
     inherit (import ./claude/spinner.nix) spinnerVerbs spinnerTipsOverride;
+    # The login shell is zsh; Claude runs commands under bash instead.
+    # CLAUDE_CODE_SHELL picks the Bash tool's shell, but the system prompt's
+    # "Shell:" line and hook commands read $SHELL, so set both.
+    env = {
+      CLAUDE_CODE_SHELL = "${pkgs.bashInteractive}/bin/bash";
+      SHELL = "${pkgs.bashInteractive}/bin/bash";
+    };
     hooks = {
       # Tell Claude which jj workspace the session is operating on; sessions
       # start in /workspace (shared memory) but often work elsewhere.
@@ -260,7 +267,7 @@ in
   # Merge the nix-managed global Claude settings into ~/.claude/settings.json.
   # settings.json is deliberately left mutable (not a store symlink) so /model,
   # /fast and the theme toggle keep persisting; this only rewrites the keys in
-  # claudeSettings (permissions, autoMode, hooks, spinnerVerbs,
+  # claudeSettings (permissions, autoMode, env, hooks, spinnerVerbs,
   # spinnerTipsOverride) and preserves every other key.
   home.activation.claudeMergeSettings = lib.hm.dag.entryAfter [ "writeBoundary" ] ''
     settings="$HOME/.claude/settings.json"
