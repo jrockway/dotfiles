@@ -279,7 +279,15 @@ in
     "jj/config.toml".source = ./jj/config.toml;
     "kitty".source = ./kitty;
     "git".source = ./git;
-  };
+  }
+  // (
+    if darwin then
+      {
+        "lima/devbox.yaml".source = ./lima/devbox.yaml;
+      }
+    else
+      { }
+  );
 
   home.sessionVariables = {
     EDITOR = pkgs.lib.getBin (

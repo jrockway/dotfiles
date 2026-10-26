@@ -1,0 +1,122 @@
+# devbox: Linux dev VM replacing the Docker Desktop devcontainer (2026-10-13).
+# Create:  limactl create --name devbox ~/.config/lima/devbox.yaml
+# Shell:   limactl shell devbox     Copy: limactl cp devbox:/path ~/dest  (or via /Users/jrockway inside the VM)
+# Ports listened on in the guest are forwarded to localhost on the Mac automatically.
+base: template:debian-13
+vmType: vz
+cpus: 10
+memory: 24GiB
+disk: 300GiB
+vmOpts:
+  vz:
+    rosetta:
+      enabled: true
+      binfmt: true
+mountType: virtiofs
+mounts:
+  - location: "~"
+    writable: true
+  - location: /tmp/lima
+    writable: true
+user:
+  name: jrockway
+  home: /home/jrockway
+ssh:
+  forwardAgent: true
+containerd:
+  system: false
+  user: false
+provision:
+  # Base packages: the codespace image's common-debian list plus its build deps.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      if dpkg -s zstd fzf libhdf5-dev >/dev/null 2>&1; then echo 'base packages already installed'; exit 0; fi
+      apt-get update
+      apt-get install -y --no-install-recommends \
+        apt-utils openssh-client gnupg2 dirmngr iproute2 procps lsof htop net-tools psmisc \
+        curl wget rsync ca-certificates unzip zip less jq lsb-release apt-transport-https \
+        locales sudo ncdu man-db strace manpages manpages-dev zsh git git-lfs zstd \
+        build-essential libssl-dev zlib1g-dev libbz2-dev libreadline-dev libsqlite3-dev \
+        llvm python-is-python3 libncursesw5-dev xz-utils tk-dev libxml2-dev libxmlsec1-dev \
+        libffi-dev liblzma-dev libpq-dev protobuf-compiler libprotobuf-dev python3-dev libhdf5-dev \
+        postgresql-client fzf vim tmux
+      # GUI/e2e deps from the codespace image; names drift between releases, so best effort.
+      apt-get install -y --no-install-recommends \
+        libgtk2.0-0 libgtk-3-0 libgbm-dev libnotify-dev libnss3 libxss1 libasound2 libxtst6 xauth xvfb \
+        || echo "WARNING: optional GUI deps failed; continuing"
+      sed -i 's/^# *en_US.UTF-8 UTF-8/en_US.UTF-8 UTF-8/' /etc/locale.gen && locale-gen
+  # Docker CE, native under systemd.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      if command -v docker >/dev/null && systemctl is-active --quiet docker; then echo 'docker already installed'; exit 0; fi
+      install -m 0755 -d /etc/apt/keyrings
+      curl -fsSL https://download.docker.com/linux/debian/gpg -o /etc/apt/keyrings/docker.asc
+      echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/debian $(. /etc/os-release && echo "$VERSION_CODENAME") stable" \
+        > /etc/apt/sources.list.d/docker.list
+      apt-get update
+      apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+      ln -sfn /usr/libexec/docker/cli-plugins/docker-compose /usr/local/bin/docker-compose
+      usermod -aG docker {{.User}}
+      systemctl enable --now docker
+  # Toolchain the codespace image installs system-wide (versions from docker/codespace).
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      if [ -x /usr/local/go/bin/go ] && [ -x /usr/local/bin/skaffold ] && [ -x /usr/local/bin/gh ]; then echo 'toolchain already installed'; exit 0; fi
+      arch=$(dpkg --print-architecture)   # arm64
+      cd /tmp
+      GO_VERSION=1.27.0
+      curl -fsSL -o go.tar.gz "https://go.dev/dl/go${GO_VERSION}.linux-${arch}.tar.gz"
+      rm -rf /usr/local/go && tar -C /usr/local -xzf go.tar.gz && rm go.tar.gz
+      curl -fsSL "https://github.com/moby/buildkit/releases/download/v0.14.0/buildkit-v0.14.0.linux-${arch}.tar.gz" | tar -xzf - -C /usr/local bin/buildctl
+      crane_arch=$(echo "$arch" | sed 's/amd64/x86_64/')
+      curl -fsSL "https://github.com/google/go-containerregistry/releases/download/v0.20.7/go-containerregistry_Linux_${crane_arch}.tar.gz" | tar -xzf - -C /usr/local/bin crane
+      curl -fsSL -o /usr/local/bin/kubectl "https://dl.k8s.io/release/v1.37.0/bin/linux/${arch}/kubectl" && chmod 0755 /usr/local/bin/kubectl
+      curl -fsSL "https://get.helm.sh/helm-v3.14.1-linux-${arch}.tar.gz" | tar -xzf - -C /tmp "linux-${arch}/helm" && install -m0755 "/tmp/linux-${arch}/helm" /usr/local/bin/helm
+      proto_arch=$([ "$arch" = arm64 ] && echo aarch64 || echo x86_64)
+      curl -fsSL -o proto.tar.xz "https://github.com/moonrepo/proto/releases/download/v0.60.2/proto_cli-${proto_arch}-unknown-linux-musl.tar.xz"
+      mkdir -p /tmp/proto && tar -xJf proto.tar.xz -C /tmp/proto --strip-components=1
+      install -m0755 /tmp/proto/proto /tmp/proto/proto-shim /usr/local/bin/ && rm -rf proto.tar.xz /tmp/proto
+      curl -fsSL "https://github.com/cli/cli/releases/download/v2.69.0/gh_2.69.0_linux_${arch}.tar.gz" | tar -xzf - -C /usr/local/bin --strip-components=2 "gh_2.69.0_linux_${arch}/bin/gh"
+      curl -fsSL "https://github.com/oasdiff/oasdiff/releases/download/v1.11.1/oasdiff_1.11.1_linux_${arch}.tar.gz" | tar -xzf - -C /usr/local/bin oasdiff
+      curl -fsSL "https://github.com/helmfile/helmfile/releases/download/v0.169.2/helmfile_0.169.2_linux_${arch}.tar.gz" | tar -xzf - -C /usr/local/bin helmfile
+      curl -fsSL -o /usr/local/bin/skaffold "https://storage.googleapis.com/skaffold/releases/v2.12.0/skaffold-linux-${arch}" && chmod 0755 /usr/local/bin/skaffold
+      /usr/local/go/bin/go version; kubectl version --client; helm version --short; proto --version; gh --version | head -1
+  # Redis 7.4 pinned like baseten-user.sh; fall back to Debian's package.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      export DEBIAN_FRONTEND=noninteractive
+      if command -v redis-server >/dev/null; then echo 'redis already installed'; exit 0; fi
+      curl -fsSL https://packages.redis.io/gpg | gpg --dearmor -o /usr/share/keyrings/redis-archive-keyring.gpg
+      echo "deb [signed-by=/usr/share/keyrings/redis-archive-keyring.gpg] https://packages.redis.io/deb trixie main" > /etc/apt/sources.list.d/redis.list
+      apt-get update
+      apt-get install -y redis-server=6:7.4.8-1rl1~trixie1 redis-tools=6:7.4.8-1rl1~trixie1 \
+        || { rm -f /etc/apt/sources.list.d/redis.list; apt-get update; apt-get install -y redis-server; echo "WARNING: pinned redis unavailable, used Debian's"; }
+      systemctl disable --now redis-server || true
+  # Paths the restore expects: /nix and /workspace owned by the user, /home/vscode compat link for jj.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      mkdir -p /nix /workspace
+      chown "$(id -u {{.User}}):$(id -g {{.User}})" /nix /workspace
+      ln -sfn /home/jrockway /home/vscode
+      echo 'Defaults env_keep += "SSH_AUTH_SOCK"' > /etc/sudoers.d/ssh-agent
+  # Cap the /tmp tmpfs at 8G (systemd's default is 50% of RAM): leaked test dirs otherwise eat memory until the VM OOMs.
+  - mode: system
+    script: |
+      #!/bin/bash
+      set -eux -o pipefail
+      mkdir -p /etc/systemd/system/tmp.mount.d
+      printf '[Mount]\nOptions=mode=1777,strictatime,nosuid,nodev,size=8G,nr_inodes=1m\n' > /etc/systemd/system/tmp.mount.d/size.conf
+      systemctl daemon-reload
+      mount -o remount,size=8G /tmp
