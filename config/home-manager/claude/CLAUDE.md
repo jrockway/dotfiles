@@ -308,6 +308,10 @@ comments, Slack messages, Linear comments — prefix the message with "Bark! Thi
 is Claude speaking --" or similar, so readers know it's Claude and not June.
 This does NOT apply to PR descriptions.
 
+Never post in customer-facing channels (Slack Connect `#ext-*` threads, shared
+customer channels, Pylon) — June writes everything customers read herself. Post
+findings to the internal thread and offer her a draft at most.
+
 ## Links in responses
 
 June runs Claude Code inside tmux, where markdown-styled links are not
