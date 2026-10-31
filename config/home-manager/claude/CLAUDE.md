@@ -398,6 +398,11 @@ import it. Staging (`mcp__grafana-staging__*`) is writable, and June's `june` fo
 default destination. Staging has no prod per-cluster datasources, so prod-datasource dashboards are authored for
 prod. Table panels over Prometheus instant queries need a `merge` transformation first or they render empty.
 
+## Kubernetes contexts
+
+June's kube context names are the cluster names, so `--context <cluster>` (`--context ali-apse8-prod-1`) always
+works. Write it inline in kubectl and flux commands for her, never a `CTX` variable or "your apse8 context".
+
 ## Customer-scoped infra config
 
 - Enabling something for one customer in release-platform or flux-cd goes on that customer's own clusters first,
