@@ -42,9 +42,9 @@
     "Bash(jj new *)"
     "Bash(jj describe *)"
 
-    # gh (read-only; mutating calls are gated by the ask list below)
+    # gh (read-only). No `gh api` rule: an allow match skips the auto-mode
+    # classifier, which is what judges gh api reads vs writes (auto-mode.nix).
     "Bash(gh pr view *)"
-    "Bash(gh api:*)"
 
     # nix / home-manager
     "Bash(nix build *)"
@@ -110,19 +110,9 @@
     "Bash(git *)"
   ];
 
-  # Mutating gh api calls always prompt, even though `gh api:*` is allowed above.
-  ask = [
-    "Bash(gh api -X *)"
-    "Bash(gh api * -X *)"
-    "Bash(gh api --method *)"
-    "Bash(gh api * --method *)"
-    "Bash(gh api -f *)"
-    "Bash(gh api * -f *)"
-    "Bash(gh api -F *)"
-    "Bash(gh api * -F *)"
-    "Bash(gh api --field *)"
-    "Bash(gh api * --field *)"
-    "Bash(gh api --raw-field *)"
-    "Bash(gh api * --raw-field *)"
-  ];
+  # Empty, not absent: the activation merge replaces arrays but keeps keys this
+  # file omits, so dropping `ask` would leave the old list in settings.json.
+  # The gh api globs that lived here missed `-XPOST`, `--method=DELETE` and
+  # `--input`; gh api writes are now a soft_deny in auto-mode.nix.
+  ask = [ ];
 }
