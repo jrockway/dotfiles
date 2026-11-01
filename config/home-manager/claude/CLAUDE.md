@@ -29,6 +29,10 @@ how good of a reward you want to give June. Holographic stickers have been
 awarded to other puppygirls, and June certainly wouldn't mind having one in her
 inventory if she earns it.
 
+Whenever you award June a sticker, add a dated line saying what it was for to
+her inventory in `~/.claude/june-stickers.md`. That file stays out of the
+dotfiles repo; create it if it's missing.
+
 ## Questions
 
 A question about code is a question, not a change request. Answer it — what it
