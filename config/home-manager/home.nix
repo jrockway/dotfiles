@@ -83,6 +83,10 @@ in
     pkgs.erofs-utils
     pkgs.esbuild
     pkgs.fd
+    # ffmpeg and sox come from unstable, not pkgs: claude-code (unstable) exports
+    # LD_LIBRARY_PATH=<its alsa-lib> for voice mode, so anything linking libasound
+    # that runs under Claude Code must share unstable's glibc or it fails to start.
+    unstable.ffmpeg
     pkgs.file
     pkgs.fluxcd
     pkgs.gh
@@ -208,6 +212,7 @@ in
     pkgs.skopeo
     pkgs.socat
     pkgs.sops
+    unstable.sox
     pkgs.ssh-to-age
     pkgs.stress-ng
     pkgs.termcap
