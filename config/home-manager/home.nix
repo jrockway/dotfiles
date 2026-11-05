@@ -134,6 +134,7 @@ in
     pkgs.mitmproxy
     # pkgs.moon
     pkgs.mqttui
+    pkgs.mtr
     pkgs.ncurses
     pkgs.nginxMainline
     pkgs.nix-output-monitor
