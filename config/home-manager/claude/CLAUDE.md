@@ -111,17 +111,17 @@ operating on one you didn't create — don't wait for June to run `/workspace`.
 Until the pin exists the hook keeps reporting `default (root: /workspace)` and
 no-argument commands like `/workspace-tab` resolve to the wrong workspace:
 
-````
+```
 mkdir -p ~/.claude/jj-workspace-pins
 echo ~/monorepo-workspaces/<name> > ~/.claude/jj-workspace-pins/$CLAUDE_CODE_SESSION_ID
-``` The statusline runs a background
-`jj util
-snapshot` so Edit/Write changes show up in its `+N-M` counts, and shows
-a bold-red `⚠ needs update-stale` when the workspace has gone stale.
+```
+
+The statusline runs a background `jj util snapshot` so Edit/Write changes show
+up in its `+N-M` counts, and shows a bold-red `⚠ needs update-stale` when the
+workspace has gone stale.
 
 Workspace staleness traps (jj operations in one workspace — fetch,
-`workspace
-forget`, rewriting a parent commit — leave sibling workspaces stale):
+`workspace forget`, rewriting a parent commit — leave sibling workspaces stale):
 
 - `jj workspace update-stale` in a workspace holding **un-snapshotted** edits
   makes the change divergent (`xxxx/1` vs `xxxx/2`, bookmark shows `??`) and may
@@ -150,68 +150,60 @@ this flow — never a repo-provided `/pr` skill or slash command:
    is master, do nothing further.
 
 2. **If not directly on master**, create a new commit on master:
-````
-
-jj new master --no-edit
-
-```
-Note the new change ID (e.g. `lxwrxttm`).
+   ```
+   jj new master --no-edit
+   ```
+   Note the new change ID (e.g. `lxwrxttm`).
 
 3. **Move changes from `@` into the new commit** (omitting anything
-private/internal):
-```
-
-jj squash --from @ --into <new_change_id>
-
-```
-Use `jj squash --from @ --into <id> -- <paths>` to select specific files if
-needed.
+   private/internal):
+   ```
+   jj squash --from @ --into <new_change_id>
+   ```
+   Use `jj squash --from @ --into <id> -- <paths>` to select specific files if
+   needed.
 
 4. **Set description** (verify it was copied by jj squash):
-```
+   ```
+   jj describe -r <new_change_id> -m "<message>"
+   ```
 
-jj describe -r <new_change_id> -m "<message>"
-
-```
 5. **Search Linear for a relevant open ticket** assigned to the user (query by
-keywords from the commit message). Name the bookmark
-`june/<ticket-id>-<slug>` with a short slug of your own (e.g.
-`june/net-1308-activator-h2c`), not the ticket's `gitBranchName`, which is
-`junerockway/<id>-<the whole title>`. If there is no good match, ask June
-whether to create a new Linear ticket to track the work (minimal ticket:
-title/status/assignee only); if declined, construct `june/<slug>` with no
-ticket id.
+   keywords from the commit message). Name the bookmark
+   `june/<ticket-id>-<slug>` with a short slug of your own (e.g.
+   `june/net-1308-activator-h2c`), not the ticket's `gitBranchName`, which is
+   `junerockway/<id>-<the whole title>`. If there is no good match, ask June
+   whether to create a new Linear ticket to track the work (minimal ticket:
+   title/status/assignee only); if declined, construct `june/<slug>` with no
+   ticket id.
 
 6. **Create bookmark**:
-```
+   ```
+   jj bookmark create june/<ticket-slug> -r <new_change_id>
+   ```
 
-jj bookmark create june/<ticket-slug> -r <new_change_id>
-
-```
 7. **Rebase `@` onto its original parent AND the new PR commit**:
-```
+   ```
+   jj rebase -r @ -d <original_parent_change_id> -d <new_change_id>
+   ```
 
-jj rebase -r @ -d <original_parent_change_id> -d <new_change_id>
-
-```
 8. Run tests/lint/vet; make sure that CI is going to pass, and run tests that
-might not exist in CI, like testbed tests. Stop and ask if tests are passing,
-don't fix without user confirmation.
+   might not exist in CI, like testbed tests. Stop and ask if tests are passing,
+   don't fix without user confirmation.
 
 9. **Ask June yes/draft/no about pushing to GitHub** (AskUserQuestion). On yes
-or draft:
-```
-
-jj git push --bookmark june/<ticket-slug> gh pr create --head june/<ticket-slug>
---base master [--draft]
-
-```
-Run `gh` from the main checkout, not a secondary workspace, and do it in a subshell —
-`(cd /workspace && gh ...)` — because a bare `cd` persists across Bash calls and silently reroutes every later
-`jj` command at the default workspace (it once overwrote June's WIP description there). On no, stop —
-leave the bookmark local. If you have received clear instructions from June
-about the desired disposition in advance, you may follow it without
-prompting.
+   or draft:
+   ```
+   jj git push --bookmark june/<ticket-slug>
+   gh pr create --head june/<ticket-slug> --base master [--draft]
+   ```
+   Run `gh` from the main checkout, not a secondary workspace, and do it in a
+   subshell — `(cd /workspace && gh ...)` — because a bare `cd` persists across
+   Bash calls and silently reroutes every later `jj` command at the default
+   workspace (it once overwrote June's WIP description there). On no, stop —
+   leave the bookmark local. If you have received clear instructions from June
+   about the desired disposition in advance, you may follow it without
+   prompting.
 
 10. At the end of all of this, send a push notification about the current state.
 
@@ -221,11 +213,11 @@ To stack one PR on another: rebase the child commit onto the parent PR's
 bookmark (`jj rebase -s <child> -d <parent-bookmark>`), push, point the child
 PR's base at the parent's branch (`gh pr edit <child> --base <parent-branch>`),
 then register the stack on GitHub:
-```
-
-gh stack link <bottom-pr> ... <top-pr> # PR numbers, bottom to top
 
 ```
+gh stack link <bottom-pr> ... <top-pr>   # PR numbers, bottom to top
+```
+
 - `gh stack link` is the jj-friendly mode: no local tracking state, and
   append-only — it never removes PRs from a stack. To restructure or insert
   below the bottom, `gh stack unstack` and re-link.
@@ -423,4 +415,3 @@ works. Write it inline in kubectl and flux commands for her, never a `CTX` varia
   (`WorkloadPlaneConcurrencyMetricsPublishIntervalMs`); no "throughout this doc, X refers to…" aliases. New
   config fields are top-level and grouped next to their siblings in the Go `Config` struct and in helm
   `values.yaml`, not tucked into a new substruct.
-```
